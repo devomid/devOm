@@ -18,6 +18,7 @@ function App() {
   const { scrollYProgress } = useScroll({
     target: homeRef,
     offset: ['start start', 'end end'],
+    layoutEffect: false,
   })
 
   return (

@@ -38,7 +38,7 @@ const NavBar = ({ scrollProgress }) => {
     const navbarOpacity = useTransform(
         scrollProgress,
         [0.20, 0.25],
-        [0.68, 1],
+        [1, 0.01],
     )
 
     const navbarBlur = useTransform(
