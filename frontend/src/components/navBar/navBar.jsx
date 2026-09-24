@@ -1,10 +1,70 @@
-import { Box } from '@mui/material';
-import { glass, layout, } from '../../design';
+import { Box, Typography } from '@mui/material'
+import { Link, useLocation } from 'react-router-dom'
+import {
+    motion,
+    useMotionTemplate,
+    useTransform,
+} from 'framer-motion'
 
-const NavBar = () => {
+import { glass, layout } from '../../design'
+
+const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'What I build', path: '/whatibuild' },
+    { label: 'Works', path: '/works' },
+    { label: 'How I build', path: '/howibuild' },
+    { label: 'Contacts', path: '/contacts' },
+]
+
+const MotionBox = motion(Box)
+
+const NavBar = ({ scrollProgress }) => {
+    const location = useLocation()
+
+    /*
+     * Home is 500vh.
+     * The actual scrollable distance is 400vh.
+     *
+     * Therefore:
+     *
+     * 0.00 → 0.25 = Hero transition
+     *
+     * We only want the navbar to start changing when
+     * roughly 80% of that transition has happened.
+     *
+     * 0.20 → 0.25 = final 20% of Hero transition.
+     */
+
+    const navbarOpacity = useTransform(
+        scrollProgress,
+        [0.20, 0.25],
+        [0.68, 1],
+    )
+
+    const navbarBlur = useTransform(
+        scrollProgress,
+        [0.20, 0.25],
+        [28, 44],
+    )
+
+    const navbarBackground = useTransform(
+        navbarOpacity,
+        (opacity) => `rgba(25, 255, 255, ${opacity})`,
+    )
+
+    const navbarBackdropFilter = useMotionTemplate`
+        blur(${navbarBlur}px)
+        saturate(170%)
+    `
+
     return (
-        <Box
+        <MotionBox
             component="nav"
+            style={{
+                background: navbarBackground,
+                backdropFilter: navbarBackdropFilter,
+                WebkitBackdropFilter: navbarBackdropFilter,
+            }}
             sx={{
                 position: 'fixed',
                 top: 0,
@@ -12,20 +72,62 @@ const NavBar = () => {
                 width: '100%',
                 maxWidth: layout.container.maxWidth,
                 height: layout.header.heightDesktop,
-                background: glass.floating.background,
-                backdropFilter: glass.floating.backdropFilter,
-                WebkitBackdropFilter: glass.floating.backdropFilter,
                 borderBottom: glass.floating.border,
                 boxShadow: glass.floating.shadow,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
+                gap: 7,
                 zIndex: 1000,
             }}
         >
-            navbar
-        </Box>
-    );
-};
+            {navItems.map((item) => {
+                const isActive = location.pathname === item.path
 
-export default NavBar;
+                return (
+                    <Box
+                        key={item.path}
+                        component={Link}
+                        to={item.path}
+                        sx={{
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '100%',
+                            textDecoration: 'none',
+                            color: 'inherit',
+                        }}
+                    >
+                        <Typography>
+                            {item.label}
+                        </Typography>
+
+                        {isActive && (
+                            <Box
+                                component={motion.div}
+                                layoutId="nav-indicator"
+                                sx={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    height: '4px',
+                                    backgroundColor: 'red',
+                                    borderRadius: '999px',
+                                }}
+                                transition={{
+                                    type: 'spring',
+                                    stiffness: 500,
+                                    damping: 28,
+                                    mass: 0.7,
+                                }}
+                            />
+                        )}
+                    </Box>
+                )
+            })}
+        </MotionBox>
+    )
+}
+
+export default NavBar

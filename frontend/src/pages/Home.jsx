@@ -1,13 +1,16 @@
 import { Box } from '@mui/material'
+import { Link } from 'react-router-dom'
+
 import HeroSection from '../components/homeComps/HeroSection'
 import WhatIBuild from './WhatIBuild'
 import HowIBuild from './HowIBuild'
 import Works from './Works'
 import Contacts from './Contacts'
 
-const Home = () => {
+const Home = ({ homeRef }) => {
     return (
         <Box
+            ref={homeRef}
             sx={{
                 position: 'relative',
                 height: '500vh',
@@ -23,42 +26,66 @@ const Home = () => {
             >
                 <HeroSection />
             </Box>
+
             <Box
+                component={Link}
+                to="/what-i-build"
                 sx={{
                     position: 'sticky',
                     top: 0,
                     height: '100vh',
                     overflow: 'hidden',
+                    display: 'block',
+                    textDecoration: 'none',
+                    color: 'inherit',
                 }}
             >
                 <WhatIBuild />
             </Box>
+
             <Box
+                component={Link}
+                to="/works"
                 sx={{
                     position: 'sticky',
                     top: 0,
                     height: '100vh',
                     overflow: 'hidden',
+                    display: 'block',
+                    textDecoration: 'none',
+                    color: 'inherit',
                 }}
             >
                 <Works />
             </Box>
+
             <Box
+                component={Link}
+                to="/how-i-build"
                 sx={{
                     position: 'sticky',
                     top: 0,
                     height: '100vh',
                     overflow: 'hidden',
+                    display: 'block',
+                    textDecoration: 'none',
+                    color: 'inherit',
                 }}
             >
                 <HowIBuild />
             </Box>
+
             <Box
+                component={Link}
+                to="/contact"
                 sx={{
                     position: 'sticky',
                     top: 0,
                     height: '100vh',
                     overflow: 'hidden',
+                    display: 'block',
+                    textDecoration: 'none',
+                    color: 'inherit',
                 }}
             >
                 <Contacts />
