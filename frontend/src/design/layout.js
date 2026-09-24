@@ -7,8 +7,8 @@ export const layout = {
     },
 
     header: {
-        heightMobile: "64px",
-        heightDesktop: "80px",
+        heightMobile: "54px",
+        heightDesktop: "60px",
     },
 
     section: {
