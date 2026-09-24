@@ -29,7 +29,7 @@ const Home = ({ homeRef }) => {
 
             <Box
                 component={Link}
-                to="/what-i-build"
+                to="/whatibuild"
                 sx={{
                     position: 'sticky',
                     top: 0,
@@ -61,7 +61,7 @@ const Home = ({ homeRef }) => {
 
             <Box
                 component={Link}
-                to="/how-i-build"
+                to="/howibuild"
                 sx={{
                     position: 'sticky',
                     top: 0,
@@ -77,7 +77,7 @@ const Home = ({ homeRef }) => {
 
             <Box
                 component={Link}
-                to="/contact"
+                to="/contacts"
                 sx={{
                     position: 'sticky',
                     top: 0,
