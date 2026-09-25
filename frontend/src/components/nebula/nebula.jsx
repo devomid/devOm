@@ -546,7 +546,48 @@ const velocityFlowFragmentShader = `
             breakupZ;
 
             /*
- * ------------------------------------------------
+
+
+            float textFlowMultiplier = 1.0;
+
+if (
+    uTextEnabled > 0.5 &&
+    metadata.z < 0.5
+) {
+    float formationProgress =
+        smoothstep(
+            0.35,
+            4.0,
+            uTime
+        );
+
+    textFlowMultiplier =
+        mix(
+            0.015,
+            0.30,
+            formationProgress
+        );
+}
+
+velocity.x +=
+    flowX *
+    0.00105 *
+    particleSpeed *
+    textFlowMultiplier;
+
+velocity.y +=
+    flowY *
+    0.00105 *
+    particleSpeed *
+    textFlowMultiplier;
+
+velocity.z +=
+    flowZ *
+    0.00105 *
+    particleSpeed *
+    textFlowMultiplier;
+
+     * ------------------------------------------------
  * TEXT FORMATION MOTION CONTROL
  * ------------------------------------------------
  *
@@ -558,18 +599,13 @@ const velocityFlowFragmentShader = `
  * smear into a second copy of the glyph.
  * ------------------------------------------------
  */
-
-float textFormationDamping = 1.0;
-
-if (uTextEnabled > 0.5) {
-
     /*
-     * ====================================================
+    * ====================================================
      * EXACT PARTICLE POPULATION
      * ====================================================
      *
      * metadata.z:
-     *
+    *
      *     0.0 = text particle
      *     1.0 = free particle
      *
@@ -577,6 +613,7 @@ if (uTextEnabled > 0.5) {
      * hash, threshold, or phase-derived selection.
      */
 
+    if (uTextEnabled > 0.5) {
     float textParticle =
         1.0 -
         step(
