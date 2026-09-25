@@ -2,14 +2,18 @@ import { Box, Typography } from '@mui/material'
 import { Link, useLocation } from 'react-router-dom'
 import {
     motion,
-    LayoutGroup,
     animate,
     useMotionTemplate,
     useMotionValue,
     useTransform,
     useMotionValueEvent,
 } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import {
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react'
 
 import {
     colors,
@@ -32,6 +36,8 @@ const navItems = [
 const MotionBox = motion(Box)
 const MotionTypography = motion(Typography)
 
+const NAVBAR_END_PROGRESS = 0.25
+
 const getHomeSection = (progress) => {
     if (progress < 0.2) return 0
     if (progress < 0.4) return 1
@@ -41,38 +47,42 @@ const getHomeSection = (progress) => {
     return 4
 }
 
-const NAVBAR_END_PROGRESS = 0.25
-
 const NavBar = ({ scrollProgress }) => {
     const location = useLocation()
 
     const isHome = location.pathname === '/'
 
-    /*
-     * This MotionValue controls ONLY the navbar's visual state.
-     *
-     * On Home:
-     *     it follows the real Home scroll.
-     *
-     * On standalone pages:
-     *     it animates to the end-of-Home state.
-     */
     const navbarProgress = useMotionValue(
         isHome
             ? scrollProgress.get()
             : NAVBAR_END_PROGRESS,
     )
 
-    const [homeSection, setHomeSection] = useState(() =>
-        getHomeSection(scrollProgress.get()),
+    const [homeSection, setHomeSection] = useState(
+        () =>
+            isHome
+                ? getHomeSection(
+                    scrollProgress.get(),
+                )
+                : 4,
     )
 
+    const navRef = useRef(null)
+    const itemRefs = useRef([])
+
+    const indicatorX = useMotionValue(0)
+    const indicatorWidth = useMotionValue(0)
+
+    const activeIndex = isHome
+        ? homeSection
+        : navItems.findIndex(
+            (item) =>
+                item.path ===
+                location.pathname,
+        )
+
     /*
-     * Home scroll controls navbar visual state while Home
-     * is actually mounted.
-     *
-     * Direct MotionValue updates avoid React renders on every
-     * scroll frame.
+     * Home scroll controls the navbar directly.
      */
     useMotionValueEvent(
         scrollProgress,
@@ -81,50 +91,33 @@ const NavBar = ({ scrollProgress }) => {
             if (!isHome) return
 
             navbarProgress.set(latest)
-        },
-    )
-
-    /*
-     * The active Home section is discrete state, so React
-     * only renders when crossing one of the five section
-     * boundaries.
-     */
-    useMotionValueEvent(
-        scrollProgress,
-        'change',
-        (latest) => {
-            if (!isHome) return
 
             const nextSection =
                 getHomeSection(latest)
 
             setHomeSection(
-                (currentSection) =>
-                    currentSection ===
-                        nextSection
-                        ? currentSection
+                (current) =>
+                    current === nextSection
+                        ? current
                         : nextSection,
             )
         },
     )
 
     /*
-     * Route changes control the navbar's visual destination.
+     * Route transitions.
      *
-     * Standalone pages always use the visual state that
-     * represents the END of Home's navbar transition.
+     * Home -> standalone:
+     * smoothly finish the navbar's transition
+     * into its compact state.
      *
-     * Home uses whatever scroll position Home currently has.
+     * Standalone -> Home:
+     * Home starts from its real top state.
      */
     useEffect(() => {
         if (isHome) {
-            animate(
-                navbarProgress,
+            navbarProgress.set(
                 scrollProgress.get(),
-                {
-                    duration: 0.28,
-                    ease: [0.22, 1, 0.36, 1],
-                },
             )
 
             return
@@ -134,8 +127,8 @@ const NavBar = ({ scrollProgress }) => {
             navbarProgress,
             NAVBAR_END_PROGRESS,
             {
-                duration: 0.32,
-                ease: [0.22, 1, 0.36, 1],
+                duration: 0.55,
+                ease: [0.16, 1, 0.3, 1],
             },
         )
     }, [
@@ -145,15 +138,114 @@ const NavBar = ({ scrollProgress }) => {
         scrollProgress,
     ])
 
-    const activeIndex =
-        isHome
-            ? homeSection
-            : navItems.findIndex(
-                (item) =>
-                    item.path ===
-                    location.pathname,
-            )
+    /*
+     * Calculate the indicator's actual position
+     * from the rendered navigation item.
+     */
+    const updateIndicator = () => {
+        const nav = navRef.current
+        const item =
+            itemRefs.current[activeIndex]
 
+        if (!nav || !item) return
+
+        const navRect =
+            nav.getBoundingClientRect()
+
+        const itemRect =
+            item.getBoundingClientRect()
+
+        indicatorX.set(
+            itemRect.left -
+            navRect.left,
+        )
+
+        indicatorWidth.set(
+            itemRect.width,
+        )
+    }
+
+    /*
+     * Keep the indicator synchronized with navbar
+     * geometry while the navbar itself is transforming.
+     */
+    useLayoutEffect(() => {
+        updateIndicator()
+
+        const nav = navRef.current
+
+        if (!nav) return
+
+        const observer =
+            new ResizeObserver(() => {
+                updateIndicator()
+            })
+
+        observer.observe(nav)
+
+        itemRefs.current.forEach((item) => {
+            if (item) {
+                observer.observe(item)
+            }
+        })
+
+        return () => {
+            observer.disconnect()
+        }
+    }, [
+        activeIndex,
+        isHome,
+        location.pathname,
+    ])
+
+    /*
+     * Animate the red indicator between navigation
+     * items.
+     *
+     * There is only ONE indicator in the DOM.
+     * No layoutId means no jump/remount.
+     */
+    useEffect(() => {
+        const nav = navRef.current
+        const item =
+            itemRefs.current[activeIndex]
+
+        if (!nav || !item) return
+
+        const navRect =
+            nav.getBoundingClientRect()
+
+        const itemRect =
+            item.getBoundingClientRect()
+
+        animate(
+            indicatorX,
+            itemRect.left -
+                navRect.left,
+            {
+                duration: 0.42,
+                ease: [0.16, 1, 0.3, 1],
+            },
+        )
+
+        animate(
+            indicatorWidth,
+            itemRect.width,
+            {
+                duration: 0.42,
+                ease: [0.16, 1, 0.3, 1],
+            },
+        )
+    }, [
+        activeIndex,
+        location.pathname,
+        indicatorX,
+        indicatorWidth,
+    ])
+
+    /*
+     * Navbar visual state.
+     */
     const navbarOpacity = useTransform(
         navbarProgress,
         [0, NAVBAR_END_PROGRESS],
@@ -163,29 +255,22 @@ const NavBar = ({ scrollProgress }) => {
         ],
     )
 
-    const navbarBlur = useTransform(
-        navbarProgress,
-        [0, NAVBAR_END_PROGRESS],
-        [28, 32],
-    )
-
-    const navbarSaturate = useTransform(
-        navbarProgress,
-        [0, NAVBAR_END_PROGRESS],
-        [170, 160],
-    )
-
     const navbarBackground = useTransform(
         navbarOpacity,
         (opacity) =>
-            `rgba(0, 0, 0, ${opacity})`,
+            `rgba(0, 0, 0, ${ opacity })`,
     )
 
+    /*
+     * Keep the expensive backdrop-filter stable.
+     * The navbar still moves smoothly because its
+     * geometry remains MotionValue driven.
+     */
     const navbarBackdropFilter =
         useMotionTemplate`
-            blur(${navbarBlur}px)
-            saturate(${navbarSaturate}%)
-        `
+blur(30px)
+saturate(165 %)
+    `
 
     const navbarHeight = useTransform(
         navbarProgress,
@@ -250,166 +335,148 @@ const NavBar = ({ scrollProgress }) => {
         ],
     )
 
-    const navFontWeight =
-        typography.weight.medium
-
     return (
-        <LayoutGroup id="devom-navbar">
+        <MotionBox
+            ref={navRef}
+            component="nav"
+            style={{
+                background:
+                    navbarBackground,
+
+                backdropFilter:
+                    navbarBackdropFilter,
+
+                WebkitBackdropFilter:
+                    navbarBackdropFilter,
+
+                top: navbarTop,
+                left: navbarSide,
+                right: navbarSide,
+
+                height: navbarHeight,
+
+                borderRadius:
+                    navbarRadius,
+
+                gap: navbarGap,
+            }}
+            sx={{
+                position: 'fixed',
+
+                width: 'auto',
+
+                maxWidth:
+                    layout.container.maxWidth,
+
+                borderBottom:
+                    glass.floating.border,
+
+                boxShadow:
+                    glass.floating.shadow,
+
+                display: 'flex',
+
+                justifyContent:
+                    'center',
+
+                alignItems: 'center',
+
+                boxSizing: 'border-box',
+
+                marginInline: 'auto',
+
+                color:
+                    colors.text.primary,
+
+                zIndex: 1000,
+            }}
+        >
+            {navItems.map(
+                (item, index) => (
+                    <Box
+                        key={item.path}
+                        ref={(element) => {
+                            itemRefs.current[
+                                index
+                            ] = element
+                        }}
+                        component={Link}
+                        to={item.path}
+                        sx={{
+                            position: 'relative',
+
+                            display: 'flex',
+
+                            alignItems:
+                                'center',
+
+                            height: '100%',
+
+                            textDecoration:
+                                'none',
+
+                            color: 'inherit',
+
+                            flexShrink: 0,
+                        }}
+                    >
+                        <MotionTypography
+                            style={{
+                                fontSize:
+                                    navFontSize,
+
+                                color:
+                                    navFontColor,
+                            }}
+                            sx={{
+                                fontFamily:
+                                    typography
+                                        .fontFamily
+                                        .sans,
+
+                                fontWeight:
+                                    typography
+                                        .weight
+                                        .medium,
+
+                                lineHeight:
+                                    typography
+                                        .lineHeight
+                                        .normal,
+
+                                whiteSpace:
+                                    'nowrap',
+                            }}
+                        >
+                            {item.label}
+                        </MotionTypography>
+                    </Box>
+                ),
+            )}
+
+            {/* One persistent red indicator. */}
             <MotionBox
-                component="nav"
                 style={{
-                    background:
-                        navbarBackground,
-
-                    backdropFilter:
-                        navbarBackdropFilter,
-
-                    WebkitBackdropFilter:
-                        navbarBackdropFilter,
-
-                    top: navbarTop,
-                    left: navbarSide,
-                    right: navbarSide,
-
-                    height: navbarHeight,
-
-                    borderRadius:
-                        navbarRadius,
-
-                    gap: navbarGap,
+                    x: indicatorX,
+                    width: indicatorWidth,
                 }}
                 sx={{
-                    position: 'fixed',
+                    position: 'absolute',
 
-                    width: 'auto',
-                    maxWidth:
-                        layout.container.maxWidth,
+                    left: 0,
+                    bottom: 0,
 
-                    borderBottom:
-                        glass.floating.border,
+                    height: '4px',
 
-                    boxShadow:
-                        glass.floating.shadow,
+                    backgroundColor: 'red',
 
-                    display: 'flex',
-                    justifyContent:
-                        'center',
-                    alignItems: 'center',
+                    borderRadius:
+                        radius.pill,
 
-                    boxSizing: 'border-box',
-
-                    marginInline: 'auto',
-
-                    color:
-                        colors.text.primary,
-
-                    zIndex: 1000,
+                    pointerEvents: 'none',
                 }}
-            >
-                {navItems.map(
-                    (item, index) => {
-                        const isActive =
-                            index ===
-                            activeIndex
-
-                        return (
-                            <Box
-                                key={item.path}
-                                component={Link}
-                                to={item.path}
-                                sx={{
-                                    position:
-                                        'relative',
-
-                                    display:
-                                        'flex',
-
-                                    alignItems:
-                                        'center',
-
-                                    height: '100%',
-
-                                    textDecoration:
-                                        'none',
-
-                                    color:
-                                        'inherit',
-
-                                    flexShrink: 0,
-                                }}
-                            >
-                                <MotionTypography
-                                    style={{
-                                        fontSize:
-                                            navFontSize,
-
-                                        color:
-                                            navFontColor,
-                                    }}
-                                    sx={{
-                                        fontFamily:
-                                            typography
-                                                .fontFamily
-                                                .sans,
-
-                                        fontWeight:
-                                            navFontWeight,
-
-                                        lineHeight:
-                                            typography
-                                                .lineHeight
-                                                .normal,
-
-                                        whiteSpace:
-                                            'nowrap',
-                                    }}
-                                >
-                                    {
-                                        item.label
-                                    }
-                                </MotionTypography>
-
-                                {isActive && (
-                                    <Box
-                                        component={
-                                            motion.div
-                                        }
-                                        layoutId="nav-indicator"
-                                        sx={{
-                                            position:
-                                                'absolute',
-
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-
-                                            height: '4px',
-
-                                            backgroundColor:
-                                                'red',
-
-                                            borderRadius:
-                                                radius.pill,
-                                        }}
-                                        transition={{
-                                            type: 'spring',
-
-                                            stiffness:
-                                                500,
-
-                                            damping:
-                                                28,
-
-                                            mass: 0.7,
-                                        }}
-                                    />
-                                )}
-                            </Box>
-                        )
-                    },
-                )}
-            </MotionBox>
-        </LayoutGroup>
+            />
+        </MotionBox>
     )
 }
 

@@ -14,28 +14,38 @@ import FourOFour from './pages/404'
 
 function App() {
   const homeRef = useRef(null)
-  const homeScrollProgress = useRef(motionValue(0))
+  const homeScrollProgress = useRef(
+    motionValue(0),
+  )
 
   const location = useLocation()
   const isHome = location.pathname === '/'
 
   useEffect(() => {
-    if (isHome) {
-      window.scrollTo(0, 0)
-      homeScrollProgress.current.set(0)
-    }
+    if (!isHome) return
+
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant',
+    })
+
+    homeScrollProgress.current.set(0)
   }, [isHome])
 
   return (
     <Box
       sx={{
         minHeight: '100svh',
-        backgroundColor: colors.background.primary,
+        backgroundColor:
+          colors.background.primary,
         color: colors.text.primary,
       }}
     >
       <NavBar
-        scrollProgress={homeScrollProgress.current}
+        scrollProgress={
+          homeScrollProgress.current
+        }
       />
 
       <Routes>
@@ -44,7 +54,9 @@ function App() {
           element={
             <Home
               homeRef={homeRef}
-              scrollProgress={homeScrollProgress.current}
+              scrollProgress={
+                homeScrollProgress.current
+              }
             />
           }
         />
