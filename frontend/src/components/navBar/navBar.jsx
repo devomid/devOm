@@ -6,7 +6,7 @@ import {
     useTransform,
     useMotionValueEvent,
 } from 'framer-motion'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import {
     colors,
@@ -41,11 +41,22 @@ const getHomeSection = (progress) => {
 const NavBar = ({ scrollProgress }) => {
     const location = useLocation()
 
+    /*
+     * Keep the current pathname in a ref so a stale scroll event
+     * from the Home MotionValue cannot change navigation state
+     * after Home has already unmounted.
+     */
+    const pathnameRef = useRef(location.pathname)
+    pathnameRef.current = location.pathname
+
     const [homeSection, setHomeSection] = useState(() =>
         getHomeSection(scrollProgress.get()),
     )
 
     useMotionValueEvent(scrollProgress, 'change', (latest) => {
+        // Home scroll must NEVER control the navbar on another route.
+        if (pathnameRef.current !== '/') return
+
         const nextSection = getHomeSection(latest)
 
         setHomeSection((currentSection) =>
@@ -59,8 +70,8 @@ const NavBar = ({ scrollProgress }) => {
         location.pathname === '/'
             ? homeSection
             : navItems.findIndex(
-                  (item) => item.path === location.pathname,
-              )
+                (item) => item.path === location.pathname,
+            )
 
     const navbarOpacity = useTransform(
         scrollProgress,

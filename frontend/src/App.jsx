@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useRef } from 'react'
 import { useScroll } from 'framer-motion'
 
@@ -10,16 +10,19 @@ import WhatIBuild from './pages/WhatIBuild'
 import Works from './pages/Works'
 import HowIBuild from './pages/HowIBuild'
 import Contacts from './pages/Contacts'
-import FourOFour from './pages/404';
+import FourOFour from './pages/404'
 
 function App() {
   const homeRef = useRef(null)
+  const location = useLocation()
 
   const { scrollYProgress } = useScroll({
     target: homeRef,
     offset: ['start start', 'end end'],
     layoutEffect: false,
   })
+
+  const isHome = location.pathname === '/'
 
   return (
     <Box
@@ -29,7 +32,10 @@ function App() {
         color: colors.text.primary,
       }}
     >
-      <NavBar scrollProgress={scrollYProgress} />
+      <NavBar
+        scrollProgress={scrollYProgress}
+        isHome={isHome}
+      />
 
       <Routes>
         <Route
