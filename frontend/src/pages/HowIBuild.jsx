@@ -1,12 +1,19 @@
 import { Box, Typography } from '@mui/material'
-import { colors, typography, spacing, radius, shadows, glass, layout, } from '../design';
+import {
+    colors,
+    typography,
+    spacing,
+    radius,
+    shadows,
+    glass,
+    layout,
+} from '../design'
 
 const HowIBuild = () => {
     return (
         <Box
             sx={{
                 minHeight: '100svh',
-                backgroundColor: colors.background.primary,
                 color: colors.text.primary,
             }}
         >

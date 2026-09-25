@@ -45,7 +45,6 @@ const Home = ({
                 height: '500vh',
             }}
         >
-            {/* Continuous nebula field */}
             <Box
                 sx={{
                     position: 'fixed',
@@ -62,7 +61,6 @@ const Home = ({
                 />
             </Box>
 
-            {/* Home content */}
             <Box
                 sx={{
                     position: 'relative',
