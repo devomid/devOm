@@ -546,21 +546,48 @@ const velocityFlowFragmentShader = `
 
             /*
  * ------------------------------------------------
- * TEXT PARTICLE MEMBERSHIP
+ * TEXT FORMATION MOTION CONTROL
+ * ------------------------------------------------
+ *
+ * The normal nebula flow should still influence
+ * the text, but much less while the typography
+ * is forming.
+ *
+ * Otherwise the same particles can visually
+ * smear into a second copy of the glyph.
  * ------------------------------------------------
  */
 
-            vec4 targetSample =
-    texture2D(
-        uTextTargetTexture,
-        vUv
-    );
+float textFormationDamping = 1.0;
 
-float isTextParticle =
-    targetSample.a;
+if (uTextEnabled > 0.5) {
+    vec4 formationMetadata =
+        texture2D(
+            uMetadataTexture,
+            vUv
+        );
 
-            /*
- 
+    float formationPersonality =
+        fract(
+            sin(
+                formationMetadata.x * 12.9898 +
+                78.233
+            ) *
+            43758.5453
+        );
+
+    /*
+     * Core text population:
+     * reduce free nebula motion substantially.
+     */
+    if (
+        formationPersonality <
+        0.54
+    ) {
+        textFormationDamping =
+            0.28;
+    }
+}
 
         /*
          * ------------------------------------------------
@@ -568,32 +595,23 @@ float isTextParticle =
          * ------------------------------------------------
          */
 
-       float flowDamping = 1.0;
-
-if (
-    uTextEnabled > 0.5 &&
-    isTextParticle > 0.5
-) {
-    flowDamping = 0.035;
-}
-
-velocity.x +=
+        velocity.x +=
     flowX *
     0.00105 *
     particleSpeed *
-    flowDamping;
+    textFormationDamping;
 
 velocity.y +=
     flowY *
     0.00105 *
     particleSpeed *
-    flowDamping;
+    textFormationDamping;
 
 velocity.z +=
     flowZ *
     0.00105 *
     particleSpeed *
-    flowDamping;
+    textFormationDamping;
 
         velocity.x *= 0.965;
         velocity.y *= 0.965;
@@ -662,28 +680,35 @@ velocity.z +=
              * This is intentionally much less dense than before.
              */
 
+            float textParticle =
+                1.0 -
+                smoothstep(
+                    0.60,
+                    0.72,
+                    personality
+                );
 
-float joiningParticle =
-    smoothstep(
-        0.68,
-        0.78,
-        personality
-    ) *
-    (
-        1.0 -
-        smoothstep(
-            0.78,
-            0.88,
-            personality
-        )
-    );
+            float joiningParticle =
+                smoothstep(
+                    0.72,
+                    0.82,
+                    personality
+                ) *
+                (
+                    1.0 -
+                    smoothstep(
+                        0.82,
+                        0.94,
+                        personality
+                    )
+                );
 
-float freeParticle =
-    smoothstep(
-        0.88,
-        1.0,
-        personality
-    );
+            float freeParticle =
+                smoothstep(
+                    0.91,
+                    1.0,
+                    personality
+                );
 
             /*
              * ====================================================
@@ -747,9 +772,20 @@ float freeParticle =
              */
 
             if (
-    uTextEnabled > 0.5 &&
-    isTextParticle > 0.5
-) {
+                freeParticle <
+                0.001
+            ) {
+
+                vec4 targetSample =
+                    texture2D(
+                        uTextTargetTexture,
+                        vUv
+                    );
+
+                if (
+                    targetSample.a >
+                    0.001
+                ) {
 
                     vec3 target =
                         targetSample.xyz;
@@ -835,7 +871,7 @@ float freeParticle =
                          */
 
                         float textWeight =
-    isTextParticle;
+                            textParticle;
 
                         textWeight *=
                             1.0 -
@@ -902,7 +938,42 @@ float freeParticle =
                             0.065 *
                             lockZone *
                             textWeight;
-                       
+
+                        /*
+                         * ====================================================
+                         * SUBTLE PARTICLE FLOAT
+                         * ====================================================
+                         */
+
+                        vec3 textFloat;
+
+                        textFloat.x =
+                            sin(
+                                target.y * 0.72 +
+                                uTime * 0.36 +
+                                phase * 1.07
+                            );
+
+                        textFloat.y =
+                            cos(
+                                target.x * 0.68 -
+                                uTime * 0.31 +
+                                phase * 0.93
+                            );
+
+                        textFloat.z =
+                            sin(
+                                target.x * 0.43 +
+                                target.y * 0.51 +
+                                uTime * 0.27 +
+                                phase * 0.71
+                            );
+
+                        velocity +=
+                            textFloat *
+                            0.000010 *
+                            lockZone *
+                            textWeight;
 
                         /*
                          * ====================================================
