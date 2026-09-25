@@ -47,6 +47,42 @@ const NavBar = ({ scrollProgress }) => {
         [28, 55],
     )
 
+    const navbarHeight = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [80, 52],
+    )
+
+    const navbarSide = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [0, 32],
+    )
+
+    const navbarTop = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [0, 24],
+    )
+
+    const navbarRadius = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [0, 28],
+    )
+
+    const navbarGap = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [28, 52],
+    )
+
+    const navFontSize = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [1, 0.2],
+    )
+
     const navbarBackground = useTransform(
         navbarOpacity,
         (opacity) => `rgba(25, 255, 255, ${opacity})`,
@@ -64,20 +100,22 @@ const NavBar = ({ scrollProgress }) => {
                 background: navbarBackground,
                 backdropFilter: navbarBackdropFilter,
                 WebkitBackdropFilter: navbarBackdropFilter,
+                gap: navbarGap,
+                top: navbarTop,
+                left: navbarSide,
+                right: navbarSide,
+                height: navbarHeight,
+                borderRadius: navbarRadius,
             }}
             sx={{
                 position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
+                width: 'auto',
                 maxWidth: layout.container.maxWidth,
-                height: layout.header.heightDesktop,
                 borderBottom: glass.floating.border,
                 boxShadow: glass.floating.shadow,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: 7,
                 zIndex: 1000,
             }}
         >
@@ -98,7 +136,10 @@ const NavBar = ({ scrollProgress }) => {
                             color: 'inherit',
                         }}
                     >
-                        <Typography>
+                        <Typography
+                            sx={{
+                                fontSize: navFontSize
+                            }} >
                             {item.label}
                         </Typography>
 
