@@ -1,7 +1,3 @@
-* {
-  box-sizing: border-box;
-}
-
 html,
 body {
   margin: 0;
@@ -9,5 +5,9 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #000;
+  background: #050403;
+}
+
+* {
+  box-sizing: border-box;
 }
