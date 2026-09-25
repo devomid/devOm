@@ -17,18 +17,6 @@ const createCircleTargetTexture = () => {
       4,
     )
 
-  /*
-   * Every particle gets a target.
-   *
-   * We map the particle's texture position around
-   * a continuous circle instead of using only the
-   * pixels belonging to a shape.
-   *
-   * This is deliberately simple for the first test.
-   * Once this works, we build the generalized target
-   * system for text, vortices, tendrils, etc.
-   */
-
   const centerX =
     0.5
 
@@ -63,12 +51,6 @@ const createCircleTargetTexture = () => {
           TEXTURE_SIZE - 1
         )
 
-      /*
-       * Convert the texture coordinate into an
-       * angular position around the circle.
-       *
-       * Every particle gets a location on the ring.
-       */
       const dx =
         normalizedX -
         centerX
@@ -83,9 +65,6 @@ const createCircleTargetTexture = () => {
           dx,
         )
 
-      /*
-       * Keep the angle in the 0 → 2PI range.
-       */
       if (
         angle < 0
       ) {
@@ -94,13 +73,6 @@ const createCircleTargetTexture = () => {
           2
       }
 
-      /*
-       * Use the texture radius to create controlled
-       * variation along the circle.
-       *
-       * This prevents the formation from becoming
-       * mathematically perfect.
-       */
       const radialNoise =
         Math.sin(
           textureX *
@@ -144,12 +116,6 @@ const createCircleTargetTexture = () => {
         ) *
         targetRadiusY
 
-      /*
-       * Give the circle real depth.
-       *
-       * The depth varies by particle instead of
-       * putting the entire formation on one plane.
-       */
       const depthNoise =
         Math.sin(
           textureX *
@@ -186,9 +152,10 @@ const createCircleTargetTexture = () => {
         worldZ
 
       /*
-       * Every particle participates.
+       * Every particle remains eligible to participate.
        *
-       * This is intentional for the first test.
+       * The shader now controls attachment dynamically,
+       * so particles can leave and later return.
        */
       data[
         textureIndex + 3

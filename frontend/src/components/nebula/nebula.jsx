@@ -569,37 +569,31 @@ const velocityFlowFragmentShader = `
         velocity.y *= 0.965;
         velocity.z *= 0.978;
 
-        /*
+                /*
          * ------------------------------------------------
-         * TEXT FORMATION
+         * ORGANIC TARGET FORMATION
          * ------------------------------------------------
          *
-         * Important:
+         * Strong, dense formation.
          *
-         * The text particles NEVER become static.
-         *
-         * We add a spring toward the target while retaining
-         * the original Nebula velocity and adding a small
-         * moving tangent force around the target.
-         *
-         * This makes the letters continuously breathe,
-         * crawl, break apart and reform.
-         * ------------------------------------------------
+         * Most particles stay attached to the target.
+         * Only a very small population occasionally
+         * peels away before returning naturally.
          */
 
         if (uTextEnabled > 0.5) {
-            vec4 textTarget =
+            vec4 targetSample =
                 texture2D(
                     uTextTargetTexture,
                     vUv
                 );
 
-            float textWeight =
-                textTarget.a;
+            float targetAvailable =
+                targetSample.a;
 
-            if (textWeight > 0.001) {
+            if (targetAvailable > 0.001) {
                 vec3 target =
-                    textTarget.xyz;
+                    targetSample.xyz;
 
                 vec3 toTarget =
                     target -
@@ -619,44 +613,144 @@ const velocityFlowFragmentShader = `
                         distanceToTarget;
 
                     /*
-                     * Strong enough to visibly pull the
-                     * existing Nebula into the letters.
+                     * ------------------------------------
+                     * STRONG PARTICLE MEMBERSHIP
+                     * ------------------------------------
+                     *
+                     * The majority of particles remain
+                     * part of the formation.
                      */
-                    float spring =
-                        0.00026 +
-                        min(
-                            distanceToTarget,
-                            8.0
-                        ) *
-                        0.000035;
+
+                    float attachmentWave =
+                        sin(
+                            phase * 1.73 +
+                            uTime * 0.34
+                        );
+
+                    float attachmentWave2 =
+                        sin(
+                            phase * 3.91 -
+                            uTime * 0.19
+                        );
+
+                    float attachmentNoise =
+                        attachmentWave * 0.82 +
+                        attachmentWave2 * 0.18;
+
+                    float attachment =
+                        smoothstep(
+                            -0.02,
+                            0.72,
+                            attachmentNoise
+                        );
+
+                    float personalVariation =
+                        0.93 +
+                        0.07 *
+                        sin(
+                            phase * 2.37 +
+                            1.7
+                        );
+
+                    attachment *=
+                        personalVariation;
 
                     /*
-                     * uTextStrength is intentionally used
-                     * as a simple multiplier.
+                     * ------------------------------------
+                     * DISTANCE PARTICIPATION
+                     * ------------------------------------
                      */
+
+                    float distanceInfluence =
+                        1.0 -
+                        smoothstep(
+                            4.0,
+                            10.0,
+                            distanceToTarget
+                        );
+
+                    float formationWeight =
+                        attachment *
+                        (
+                            0.72 +
+                            distanceInfluence * 0.28
+                        );
+
+                    /*
+                     * ------------------------------------
+                     * STRONG FORMATION SPRING
+                     * ------------------------------------
+                     */
+
+                    float springAcceleration =
+                        clamp(
+                            distanceToTarget *
+                            0.00112,
+                            0.00020,
+                            0.0088
+                        );
+
                     velocity +=
                         direction *
-                        spring *
+                        springAcceleration *
                         uTextStrength *
-                        textWeight;
+                        formationWeight;
 
                     /*
-                     * Moving organic disturbance around
-                     * the target.
+                     * ------------------------------------
+                     * RADIAL VELOCITY CONTROL
+                     * ------------------------------------
                      */
+
+                    float radialVelocity =
+                        dot(
+                            velocity,
+                            direction
+                        );
+
+                    float desiredRadialVelocity =
+                        clamp(
+                            distanceToTarget *
+                            0.00058,
+                            -0.0010,
+                            0.0048
+                        );
+
+                    float radialCorrection =
+                        (
+                            desiredRadialVelocity -
+                            radialVelocity
+                        ) *
+                        0.073;
+
+                    velocity +=
+                        direction *
+                        radialCorrection *
+                        uTextStrength *
+                        formationWeight;
+
+                    /*
+                     * ------------------------------------
+                     * ORGANIC INTERNAL MOTION
+                     * ------------------------------------
+                     *
+                     * Very subtle now. The structure should
+                     * breathe rather than visibly break apart.
+                     */
+
                     vec3 swirl;
 
                     swirl.x =
                         sin(
                             target.y * 0.85 +
-                            uTime * 0.70 +
+                            uTime * 0.62 +
                             phase
                         );
 
                     swirl.y =
                         cos(
                             target.x * 0.78 -
-                            uTime * 0.62 +
+                            uTime * 0.55 +
                             phase * 1.31
                         );
 
@@ -664,46 +758,113 @@ const velocityFlowFragmentShader = `
                         sin(
                             target.x * 0.55 +
                             target.y * 0.43 +
-                            uTime * 0.52 +
+                            uTime * 0.47 +
                             phase * 0.71
                         );
 
-                    /*
-                     * Only a subtle amount of swirl is
-                     * necessary. The original flow remains
-                     * dominant.
-                     */
                     velocity +=
                         swirl *
-                        0.000035 *
+                        0.000030 *
                         uTextStrength *
-                        textWeight;
+                        formationWeight;
 
                     /*
-                     * Near the target, remove only the
-                     * velocity component that points directly
-                     * away from the target.
+                     * ------------------------------------
+                     * VERY RARE ESCAPE
+                     * ------------------------------------
                      *
-                     * Tangential movement survives.
+                     * Only a tiny fraction of particles
+                     * occasionally escape.
                      */
-                    float radialVelocity =
-                        dot(
-                            velocity,
-                            direction
+
+                    float escapeWave =
+                        sin(
+                            phase * 2.91 +
+                            uTime * 0.43
                         );
 
+                    float escapeAmount =
+                        smoothstep(
+                            0.93,
+                            0.995,
+                            escapeWave
+                        );
+
+                    /*
+                     * Escapes are strongest near the target
+                     * so they read as particles peeling off
+                     * the structure rather than the entire
+                     * formation exploding.
+                     */
+
+                    float escapeProximity =
+                        1.0 -
+                        smoothstep(
+                            0.35,
+                            2.20,
+                            distanceToTarget
+                        );
+
+                    escapeAmount *=
+                        escapeProximity;
+
+                    vec3 escapeDirection =
+                        normalize(
+                            vec3(
+                                direction.x +
+                                sin(
+                                    phase +
+                                    uTime * 0.37
+                                ) *
+                                0.42,
+
+                                direction.y +
+                                cos(
+                                    phase * 1.37 -
+                                    uTime * 0.29
+                                ) *
+                                0.42,
+
+                                direction.z +
+                                sin(
+                                    phase * 0.71 +
+                                    uTime * 0.25
+                                ) *
+                                0.18
+                            )
+                        );
+
+                    velocity +=
+                        escapeDirection *
+                        escapeAmount *
+                        formationWeight *
+                        0.000070;
+
+                    /*
+                     * ------------------------------------
+                     * CLOSE-RANGE STABILITY
+                     * ------------------------------------
+                     *
+                     * Prevent particles that have reached
+                     * the shape from immediately flying back
+                     * out.
+                     */
+
                     if (
-                        radialVelocity >
-                        0.00055
+                        distanceToTarget <
+                        0.78
                     ) {
+                        float closeRadialVelocity =
+                            dot(
+                                velocity,
+                                direction
+                            );
+
                         velocity -=
                             direction *
-                            (
-                                radialVelocity -
-                                0.00055
-                            ) *
-                            0.42 *
-                            textWeight;
+                            closeRadialVelocity *
+                            0.060 *
+                            formationWeight;
                     }
                 }
             }
