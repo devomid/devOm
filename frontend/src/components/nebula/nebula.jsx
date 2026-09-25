@@ -19,12 +19,6 @@ const TEXTURE_CAPACITY =
 
 const PARTICLE_SPEED = 0.00105
 
-/*
- * ============================================================
- * PARTICLE RENDER SHADERS
- * ============================================================
- */
-
 const particleVertexShader = `
     attribute vec2 aParticleUv;
     attribute float aIntensity;
@@ -200,12 +194,6 @@ const particleFragmentShader = `
     }
 `
 
-/*
- * ============================================================
- * GPU SIMULATION
- * ============================================================
- */
-
 const simulationVertexShader = `
     varying vec2 vUv;
 
@@ -228,11 +216,6 @@ const velocityFlowFragmentShader = `
     uniform sampler2D uVelocityTexture;
     uniform sampler2D uMetadataTexture;
 
-    /*
-     * Optional text-attractor infrastructure.
-     *
-     * These remain disabled for the normal Nebula.
-     */
     uniform sampler2D uTextTargetTexture;
 
     uniform float uTime;
@@ -553,28 +536,24 @@ const velocityFlowFragmentShader = `
 
         /*
          * ------------------------------------------------
-         * CONTINUOUS MOTION
+         * NORMAL NEBULA MOTION
          * ------------------------------------------------
          */
 
         velocity.x +=
             flowX *
-            0.00105 *
+            PARTICLE_SPEED *
             particleSpeed;
 
         velocity.y +=
             flowY *
-            0.00105 *
+            PARTICLE_SPEED *
             particleSpeed;
 
         velocity.z +=
             flowZ *
-            0.00105 *
+            PARTICLE_SPEED *
             particleSpeed;
-
-        /*
-         * Same damping as the original Nebula.
-         */
 
         velocity.x *= 0.965;
         velocity.y *= 0.965;
@@ -582,19 +561,15 @@ const velocityFlowFragmentShader = `
 
         /*
          * ------------------------------------------------
-         * OPTIONAL TEXT ATTRACTOR
+         * TEXT ATTRACTOR
+         *
+         * This is a real spring/convergence force rather
+         * than a weak directional nudge.
+         *
+         * The normal Nebula remains active underneath it.
+         * Particles therefore form the words while still
+         * drifting, breaking away, and rejoining.
          * ------------------------------------------------
-         *
-         * This is intentionally applied AFTER the normal
-         * Nebula forces and damping.
-         *
-         * The target texture will later contain:
-         *
-         * RGB = target XYZ
-         * A   = particle participation
-         *
-         * A value of zero means the particle completely
-         * ignores the text.
          */
 
         if (uTextEnabled > 0.5) {
@@ -607,38 +582,94 @@ const velocityFlowFragmentShader = `
             float textWeight =
                 textTarget.a;
 
-            vec3 target =
-                textTarget.xyz;
+            if (textWeight > 0.001) {
+                vec3 target =
+                    textTarget.xyz;
 
-            vec3 toTarget =
-                target -
-                position;
+                vec3 toTarget =
+                    target -
+                    position;
 
-            float distanceToTarget =
-                length(
-                    toTarget
-                );
-
-            if (
-                textWeight > 0.0 &&
-                distanceToTarget > 0.0001
-            ) {
-                vec3 direction =
-                    toTarget /
-                    distanceToTarget;
-
-                float attraction =
-                    smoothstep(
-                        0.0,
-                        7.5,
-                        distanceToTarget
+                float distanceToTarget =
+                    length(
+                        toTarget
                     );
 
-                velocity +=
-                    direction *
-                    attraction *
-                    uTextStrength *
-                    textWeight;
+                if (
+                    distanceToTarget >
+                    0.0001
+                ) {
+                    vec3 direction =
+                        toTarget /
+                        distanceToTarget;
+
+                    /*
+                     * Strong at long range so particles
+                     * actually leave the cloud and travel
+                     * toward the text.
+                     */
+                    float longRange =
+                        smoothstep(
+                            0.0,
+                            11.0,
+                            distanceToTarget
+                        );
+
+                    /*
+                     * Spring gets stronger as the particle
+                     * approaches the target, preventing the
+                     * "fly past and never settle" behavior.
+                     */
+                    float spring =
+                        mix(
+                            0.00034,
+                            0.00016,
+                            smoothstep(
+                                0.0,
+                                3.0,
+                                distanceToTarget
+                            )
+                        );
+
+                    /*
+                     * Slightly stronger convergence when
+                     * the particle is very far away.
+                     */
+                    float convergence =
+                        (
+                            0.75 +
+                            longRange * 0.85
+                        ) *
+                        uTextStrength *
+                        textWeight;
+
+                    velocity +=
+                        direction *
+                        spring *
+                        convergence *
+                        (
+                            1.0 +
+                            distanceToTarget *
+                            0.055
+                        );
+
+                    /*
+                     * Damping near the target prevents
+                     * oscillation while preserving movement.
+                     */
+                    float targetDamping =
+                        1.0 -
+                        smoothstep(
+                            0.0,
+                            1.25,
+                            distanceToTarget
+                        ) *
+                        0.34 *
+                        textWeight;
+
+                    velocity *=
+                        targetDamping;
+                }
             }
         }
 
@@ -714,11 +745,6 @@ const containmentFragmentShader = `
             abs(position.z) /
             2.05;
 
-        /*
-         * Exact containment behavior from
-         * the original Nebula.
-         */
-
         if (edgeX > 0.82) {
             velocity.x +=
                 -sign(position.x) *
@@ -773,12 +799,6 @@ const initializeFragmentShader = `
     }
 `
 
-/*
- * ============================================================
- * FULLSCREEN SIMULATION GEOMETRY
- * ============================================================
- */
-
 const createSimulationQuad = (
     material,
 ) => {
@@ -788,24 +808,11 @@ const createSimulationQuad = (
             2,
         )
 
-    const mesh =
-        new THREE.Mesh(
-            geometry,
-            material,
-        )
-
-    return mesh
+    return new THREE.Mesh(
+        geometry,
+        material,
+    )
 }
-
-/*
- * ============================================================
- * PARTICLE DATA
- * ============================================================
- *
- * EXACT EXISTING PARTICLE INITIALIZATION.
- *
- * We do not create any additional particles for text.
- */
 
 const createParticleData = () => {
     const positions =
@@ -942,12 +949,6 @@ const createParticleData = () => {
     }
 }
 
-/*
- * ============================================================
- * TEXTURE CREATION
- * ============================================================
- */
-
 const createFloatTexture = (
     data,
 ) => {
@@ -1065,12 +1066,6 @@ const createInitialTextures = (
     }
 }
 
-/*
- * ============================================================
- * RENDER TARGET
- * ============================================================
- */
-
 const createStateTarget = () => {
     return new THREE.WebGLRenderTarget(
         TEXTURE_SIZE,
@@ -1106,12 +1101,6 @@ const createStateTarget = () => {
     )
 }
 
-/*
- * ============================================================
- * GPU NEBULA
- * ============================================================
- */
-
 const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
@@ -1142,11 +1131,6 @@ const NebulaParticles = ({
                 ),
             [particles],
         )
-
-    /*
-     * Particle UVs map every particle to exactly one
-     * simulation texel.
-     */
 
     const particleGeometry =
         useMemo(() => {
@@ -1272,12 +1256,6 @@ const NebulaParticles = ({
             return undefined
         }
 
-        /*
-         * ----------------------------------------------------
-         * RENDER TARGETS
-         * ----------------------------------------------------
-         */
-
         const positionA =
             createStateTarget()
 
@@ -1289,12 +1267,6 @@ const NebulaParticles = ({
 
         const velocityB =
             createStateTarget()
-
-        /*
-         * ----------------------------------------------------
-         * SIMULATION SCENE
-         * ----------------------------------------------------
-         */
 
         const simulationScene =
             new THREE.Scene()
@@ -1308,12 +1280,6 @@ const NebulaParticles = ({
                 0,
                 1,
             )
-
-        /*
-         * ----------------------------------------------------
-         * INITIALIZATION MATERIAL
-         * ----------------------------------------------------
-         */
 
         const initializationMaterial =
             new THREE.ShaderMaterial({
@@ -1391,12 +1357,6 @@ const NebulaParticles = ({
             null,
         )
 
-        /*
-         * ----------------------------------------------------
-         * FLOW / VELOCITY MATERIAL
-         * ----------------------------------------------------
-         */
-
         const velocityMaterial =
             new THREE.ShaderMaterial({
                 vertexShader:
@@ -1419,13 +1379,6 @@ const NebulaParticles = ({
                             initialTextures.metadata,
                     },
 
-                    /*
-                     * Text infrastructure.
-                     *
-                     * Default target is the initial position
-                     * texture simply so the sampler is always
-                     * valid.
-                     */
                     uTextTargetTexture: {
                         value:
                             initialTextures.position,
@@ -1450,12 +1403,6 @@ const NebulaParticles = ({
                 depthWrite:
                     false,
             })
-
-        /*
-         * ----------------------------------------------------
-         * POSITION MATERIAL
-         * ----------------------------------------------------
-         */
 
         const positionMaterial =
             new THREE.ShaderMaterial({
@@ -1482,12 +1429,6 @@ const NebulaParticles = ({
                     false,
             })
 
-        /*
-         * ----------------------------------------------------
-         * CONTAINMENT MATERIAL
-         * ----------------------------------------------------
-         */
-
         const containmentMaterial =
             new THREE.ShaderMaterial({
                 vertexShader:
@@ -1513,10 +1454,6 @@ const NebulaParticles = ({
                     false,
             })
 
-        /*
-         * One reusable quad.
-         */
-
         const simulationQuad =
             createSimulationQuad(
                 velocityMaterial,
@@ -1529,7 +1466,6 @@ const NebulaParticles = ({
         simulationRef.current = {
             positionA,
             positionB,
-
             velocityA,
             velocityB,
 
@@ -1543,10 +1479,6 @@ const NebulaParticles = ({
 
             initialized: true,
         }
-
-        /*
-         * Render current state immediately.
-         */
 
         particleMaterial
             .uniforms
@@ -1568,16 +1500,13 @@ const NebulaParticles = ({
             velocityA.dispose()
             velocityB.dispose()
 
-            initializationMaterial
-                .dispose()
+            initializationMaterial.dispose()
+            velocityMaterial.dispose()
+            positionMaterial.dispose()
+            containmentMaterial.dispose()
 
-            velocityMaterial
-                .dispose()
-
-            positionMaterial
-                .dispose()
-
-            containmentMaterial
+            initializationQuad
+                .geometry
                 .dispose()
 
             simulationQuad
@@ -1602,12 +1531,6 @@ const NebulaParticles = ({
                 return
             }
 
-            /*
-             * ------------------------------------------------
-             * CURRENT STATE
-             * ------------------------------------------------
-             */
-
             const {
                 positionA,
                 positionB,
@@ -1627,16 +1550,12 @@ const NebulaParticles = ({
                 state.clock.elapsedTime
 
             /*
-             * ------------------------------------------------
              * PASS 1
              *
-             * old position
-             * old velocity
+             * Position A +
+             * Velocity A
              *
-             * ->
-             *
-             * new velocity
-             * ------------------------------------------------
+             * -> Velocity B
              */
 
             velocityMaterial
@@ -1656,14 +1575,6 @@ const NebulaParticles = ({
                 .uTime
                 .value =
                 time
-
-            /*
-             * ------------------------------------------------
-             * TEXT ATTRACTOR INPUT
-             * ------------------------------------------------
-             *
-             * This does nothing when textEnabled=false.
-             */
 
             velocityMaterial
                 .uniforms
@@ -1701,16 +1612,12 @@ const NebulaParticles = ({
             )
 
             /*
-             * ------------------------------------------------
              * PASS 2
              *
-             * old position
-             * new velocity
+             * Position A +
+             * Velocity B
              *
-             * ->
-             *
-             * new position
-             * ------------------------------------------------
+             * -> Position B
              */
 
             positionMaterial
@@ -1740,16 +1647,12 @@ const NebulaParticles = ({
             )
 
             /*
-             * ------------------------------------------------
              * PASS 3
              *
-             * new position
-             * new velocity
+             * Position B +
+             * Velocity B
              *
-             * ->
-             *
-             * contained velocity
-             * ------------------------------------------------
+             * -> Velocity A
              */
 
             containmentMaterial
@@ -1779,9 +1682,7 @@ const NebulaParticles = ({
             )
 
             /*
-             * ------------------------------------------------
-             * SWAP
-             * ------------------------------------------------
+             * Swap simulation state.
              */
 
             simulation.positionA =
@@ -1795,12 +1696,6 @@ const NebulaParticles = ({
 
             simulation.velocityB =
                 velocityB
-
-            /*
-             * positionB is now the current position.
-             *
-             * velocityA is now the current velocity.
-             */
 
             particleMaterial
                 .uniforms
@@ -1820,14 +1715,9 @@ const NebulaParticles = ({
             particleGeometry.dispose()
             particleMaterial.dispose()
 
-            initialTextures.position
-                .dispose()
-
-            initialTextures.velocity
-                .dispose()
-
-            initialTextures.metadata
-                .dispose()
+            initialTextures.position.dispose()
+            initialTextures.velocity.dispose()
+            initialTextures.metadata.dispose()
         }
     }, [
         particleGeometry,
@@ -1844,16 +1734,12 @@ const NebulaParticles = ({
             material={
                 particleMaterial
             }
-            frustumCulled={false}
+            frustumCulled={
+                false
+            }
         />
     )
 }
-
-/*
- * ============================================================
- * PUBLIC COMPONENT
- * ============================================================
- */
 
 const NebulaBackground = ({
     textEnabled = false,
@@ -1862,7 +1748,9 @@ const NebulaBackground = ({
 }) => {
     return (
         <Canvas
-            orthographic={false}
+            orthographic={
+                false
+            }
             camera={{
                 position: [
                     0,
@@ -1872,7 +1760,10 @@ const NebulaBackground = ({
 
                 fov: 60,
             }}
-            dpr={[1, 1.5]}
+            dpr={[
+                1,
+                1.5,
+            ]}
             gl={{
                 antialias: true,
                 alpha: false,

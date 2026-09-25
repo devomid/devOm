@@ -41,6 +41,11 @@ const createTextTargetTexture = () => {
     TEXTURE_SIZE,
   )
 
+  /*
+   * Make the text substantially thicker than the previous
+   * version so a large, unmistakable population of the
+   * existing 262,144 particles participates.
+   */
   context.fillStyle =
     '#ffffff'
 
@@ -51,7 +56,7 @@ const createTextTargetTexture = () => {
     'middle'
 
   context.font =
-    '900 68px Arial Black, Arial, sans-serif'
+    '900 76px Arial Black, Arial, sans-serif'
 
   context.fillText(
     'WHAT I BUILD',
@@ -110,7 +115,10 @@ const createTextTargetTexture = () => {
         canvasIndex + 3
         ] / 255
 
-      if (alpha < 0.02) {
+      if (
+        alpha <
+        0.015
+      ) {
         data[
           textureIndex + 3
         ] = 0.0
@@ -130,6 +138,9 @@ const createTextTargetTexture = () => {
           TEXTURE_SIZE - 1
         )
 
+      /*
+       * Match the actual Nebula world dimensions.
+       */
       let worldX =
         (
           normalizedX -
@@ -144,6 +155,13 @@ const createTextTargetTexture = () => {
         ) *
         7.4
 
+      /*
+       * Organic displacement.
+       *
+       * This keeps the text from becoming a perfectly
+       * rigid bitmap while the Nebula's normal flow
+       * continues to move the particles.
+       */
       const noise =
         Math.sin(
           textureX *
@@ -164,7 +182,7 @@ const createTextTargetTexture = () => {
           random -
           0.5
         ) *
-        0.065
+        0.10
 
       worldX +=
         jitter
@@ -176,33 +194,40 @@ const createTextTargetTexture = () => {
           textureY *
           0.037,
         ) *
-        0.028
+        0.045
 
       const worldZ =
         (
           random -
           0.5
         ) *
-        0.55
+        0.72
 
       data[
         textureIndex
-      ] = worldX
+      ] =
+        worldX
 
       data[
         textureIndex + 1
-      ] = worldY
+      ] =
+        worldY
 
       data[
         textureIndex + 2
-      ] = worldZ
+      ] =
+        worldZ
 
+      /*
+       * Preserve anti-aliased edges, but give the
+       * interior enough weight to hold the letters.
+       */
       data[
         textureIndex + 3
       ] =
         Math.pow(
           alpha,
-          0.72,
+          0.62,
         )
     }
   }
@@ -284,8 +309,12 @@ const WhatIBuild = () => {
         textTargetTexture={
           textTargetTexture
         }
+        /*
+         * This is now a convergence multiplier,
+         * not the raw GPU force.
+         */
         textStrength={
-          0.0032
+          1.0
         }
       />
     </main>
