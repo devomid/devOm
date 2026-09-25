@@ -9,6 +9,9 @@ import NebulaBackground from '../components/nebula/nebula'
 
 const TEXTURE_SIZE = 512
 
+const TEXT_PARTICLE_POPULATION =
+  0.34
+
 const createTextTargetTexture = (
   text,
 ) => {
@@ -104,14 +107,11 @@ const createTextTargetTexture = (
   const textPoints = []
 
   /*
-   * ------------------------------------------------
-   * EXTRACT ACTUAL GLYPH PIXELS
-   * ------------------------------------------------
+   * Extract the actual glyph.
    *
-   * We deliberately remove particles from the glyph.
-   *
-   * This keeps the text visibly particulate instead
-   * of turning it into a solid rasterized font.
+   * We remove a small percentage of pixels so
+   * the letters remain particulate rather than
+   * becoming a solid font.
    */
 
   for (
@@ -142,12 +142,6 @@ const createTextTargetTexture = (
         continue
       }
 
-      /*
-       * Approximately 14% of the actual glyph
-       * pixels are removed.
-       *
-       * This is intentionally sparse.
-       */
       const glyphHash =
         (
           textureX * 374761393 +
@@ -184,21 +178,10 @@ const createTextTargetTexture = (
           normalizedY
         ) * 6.0
 
-      /*
-       * ONE depth plane.
-       *
-       * Absolutely no Z noise.
-       *
-       * This is critical for preventing the
-       * perceived second copy of the text.
-       */
-      const worldZ =
-        0
-
       textPoints.push({
         x: worldX,
         y: worldY,
-        z: worldZ,
+        z: 0,
       })
     }
   }
@@ -217,25 +200,15 @@ const createTextTargetTexture = (
     )
 
   /*
-   * ------------------------------------------------
-   * PARTICLE → GLYPH OWNERSHIP
-   * ------------------------------------------------
+   * IMPORTANT
    *
-   * Only 34% of the complete nebula owns the
-   * typography.
+   * This personality calculation is now the
+   * exact same calculation used by nebula.jsx.
    *
-   * This is intentional.
-   *
-   * The previous 54% meant ~141,000 particles
-   * were trying to occupy a relatively small
-   * number of glyph positions.
-   *
-   * That produced the "double text" / blurry
-   * appearance.
+   * Therefore the particle receiving a target
+   * here is the same particle the simulation
+   * recognizes as a text particle.
    */
-
-  const textPopulation =
-    0.34
 
   for (
     let textureY = 0;
@@ -255,9 +228,6 @@ const createTextTargetTexture = (
       const textureIndex =
         particleIndex * 4
 
-      /*
-       * Deterministic particle selection.
-       */
       const personality =
         (
           (
@@ -268,25 +238,25 @@ const createTextTargetTexture = (
         ) /
         10000
 
+      /*
+       * Only the first 34% of particles become
+       * actual text particles.
+       *
+       * This is deliberately sparse enough to
+       * avoid the double/ghost typography.
+       */
+
       if (
         personality >=
-        textPopulation
+        TEXT_PARTICLE_POPULATION
       ) {
-        data[
-          textureIndex + 3
-        ] = 0
-
         continue
       }
 
       /*
-       * IMPORTANT:
+       * Deterministic glyph assignment.
        *
-       * Every text particle receives exactly
-       * one deterministic glyph point.
-       *
-       * The shader later uses alpha=1 as the
-       * authoritative text-particle identity.
+       * Every selected particle gets one position.
        */
 
       const pointSelector =

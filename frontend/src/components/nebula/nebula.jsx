@@ -654,14 +654,27 @@ velocity.z +=
              * Each particle receives a deterministic personality.
              */
 
-            float personality =
-                fract(
-                    sin(
-                        phase * 12.9898 +
-                        78.233
-                    ) *
-                    43758.5453
-                );
+            float particleIndex =
+    floor(
+        vUv.x *
+        512.0
+    ) +
+    floor(
+        vUv.y *
+        512.0
+    ) *
+    512.0;
+
+float personality =
+    (
+        mod(
+            particleIndex *
+            15731.0 +
+            789221.0,
+            10000.0
+        )
+    ) /
+    10000.0;
 
             /*
              * ====================================================
