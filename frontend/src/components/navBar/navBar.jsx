@@ -1,12 +1,14 @@
 import { Box, Typography } from '@mui/material'
 import { Link, useLocation } from 'react-router-dom'
 import {
+    animate,
     motion,
     useMotionTemplate,
-    useTransform,
+    useMotionValue,
     useMotionValueEvent,
+    useTransform,
 } from 'framer-motion'
-import { useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import {
     colors,
@@ -38,44 +40,157 @@ const getHomeSection = (progress) => {
     return 4
 }
 
+const getRouteIndex = (pathname) => {
+    const index = navItems.findIndex(
+        (item) => item.path === pathname,
+    )
+
+    return index === -1 ? 0 : index
+}
+
+const getNavbarProgress = (scrollProgress) => {
+    return Math.min(
+        Math.max(scrollProgress / 0.25, 0),
+        1,
+    )
+}
+
 const NavBar = ({ scrollProgress }) => {
     const location = useLocation()
+    const isHome = location.pathname === '/'
 
     /*
-     * Keep the current pathname in a ref so a stale scroll event
-     * from the Home MotionValue cannot change navigation state
-     * after Home has already unmounted.
+     * ------------------------------------------------------------------
+     * ROUTE
+     * ------------------------------------------------------------------
      */
+
     const pathnameRef = useRef(location.pathname)
     pathnameRef.current = location.pathname
+
+    /*
+     * ------------------------------------------------------------------
+     * HOME SECTION
+     * ------------------------------------------------------------------
+     */
 
     const [homeSection, setHomeSection] = useState(() =>
         getHomeSection(scrollProgress.get()),
     )
 
-    useMotionValueEvent(scrollProgress, 'change', (latest) => {
-        // Home scroll must NEVER control the navbar on another route.
-        if (pathnameRef.current !== '/') return
+    /*
+     * ------------------------------------------------------------------
+     * NAVBAR VISUAL STATE
+     *
+     * 0 = Home expanded state
+     * 1 = compact floating state
+     *
+     * This MotionValue belongs to NavBar and therefore survives
+     * Home being mounted/unmounted.
+     * ------------------------------------------------------------------
+     */
 
-        const nextSection = getHomeSection(latest)
+    const navbarProgress = useMotionValue(
+        isHome
+            ? getNavbarProgress(scrollProgress.get())
+            : 1,
+    )
 
-        setHomeSection((currentSection) =>
-            currentSection === nextSection
-                ? currentSection
-                : nextSection,
-        )
-    })
+    /*
+     * ------------------------------------------------------------------
+     * HOME SCROLL -> NAVBAR
+     * ------------------------------------------------------------------
+     */
 
-    const activeIndex =
-        location.pathname === '/'
-            ? homeSection
-            : navItems.findIndex(
-                (item) => item.path === location.pathname,
+    useMotionValueEvent(
+        scrollProgress,
+        'change',
+        (latest) => {
+            /*
+             * Once we leave Home, the old Home MotionValue is no
+             * longer allowed to control the navbar.
+             */
+            if (pathnameRef.current !== '/') {
+                return
+            }
+
+            const nextSection = getHomeSection(latest)
+
+            setHomeSection((currentSection) => {
+                if (currentSection === nextSection) {
+                    return currentSection
+                }
+
+                return nextSection
+            })
+
+            /*
+             * While actually on Home, navbar follows scroll directly.
+             */
+            navbarProgress.set(
+                getNavbarProgress(latest),
             )
+        },
+    )
+
+    /*
+     * ------------------------------------------------------------------
+     * ROUTE -> NAVBAR VISUAL STATE
+     * ------------------------------------------------------------------
+     *
+     * Home:
+     *   reconnect to Home's current scroll position.
+     *
+     * Other routes:
+     *   always compact.
+     * ------------------------------------------------------------------
+     */
+
+    useEffect(() => {
+        const target = isHome
+            ? getNavbarProgress(scrollProgress.get())
+            : 1
+
+        const controls = animate(
+            navbarProgress,
+            target,
+            {
+                type: 'spring',
+                stiffness: 260,
+                damping: 30,
+                mass: 0.8,
+            },
+        )
+
+        return () => {
+            controls.stop()
+        }
+    }, [
+        isHome,
+        location.pathname,
+        navbarProgress,
+        scrollProgress,
+    ])
+
+    /*
+     * ------------------------------------------------------------------
+     * ACTIVE ITEM
+     * ------------------------------------------------------------------
+     */
+
+    const activeIndex = isHome
+        ? homeSection
+        : getRouteIndex(location.pathname)
+
+    /*
+     * ------------------------------------------------------------------
+     * NAVBAR VISUAL TRANSFORMS
+     * ------------------------------------------------------------------
+     */
 
     const navbarOpacity = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             motionTokens.opacity.visible,
             motionTokens.opacity.hidden,
@@ -83,14 +198,14 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navbarBlur = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [28, 32],
     )
 
     const navbarSaturate = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [170, 160],
     )
 
@@ -105,8 +220,8 @@ const NavBar = ({ scrollProgress }) => {
     `
 
     const navbarHeight = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             layout.header.heightDesktop,
             layout.header.heightMobile,
@@ -114,8 +229,8 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navbarTop = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             spacing[0],
             spacing.lg,
@@ -123,8 +238,8 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navbarSide = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             spacing[0],
             spacing.colossal,
@@ -132,8 +247,8 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navbarRadius = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             radius.none,
             radius.lg,
@@ -141,8 +256,8 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navbarGap = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             spacing.xxl,
             spacing.colossal,
@@ -150,8 +265,8 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navFontSize = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             typography.size.sm,
             typography.size.xs,
@@ -159,23 +274,148 @@ const NavBar = ({ scrollProgress }) => {
     )
 
     const navFontColor = useTransform(
-        scrollProgress,
-        [0, 0.25],
+        navbarProgress,
+        [0, 1],
         [
             colors.accent.primary,
             colors.text.primary,
         ],
     )
 
-    const navFontWeight = typography.weight.medium
+    /*
+     * ------------------------------------------------------------------
+     * UNDERLINE
+     *
+     * There is ONE underline for the entire navbar.
+     *
+     * No layoutId.
+     * No conditional underline mounting/unmounting.
+     * No second underline.
+     * ------------------------------------------------------------------
+     */
+
+    const navRef = useRef(null)
+
+    const itemRefs = useRef([])
+
+    const underlineX = useMotionValue(0)
+    const underlineWidth = useMotionValue(0)
+
+    const underlineAnimation = useRef(null)
+
+    const measureActiveItem = (animateToTarget) => {
+        const nav = navRef.current
+        const item = itemRefs.current[activeIndex]
+
+        if (!nav || !item) {
+            return
+        }
+
+        const navRect = nav.getBoundingClientRect()
+        const itemRect = item.getBoundingClientRect()
+
+        const targetX =
+            itemRect.left - navRect.left
+
+        const targetWidth = itemRect.width
+
+        if (animateToTarget) {
+            underlineAnimation.current?.stop()
+
+            underlineAnimation.current = animate(
+                underlineX,
+                targetX,
+                {
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 30,
+                    mass: 0.7,
+                },
+            )
+
+            animate(
+                underlineWidth,
+                targetWidth,
+                {
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 30,
+                    mass: 0.7,
+                },
+            )
+        } else {
+            underlineX.set(targetX)
+            underlineWidth.set(targetWidth)
+        }
+    }
+
+    /*
+     * Route changes / Home section changes:
+     * move the ONE underline to the new item.
+     */
+    useLayoutEffect(() => {
+        /*
+         * Wait one frame so the navbar's current geometry has
+         * already been applied before measuring the target.
+         */
+        const frame = requestAnimationFrame(() => {
+            measureActiveItem(true)
+        })
+
+        return () => {
+            cancelAnimationFrame(frame)
+        }
+    }, [activeIndex])
+
+    /*
+     * Home scrolling changes navbar gap/font/position.
+     *
+     * The underline must remain physically attached to its item.
+     */
+    useMotionValueEvent(
+        navbarProgress,
+        'change',
+        () => {
+            if (!isHome) {
+                return
+            }
+
+            requestAnimationFrame(() => {
+                measureActiveItem(false)
+            })
+        },
+    )
+
+    /*
+     * Window resize.
+     */
+    useEffect(() => {
+        const handleResize = () => {
+            measureActiveItem(false)
+        }
+
+        window.addEventListener(
+            'resize',
+            handleResize,
+        )
+
+        return () => {
+            window.removeEventListener(
+                'resize',
+                handleResize,
+            )
+        }
+    }, [activeIndex])
 
     return (
         <MotionBox
+            ref={navRef}
             component="nav"
             style={{
                 background: navbarBackground,
                 backdropFilter: navbarBackdropFilter,
-                WebkitBackdropFilter: navbarBackdropFilter,
+                WebkitBackdropFilter:
+                    navbarBackdropFilter,
 
                 top: navbarTop,
                 left: navbarSide,
@@ -207,66 +447,62 @@ const NavBar = ({ scrollProgress }) => {
                 zIndex: 1000,
             }}
         >
-            {navItems.map((item, index) => {
-                const isActive = index === activeIndex
-
-                return (
-                    <Box
-                        key={item.path}
-                        component={Link}
-                        to={item.path}
+            {navItems.map((item, index) => (
+                <Box
+                    key={item.path}
+                    ref={(element) => {
+                        itemRefs.current[index] = element
+                    }}
+                    component={Link}
+                    to={item.path}
+                    sx={{
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '100%',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        flexShrink: 0,
+                    }}
+                >
+                    <MotionTypography
+                        style={{
+                            fontSize: navFontSize,
+                            color: navFontColor,
+                        }}
                         sx={{
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            height: '100%',
-                            textDecoration: 'none',
-                            color: 'inherit',
-                            flexShrink: 0,
+                            fontFamily:
+                                typography.fontFamily.sans,
+                            fontWeight:
+                                typography.weight.medium,
+                            lineHeight:
+                                typography.lineHeight.normal,
+                            whiteSpace: 'nowrap',
                         }}
                     >
-                        <MotionTypography
-                            style={{
-                                fontSize: navFontSize,
-                                color: navFontColor,
-                            }}
-                            sx={{
-                                fontFamily: typography.fontFamily.sans,
-                                fontWeight: navFontWeight,
-                                lineHeight: typography.lineHeight.normal,
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {item.label}
-                        </MotionTypography>
+                        {item.label}
+                    </MotionTypography>
+                </Box>
+            ))}
 
-                        {isActive && (
-                            <Box
-                                component={motion.div}
-                                layoutId="nav-indicator"
-                                sx={{
-                                    position: 'absolute',
+            /*
+            * ONE and ONLY ONE red underline.
+            */
+            <motion.div
+                style={{
+                    position: 'absolute',
+                    left: 0,
+                    bottom: 0,
 
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
+                    width: underlineWidth,
+                    height: '4px',
 
-                                    height: '4px',
+                    x: underlineX,
 
-                                    backgroundColor: 'red',
-                                    borderRadius: radius.pill,
-                                }}
-                                transition={{
-                                    type: 'spring',
-                                    stiffness: 500,
-                                    damping: 28,
-                                    mass: 0.7,
-                                }}
-                            />
-                        )}
-                    </Box>
-                )
-            })}
+                    backgroundColor: 'red',
+                    borderRadius: radius.pill,
+                }}
+            />
         </MotionBox>
     )
 }
