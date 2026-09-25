@@ -1,6 +1,13 @@
 import { Box } from '@mui/material'
-import { Routes, Route, useLocation } from 'react-router-dom'
-import { useEffect, useRef } from 'react'
+import {
+  Routes,
+  Route,
+  useLocation,
+} from 'react-router-dom'
+import {
+  useEffect,
+  useRef,
+} from 'react'
 import { motionValue } from 'framer-motion'
 
 import { colors } from './design'
@@ -11,15 +18,24 @@ import Works from './pages/Works'
 import HowIBuild from './pages/HowIBuild'
 import Contacts from './pages/Contacts'
 import FourOFour from './pages/404'
+import useScrollState from './hooks/useScrollState'
 
 function App() {
   const homeRef = useRef(null)
+
   const homeScrollProgress = useRef(
     motionValue(0),
   )
 
+  const homeScrollState =
+    useScrollState(
+      homeScrollProgress.current,
+    )
+
   const location = useLocation()
-  const isHome = location.pathname === '/'
+
+  const isHome =
+    location.pathname === '/'
 
   useEffect(() => {
     if (!isHome) return
@@ -31,7 +47,19 @@ function App() {
     })
 
     homeScrollProgress.current.set(0)
-  }, [isHome])
+
+    const state =
+      homeScrollState.current
+
+    state.progress = 0
+    state.previousProgress = 0
+    state.velocity = 0
+    state.direction = 0
+    state.isScrolling = false
+  }, [
+    isHome,
+    homeScrollState,
+  ])
 
   return (
     <Box
@@ -39,7 +67,8 @@ function App() {
         minHeight: '100svh',
         backgroundColor:
           colors.background.primary,
-        color: colors.text.primary,
+        color:
+          colors.text.primary,
       }}
     >
       <NavBar
@@ -53,9 +82,14 @@ function App() {
           path="/"
           element={
             <Home
-              homeRef={homeRef}
+              homeRef={
+                homeRef
+              }
               scrollProgress={
                 homeScrollProgress.current
+              }
+              scrollState={
+                homeScrollState
               }
             />
           }
@@ -63,27 +97,37 @@ function App() {
 
         <Route
           path="/whatibuild"
-          element={<WhatIBuild />}
+          element={
+            <WhatIBuild />
+          }
         />
 
         <Route
           path="/works"
-          element={<Works />}
+          element={
+            <Works />
+          }
         />
 
         <Route
           path="/howibuild"
-          element={<HowIBuild />}
+          element={
+            <HowIBuild />
+          }
         />
 
         <Route
           path="/contacts"
-          element={<Contacts />}
+          element={
+            <Contacts />
+          }
         />
 
         <Route
           path="*"
-          element={<FourOFour />}
+          element={
+            <FourOFour />
+          }
         />
       </Routes>
     </Box>

@@ -11,17 +11,28 @@ import HowIBuild from './HowIBuild'
 import Works from './Works'
 import Contacts from './Contacts'
 
-const Home = ({ homeRef, scrollProgress }) => {
-    const { scrollYProgress } = useScroll({
+const Home = ({
+    homeRef,
+    scrollProgress,
+    scrollState,
+}) => {
+    const {
+        scrollYProgress,
+    } = useScroll({
         target: homeRef,
-        offset: ['start start', 'end end'],
+        offset: [
+            'start start',
+            'end end',
+        ],
     })
 
     useMotionValueEvent(
         scrollYProgress,
         'change',
         (latest) => {
-            scrollProgress.set(latest)
+            scrollProgress.set(
+                latest,
+            )
         },
     )
 
@@ -41,7 +52,11 @@ const Home = ({ homeRef, scrollProgress }) => {
                     overflow: 'hidden',
                 }}
             >
-                <HeroSection />
+                <HeroSection
+                    scrollState={
+                        scrollState
+                    }
+                />
             </Box>
 
             <Box

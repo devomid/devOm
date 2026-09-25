@@ -130,7 +130,7 @@ function Particles() {
   const pointsRef = useRef();
 
   const particles = useMemo(() => {
-    const count = 150000;
+    const count = 200000;
 
     const positions =
       new Float32Array(
@@ -225,7 +225,7 @@ function Particles() {
       phases[i] =
         Math.random() *
         Math.PI *
-        2.0;
+        2.1;
 
       /*
        * Small individual speed variation.
@@ -253,12 +253,12 @@ function Particles() {
        */
 
       sizes[i] =
-        0.030 +
+        0.040 +
         Math.pow(
           Math.random(),
-          2.6
+          3
         ) *
-        0.072;
+        0.068;
     }
 
     // sizes[i] =
@@ -355,7 +355,7 @@ function Particles() {
      * Previous: 0.00115
      * Current:  0.00129
      */
-    const speed = 0.00219;
+    const speed = 0.00220;
 
     for (
       let i = 0;
