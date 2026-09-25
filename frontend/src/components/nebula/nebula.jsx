@@ -23,13 +23,6 @@ const PARTICLE_SPEED = 0.00105
  * ============================================================
  * PARTICLE RENDER SHADERS
  * ============================================================
- *
- * These are the same visual shaders used by:
- *
- * nebula/app/page.js
- *
- * The only difference is that position now comes from
- * the GPU simulation texture instead of a CPU BufferAttribute.
  */
 
 const particleVertexShader = `
@@ -211,30 +204,6 @@ const particleFragmentShader = `
  * ============================================================
  * GPU SIMULATION
  * ============================================================
- *
- * The original CPU simulation performs:
- *
- * 1. calculate flow
- * 2. add flow to velocity
- * 3. damp velocity
- * 4. move position
- * 5. apply containment force based on new position
- *
- * We preserve that order using three GPU passes.
- *
- * Pass 1:
- *     old position + old velocity
- *          -> new velocity
- *
- * Pass 2:
- *     old position + new velocity
- *          -> new position
- *
- * Pass 3:
- *     new position + new velocity
- *          -> contained velocity
- *
- * No CPU particle loop.
  */
 
 const simulationVertexShader = `
@@ -259,7 +228,16 @@ const velocityFlowFragmentShader = `
     uniform sampler2D uVelocityTexture;
     uniform sampler2D uMetadataTexture;
 
+    /*
+     * Optional text-attractor infrastructure.
+     *
+     * These remain disabled for the normal Nebula.
+     */
+    uniform sampler2D uTextTargetTexture;
+
     uniform float uTime;
+    uniform float uTextEnabled;
+    uniform float uTextStrength;
 
     varying vec2 vUv;
 
@@ -581,26 +559,88 @@ const velocityFlowFragmentShader = `
 
         velocity.x +=
             flowX *
-            ${PARTICLE_SPEED.toFixed(5)} *
+            0.00105 *
             particleSpeed;
 
         velocity.y +=
             flowY *
-            ${PARTICLE_SPEED.toFixed(5)} *
+            0.00105 *
             particleSpeed;
 
         velocity.z +=
             flowZ *
-            ${PARTICLE_SPEED.toFixed(5)} *
+            0.00105 *
             particleSpeed;
 
         /*
-         * Same damping as playground.
+         * Same damping as the original Nebula.
          */
 
         velocity.x *= 0.965;
         velocity.y *= 0.965;
         velocity.z *= 0.978;
+
+        /*
+         * ------------------------------------------------
+         * OPTIONAL TEXT ATTRACTOR
+         * ------------------------------------------------
+         *
+         * This is intentionally applied AFTER the normal
+         * Nebula forces and damping.
+         *
+         * The target texture will later contain:
+         *
+         * RGB = target XYZ
+         * A   = particle participation
+         *
+         * A value of zero means the particle completely
+         * ignores the text.
+         */
+
+        if (uTextEnabled > 0.5) {
+            vec4 textTarget =
+                texture2D(
+                    uTextTargetTexture,
+                    vUv
+                );
+
+            float textWeight =
+                textTarget.a;
+
+            vec3 target =
+                textTarget.xyz;
+
+            vec3 toTarget =
+                target -
+                position;
+
+            float distanceToTarget =
+                length(
+                    toTarget
+                );
+
+            if (
+                textWeight > 0.0 &&
+                distanceToTarget > 0.0001
+            ) {
+                vec3 direction =
+                    toTarget /
+                    distanceToTarget;
+
+                float attraction =
+                    smoothstep(
+                        0.0,
+                        7.5,
+                        distanceToTarget
+                    );
+
+                velocity +=
+                    direction *
+                    attraction *
+                    uTextStrength *
+                    textWeight;
+            }
+        }
 
         gl_FragColor =
             vec4(
@@ -676,7 +716,7 @@ const containmentFragmentShader = `
 
         /*
          * Exact containment behavior from
-         * the playground.
+         * the original Nebula.
          */
 
         if (edgeX > 0.82) {
@@ -762,8 +802,9 @@ const createSimulationQuad = (
  * PARTICLE DATA
  * ============================================================
  *
- * This initialization follows the playground's random
- * generation order and exact values.
+ * EXACT EXISTING PARTICLE INITIALIZATION.
+ *
+ * We do not create any additional particles for text.
  */
 
 const createParticleData = () => {
@@ -1003,9 +1044,7 @@ const createInitialTextures = (
             1.0
 
         metadataData[i4 + 3] =
-            i < PARTICLE_COUNT
-                ? 1.0
-                : 0.0
+            1.0
     }
 
     return {
@@ -1073,7 +1112,11 @@ const createStateTarget = () => {
  * ============================================================
  */
 
-const NebulaParticles = () => {
+const NebulaParticles = ({
+    textEnabled = false,
+    textTargetTexture = null,
+    textStrength = 0.0,
+}) => {
     const pointsRef =
         useRef(null)
 
@@ -1114,13 +1157,6 @@ const NebulaParticles = () => {
                 new Float32Array(
                     PARTICLE_COUNT * 2,
                 )
-
-            /*
-             * Keep these as zeroes.
-             *
-             * The actual position comes from
-             * uPositionTexture in the vertex shader.
-             */
 
             const dummyPositions =
                 new Float32Array(
@@ -1240,26 +1276,6 @@ const NebulaParticles = () => {
          * ----------------------------------------------------
          * RENDER TARGETS
          * ----------------------------------------------------
-         *
-         * Position:
-         *
-         *   positionA <-> positionB
-         *
-         * Velocity:
-         *
-         *   velocityA <-> velocityB
-         *
-         * Every frame:
-         *
-         *   velocityA -> velocityB
-         *   positionA + velocityB -> positionB
-         *   positionB + velocityB -> velocityA
-         *
-         * Then:
-         *
-         *   positionB / velocityA
-         *
-         * become the next state.
          */
 
         const positionA =
@@ -1329,10 +1345,6 @@ const NebulaParticles = () => {
             initializationQuad,
         )
 
-        /*
-         * Initialize all four state targets.
-         */
-
         const initializeTarget = (
             target,
             texture,
@@ -1340,7 +1352,8 @@ const NebulaParticles = () => {
             initializationMaterial
                 .uniforms
                 .uInitialTexture
-                .value = texture
+                .value =
+                texture
 
             gl.setRenderTarget(
                 target,
@@ -1404,6 +1417,26 @@ const NebulaParticles = () => {
                     uMetadataTexture: {
                         value:
                             initialTextures.metadata,
+                    },
+
+                    /*
+                     * Text infrastructure.
+                     *
+                     * Default target is the initial position
+                     * texture simply so the sampler is always
+                     * valid.
+                     */
+                    uTextTargetTexture: {
+                        value:
+                            initialTextures.position,
+                    },
+
+                    uTextEnabled: {
+                        value: 0,
+                    },
+
+                    uTextStrength: {
+                        value: 0.0,
                     },
 
                     uTime: {
@@ -1624,6 +1657,35 @@ const NebulaParticles = () => {
                 .value =
                 time
 
+            /*
+             * ------------------------------------------------
+             * TEXT ATTRACTOR INPUT
+             * ------------------------------------------------
+             *
+             * This does nothing when textEnabled=false.
+             */
+
+            velocityMaterial
+                .uniforms
+                .uTextTargetTexture
+                .value =
+                textTargetTexture ||
+                initialTextures.position
+
+            velocityMaterial
+                .uniforms
+                .uTextEnabled
+                .value =
+                textEnabled
+                    ? 1
+                    : 0
+
+            velocityMaterial
+                .uniforms
+                .uTextStrength
+                .value =
+                textStrength
+
             simulationQuad.material =
                 velocityMaterial
 
@@ -1688,12 +1750,6 @@ const NebulaParticles = () => {
              *
              * contained velocity
              * ------------------------------------------------
-             *
-             * This preserves the exact ordering from
-             * page.js:
-             *
-             * move first,
-             * containment second.
              */
 
             containmentMaterial
@@ -1726,9 +1782,6 @@ const NebulaParticles = () => {
              * ------------------------------------------------
              * SWAP
              * ------------------------------------------------
-             *
-             * We can't mutate the constants above, so update
-             * the simulation object references.
              */
 
             simulation.positionA =
@@ -1744,11 +1797,9 @@ const NebulaParticles = () => {
                 velocityB
 
             /*
-             * velocityA now contains the final contained
-             * velocity, so on the next frame it is the
-             * current velocity.
-             *
              * positionB is now the current position.
+             *
+             * velocityA is now the current velocity.
              */
 
             particleMaterial
@@ -1804,7 +1855,11 @@ const NebulaParticles = () => {
  * ============================================================
  */
 
-const NebulaBackground = () => {
+const NebulaBackground = ({
+    textEnabled = false,
+    textTargetTexture = null,
+    textStrength = 0.0,
+}) => {
     return (
         <Canvas
             orthographic={false}
@@ -1840,7 +1895,17 @@ const NebulaBackground = () => {
                     '#050403',
             }}
         >
-            <NebulaParticles />
+            <NebulaParticles
+                textEnabled={
+                    textEnabled
+                }
+                textTargetTexture={
+                    textTargetTexture
+                }
+                textStrength={
+                    textStrength
+                }
+            />
         </Canvas>
     )
 }

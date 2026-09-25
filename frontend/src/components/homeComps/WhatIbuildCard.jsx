@@ -9,7 +9,7 @@ import {
     layout,
 } from '../../design'
 
-const WhatIBuildCard = () => {
+const WhatIBuild = () => {
     return (
         <Box
             sx={{
@@ -60,7 +60,7 @@ const WhatIBuildCard = () => {
                                 mb: spacing.xl,
                             }}
                         >
-                            What I Build Card
+                            What I Build
                         </Typography>
 
                         <Typography
@@ -80,4 +80,4 @@ const WhatIBuildCard = () => {
     )
 }
 
-export default WhatIBuildCard
+export default WhatIBuild
