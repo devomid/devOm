@@ -546,48 +546,21 @@ const velocityFlowFragmentShader = `
 
             /*
  * ------------------------------------------------
- * TEXT FORMATION MOTION CONTROL
- * ------------------------------------------------
- *
- * The normal nebula flow should still influence
- * the text, but much less while the typography
- * is forming.
- *
- * Otherwise the same particles can visually
- * smear into a second copy of the glyph.
+ * TEXT PARTICLE MEMBERSHIP
  * ------------------------------------------------
  */
 
-float textFormationDamping = 1.0;
+            vec4 targetSample =
+    texture2D(
+        uTextTargetTexture,
+        vUv
+    );
 
-if (uTextEnabled > 0.5) {
-    vec4 formationMetadata =
-        texture2D(
-            uMetadataTexture,
-            vUv
-        );
+float isTextParticle =
+    targetSample.a;
 
-    float formationPersonality =
-        fract(
-            sin(
-                formationMetadata.x * 12.9898 +
-                78.233
-            ) *
-            43758.5453
-        );
-
-    /*
-     * Core text population:
-     * reduce free nebula motion substantially.
-     */
-    if (
-        formationPersonality <
-        0.54
-    ) {
-        textFormationDamping =
-            0.28;
-    }
-}
+            /*
+ 
 
         /*
          * ------------------------------------------------
@@ -689,14 +662,6 @@ velocity.z +=
              * This is intentionally much less dense than before.
              */
 
-            vec4 targetSample =
-    texture2D(
-        uTextTargetTexture,
-        vUv
-    );
-
-float isTextParticle =
-    targetSample.a;
 
 float joiningParticle =
     smoothstep(
