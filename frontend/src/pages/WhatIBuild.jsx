@@ -43,9 +43,6 @@ const createTextTargetTexture = (
    * ----------------------------------------
    * TYPOGRAPHY
    * ----------------------------------------
-   *
-   * These are the three controls you can
-   * change later.
    */
 
   const fontFamily =
@@ -62,10 +59,6 @@ const createTextTargetTexture = (
 
   context.textBaseline =
     'middle'
-
-  /*
-   * Find the largest size that fits.
-   */
 
   while (
     fontSize > 20
@@ -104,30 +97,19 @@ const createTextTargetTexture = (
     'round'
 
   /*
-   * Keep the stroke relatively subtle.
+   * Keep the glyph geometry clean.
    *
-   * The actual particle density should
-   * define the thickness of the letters.
+   * We do NOT use blur.
+   * We do NOT enlarge the stroke.
    */
-
   context.lineWidth =
-    3
+    1
 
   const centerX =
     TEXTURE_SIZE * 0.5
 
   const centerY =
     TEXTURE_SIZE * 0.5
-
-  /*
-   * Draw the actual glyphs.
-   */
-
-  context.strokeText(
-    text,
-    centerX,
-    centerY,
-  )
 
   context.fillText(
     text,
@@ -150,11 +132,14 @@ const createTextTargetTexture = (
    * EXTRACT GLYPH GEOMETRY
    * ----------------------------------------
    *
-   * No random X/Y distortion here.
+   * We intentionally remove some pixels from
+   * the glyph itself.
    *
-   * The target itself must be geometrically
-   * correct so the particle simulation can
-   * make the actual letters.
+   * This creates real holes in the letters.
+   *
+   * It is fundamentally different from
+   * scattering particles around a complete
+   * glyph.
    */
 
   for (
@@ -180,50 +165,74 @@ const createTextTargetTexture = (
         ]
 
       if (
-        alpha > 40
+        alpha <= 40
       ) {
-        const normalizedX =
-          textureX /
-          (
-            TEXTURE_SIZE - 1
-          )
-
-        const normalizedY =
-          textureY /
-          (
-            TEXTURE_SIZE - 1
-          )
-
-        const worldX =
-          (
-            normalizedX -
-            0.5
-          ) * 12.8
-
-        const worldY =
-          (
-            0.5 -
-            normalizedY
-          ) * 6.0
-
-        /*
-         * Only very small depth variation.
-         *
-         * Do NOT disturb X/Y.
-         */
-
-        const worldZ =
-          Math.sin(
-            textureX * 0.11 +
-            textureY * 0.07,
-          ) * 0.045
-
-        textPoints.push({
-          x: worldX,
-          y: worldY,
-          z: worldZ,
-        })
+        continue
       }
+
+      /*
+       * Deterministic sparse sampling.
+       *
+       * About 18% of the actual glyph
+       * pixels are removed.
+       *
+       * The remaining points still preserve
+       * the recognizable letter geometry.
+       */
+      const glyphHash =
+        (
+          textureX * 374761393 +
+          textureY * 668265263
+        ) %
+        100
+
+      if (
+        glyphHash < 18
+      ) {
+        continue
+      }
+
+      const normalizedX =
+        textureX /
+        (
+          TEXTURE_SIZE - 1
+        )
+
+      const normalizedY =
+        textureY /
+        (
+          TEXTURE_SIZE - 1
+        )
+
+      const worldX =
+        (
+          normalizedX -
+          0.5
+        ) * 12.8
+
+      const worldY =
+        (
+          0.5 -
+          normalizedY
+        ) * 6.0
+
+      /*
+       * Almost flat depth.
+       *
+       * The typography should not become
+       * two visible layers in 3D.
+       */
+      const worldZ =
+        Math.sin(
+          textureX * 0.11 +
+          textureY * 0.07,
+        ) * 0.018
+
+      textPoints.push({
+        x: worldX,
+        y: worldY,
+        z: worldZ,
+      })
     }
   }
 
@@ -245,14 +254,23 @@ const createTextTargetTexture = (
 
   /*
    * ----------------------------------------
-   * DISTRIBUTE TARGETS
+   * DISTRIBUTE SPARSE TARGETS
    * ----------------------------------------
    *
-   * Every GPU particle receives a valid
-   * target position.
+   * IMPORTANT:
    *
-   * The shader decides whether that particle
-   * actually participates in the typography.
+   * Not every GPU particle receives a target.
+   *
+   * Approximately:
+   *
+   *   58% -> may participate in typography
+   *   42% -> completely free
+   *
+   * The shader then divides the 58% into
+   * stable text particles and joining particles.
+   *
+   * Free particles have alpha = 0 and therefore
+   * cannot accidentally return to the text.
    */
 
   for (
@@ -270,35 +288,68 @@ const createTextTargetTexture = (
         TEXTURE_SIZE +
         textureX
 
-      /*
-       * Scramble the target assignment so
-       * neighboring GPU particles don't map
-       * to neighboring pixels of the glyph.
-       */
-
-      const scrambledIndex =
-        (
-          particleIndex *
-          15731 +
-          789221
-        ) %
-        pointCount
-
-      const point =
-        textPoints[
-        scrambledIndex
-        ]
-
       const textureIndex =
         particleIndex *
         4
 
       /*
-       * Extremely small living movement.
+       * Deterministic particle personality.
        *
-       * The glyph itself remains clean.
+       * It is stable for the lifetime of the
+       * particle, so particles don't randomly
+       * change identity every frame.
        */
+      const personality =
+        (
+          (
+            particleIndex *
+            15731 +
+            789221
+          ) %
+          10000
+        ) /
+        10000
 
+      /*
+       * Only 58% of particles receive a target.
+       */
+      if (
+        personality >=
+        0.58
+      ) {
+        data[
+          textureIndex + 3
+        ] = 0.0
+
+        continue
+      }
+
+      /*
+       * Spread the selected particles across
+       * the actual glyph geometry.
+       *
+       * No neighboring-pixel duplication.
+       */
+      const pointSelector =
+        (
+          particleIndex *
+          104729 +
+          31337
+        ) %
+        pointCount
+
+      const point =
+        textPoints[
+        pointSelector
+        ]
+
+      /*
+       * Extremely tiny positional variation.
+       *
+       * This is small enough that it cannot
+       * create a visible second copy of the
+       * typography.
+       */
       const phase =
         particleIndex *
         0.017
@@ -306,17 +357,17 @@ const createTextTargetTexture = (
       const microX =
         Math.sin(
           phase * 1.73,
-        ) * 0.006
+        ) * 0.0025
 
       const microY =
         Math.cos(
           phase * 1.31,
-        ) * 0.006
+        ) * 0.0025
 
       const microZ =
         Math.sin(
           phase * 0.87,
-        ) * 0.012
+        ) * 0.004
 
       data[
         textureIndex
@@ -336,16 +387,9 @@ const createTextTargetTexture = (
         point.z +
         microZ
 
-      /*
-       * Every particle has a valid target.
-       *
-       * Membership is handled by the shader.
-       */
-
       data[
         textureIndex + 3
-      ] =
-        1.0
+      ] = 1.0
     }
   }
 

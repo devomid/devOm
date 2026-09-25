@@ -585,500 +585,522 @@ const velocityFlowFragmentShader = `
                 /* ------------------------------------------------
          * ORGANIC TARGET FORMATION
          * ------------------------------------------------
+         *
+         * IMPORTANT:
+         *
+         * The nebula is divided into three populations:
+         *
+         *   TEXT      -> forms the typography
+         *   JOINING   -> occasionally enters the typography
+         *   FREE      -> NEVER interacts with the typography
+         *
+         * Free particles must behave exactly like normal
+         * nebula particles and continue flying through the
+         * field instead of looping back toward the letters.
+         * ------------------------------------------------
          */
 
         if (uTextEnabled > 0.5) {
-            vec4 targetSample =
-                texture2D(
-                    uTextTargetTexture,
-                    vUv
+
+            /*
+             * Each particle receives a deterministic personality.
+             */
+
+            float personality =
+                fract(
+                    sin(
+                        phase * 12.9898 +
+                        78.233
+                    ) *
+                    43758.5453
                 );
 
-            if (targetSample.a > 0.001) {
-                vec3 target =
-                    targetSample.xyz;
+            /*
+             * ====================================================
+             * POPULATIONS
+             * ====================================================
+             *
+             * TEXT:
+             * roughly 60-62%
+             *
+             * JOINING:
+             * roughly 10-12%
+             *
+             * FREE:
+             * roughly 26-28%
+             *
+             * This is intentionally much less dense than before.
+             */
 
-                vec3 toTarget =
-                    target -
-                    position;
+            float textParticle =
+                1.0 -
+                smoothstep(
+                    0.60,
+                    0.72,
+                    personality
+                );
 
-                float distanceToTarget =
-                    length(
-                        toTarget
+            float joiningParticle =
+                smoothstep(
+                    0.72,
+                    0.82,
+                    personality
+                ) *
+                (
+                    1.0 -
+                    smoothstep(
+                        0.82,
+                        0.94,
+                        personality
+                    )
+                );
+
+            float freeParticle =
+                smoothstep(
+                    0.91,
+                    1.0,
+                    personality
+                );
+
+            /*
+             * ====================================================
+             * FREE PARTICLES
+             * ====================================================
+             *
+             * THIS IS CRITICAL.
+             *
+             * Free particles do not even calculate target
+             * attraction.
+             *
+             * They remain in the normal nebula flow.
+             */
+
+            if (
+                freeParticle >
+                0.001
+            ) {
+
+                float freeDriftX =
+                    sin(
+                        phase * 1.13 +
+                        uTime * 0.17
+                    );
+
+                float freeDriftY =
+                    cos(
+                        phase * 0.87 -
+                        uTime * 0.13
+                    );
+
+                float freeDriftZ =
+                    sin(
+                        phase * 0.71 +
+                        uTime * 0.11
+                    );
+
+                velocity.x +=
+                    freeDriftX *
+                    0.000018 *
+                    freeParticle;
+
+                velocity.y +=
+                    freeDriftY *
+                    0.000018 *
+                    freeParticle;
+
+                velocity.z +=
+                    freeDriftZ *
+                    0.000010 *
+                    freeParticle;
+            }
+
+            /*
+             * ====================================================
+             * TARGET SAMPLE
+             * ====================================================
+             *
+             * Only non-free particles are allowed to see the
+             * typography target.
+             */
+
+            if (
+                freeParticle <
+                0.001
+            ) {
+
+                vec4 targetSample =
+                    texture2D(
+                        uTextTargetTexture,
+                        vUv
                     );
 
                 if (
-                    distanceToTarget >
-                    0.0001
+                    targetSample.a >
+                    0.001
                 ) {
-                    vec3 direction =
-                        toTarget /
-                        distanceToTarget;
 
-                    /* ====================================================
-                     * PARTICLE PERSONALITY
-                     *
-                     * Slightly less core density than before.
-                     * The surrounding free field stays essentially the same.
-                     * ====================================================
-                     */
+                    vec3 target =
+                        targetSample.xyz;
 
-                    float personality =
-                        fract(
-                            sin(
-                                phase * 12.9898 +
-                                78.233
-                            ) *
-                            43758.5453
+                    vec3 toTarget =
+                        target -
+                        position;
+
+                    float distanceToTarget =
+                        length(
+                            toTarget
                         );
-
-                    /*
-                     * About 5% less formed text.
-                     *
-                     * Previous core began around 0.68.
-                     * Raising it makes the glyph structure slightly
-                     * more porous without destroying readability.
-                     */
-
-                    float coreParticle =
-                        1.0 -
-                        smoothstep(
-                            0.71,
-                            0.80,
-                            personality
-                        );
-
-                    float joiningParticle =
-                        smoothstep(
-                            0.72,
-                            0.86,
-                            personality
-                        ) *
-                        (
-                            1.0 -
-                            smoothstep(
-                                0.86,
-                                0.94,
-                                personality
-                            )
-                        );
-
-                    float freeParticle =
-                        smoothstep(
-                            0.91,
-                            1.0,
-                            personality
-                        );
-
-                    /* ====================================================
-                     * LIVING DECONSTRUCTION
-                     * ====================================================
-                     */
-
-                    float cycle =
-                        sin(
-                            uTime * 0.48
-                        ) *
-                        0.5 +
-                        0.5;
-
-                    float volatileParticle =
-                        smoothstep(
-                            0.58,
-                            0.67,
-                            personality
-                        );
-
-                    float deconstructWindow =
-                        smoothstep(
-                            0.62,
-                            0.82,
-                            cycle
-                        );
-
-                    float reformWindow =
-                        1.0 -
-                        smoothstep(
-                            0.82,
-                            0.98,
-                            cycle
-                        );
-
-                    float deconstruct =
-                        volatileParticle *
-                        deconstructWindow *
-                        reformWindow;
-
-                    /* ====================================================
-                     * CORE FORMATION
-                     * ====================================================
-                     *
-                     * Fast when far away.
-                     * Very soft when approaching the glyph.
-                     *
-                     * This prevents the particles from repeatedly
-                     * slamming through the target and bouncing back.
-                     */
-
-                    float coreDistance =
-                        smoothstep(
-                            5.5,
-                            0.0,
-                            distanceToTarget
-                        );
-
-                    float coreWeight =
-                        coreParticle *
-                        (
-                            0.92 +
-                            coreDistance * 0.08
-                        );
-
-                    coreWeight *=
-                        1.0 -
-                        deconstruct * 0.82;
-
-                    /*
-                     * Attraction falls off strongly near the target.
-                     */
-
-                    float formationSpring =
-                        clamp(
-                            distanceToTarget *
-                            0.00275,
-                            0.00018,
-                            0.0140
-                        );
-
-                    /*
-                     * Once particles are very close, attraction becomes
-                     * almost imperceptible instead of continuing to push.
-                     */
-
-                    float nearTargetSoftness =
-                        smoothstep(
-                            0.05,
-                            0.72,
-                            distanceToTarget
-                        );
-
-                    formationSpring *=
-                        nearTargetSoftness;
-
-                    velocity +=
-                        direction *
-                        formationSpring *
-                        uTextStrength *
-                        coreWeight;
-
-                    /* ====================================================
-                     * TARGET LOCK
-                     * ====================================================
-                     *
-                     * Much gentler than before.
-                     * This removes the "rubber band" behavior.
-                     */
-
-                    float lockZone =
-                        1.0 -
-                        smoothstep(
-                            0.70,
-                            1.55,
-                            distanceToTarget
-                        );
-
-                    float lockStrength =
-                        0.075;
-
-                    lockStrength *=
-                        1.0 -
-                        deconstruct * 0.88;
-
-                    float radialVelocity =
-                        dot(
-                            velocity,
-                            direction
-                        );
-
-                    /*
-                     * Only remove excessive radial velocity.
-                     * Do not force the particle to stop completely.
-                     */
-
-                    velocity -=
-                        direction *
-                        radialVelocity *
-                        lockStrength *
-                        lockZone *
-                        coreWeight;
-
-                    /* ====================================================
-                     * SOFT TARGET CORRECTION
-                     * ====================================================
-                     *
-                     * Tiny correction rather than a second strong spring.
-                     */
-
-                    velocity +=
-                        direction *
-                        distanceToTarget *
-                        0.00032 *
-                        lockZone *
-                        coreWeight;
-
-                    /* ====================================================
-                     * VERY SLIGHT FLOAT / FLIGHT
-                     * ====================================================
-                     *
-                     * The text itself should feel alive.
-                     *
-                     * This is deliberately tiny:
-                     * particles drift around their glyph positions
-                     * instead of becoming perfectly frozen pixels.
-                     */
-
-                    vec3 textFloat;
-
-                    textFloat.x =
-                        sin(
-                            target.y * 0.72 +
-                            uTime * 0.36 +
-                            phase * 1.07
-                        );
-
-                    textFloat.y =
-                        cos(
-                            target.x * 0.68 -
-                            uTime * 0.31 +
-                            phase * 0.93
-                        );
-
-                    textFloat.z =
-                        sin(
-                            target.x * 0.43 +
-                            target.y * 0.51 +
-                            uTime * 0.27 +
-                            phase * 0.71
-                        );
-
-                    /*
-                     * Very small movement.
-                     * This should be perceived as particles floating,
-                     * not as the letters deforming.
-                     */
-
-                    velocity +=
-                        textFloat *
-                        0.000012 *
-                        lockZone *
-                        coreWeight;
-
-                    /* ====================================================
-                     * DECONSTRUCTION ESCAPE
-                     * ====================================================
-                     */
-
-                    vec3 escapeDirection =
-                        normalize(
-                            vec3(
-                                direction.x +
-                                sin(
-                                    phase * 1.7 +
-                                    uTime * 0.31
-                                ) *
-                                0.75,
-
-                                direction.y +
-                                cos(
-                                    phase * 1.3 -
-                                    uTime * 0.27
-                                ) *
-                                0.75,
-
-                                direction.z +
-                                sin(
-                                    phase * 0.8 +
-                                    uTime * 0.22
-                                ) *
-                                0.36
-                            )
-                        );
-
-                    velocity +=
-                        escapeDirection *
-                        deconstruct *
-                        0.00032;
-
-                    vec3 sideways;
-
-                    sideways.x =
-                        cos(
-                            phase * 1.41 +
-                            uTime * 0.27
-                        );
-
-                    sideways.y =
-                        sin(
-                            phase * 1.73 -
-                            uTime * 0.21
-                        );
-
-                    sideways.z =
-                        cos(
-                            phase * 0.91 +
-                            uTime * 0.17
-                        );
-
-                    velocity +=
-                        sideways *
-                        deconstruct *
-                        0.00013;
-
-                    /* ====================================================
-                     * REFORMING
-                     * ====================================================
-                     */
-
-                    float reformStrength =
-                        smoothstep(
-                            0.70,
-                            0.96,
-                            cycle
-                        );
-
-                    reformStrength *=
-                        volatileParticle;
-
-                    /*
-                     * Soft reforming attraction.
-                     * It cannot create the previous violent bounce.
-                     */
-
-                    velocity +=
-                        direction *
-                        clamp(
-                            distanceToTarget *
-                            0.00120,
-                            0.00008,
-                            0.0060
-                        ) *
-                        reformStrength *
-                        uTextStrength;
-
-                    /* ====================================================
-                     * JOINING PARTICLES
-                     * ====================================================
-                     */
-
-                    float joinWave =
-                        sin(
-                            phase * 1.91 +
-                            uTime * 0.24
-                        ) *
-                        0.5 +
-                        0.5;
-
-                    float joining =
-                        smoothstep(
-                            0.70,
-                            0.94,
-                            joinWave
-                        );
-
-                    float joinDistance =
-                        1.0 -
-                        smoothstep(
-                            1.5,
-                            6.5,
-                            distanceToTarget
-                        );
-
-                    float joinActivity =
-                        0.42 +
-                        reformStrength * 0.65;
-
-                    float joinWeight =
-                        joiningParticle *
-                        joining *
-                        joinDistance *
-                        joinActivity;
-
-                    velocity +=
-                        direction *
-                        clamp(
-                            distanceToTarget *
-                            0.00115,
-                            0.00008,
-                            0.0060
-                        ) *
-                        joinWeight *
-                        uTextStrength;
-
-                    velocity +=
-                        textFloat *
-                        0.000030 *
-                        joinWeight;
-
-                    /* ====================================================
-                     * FREE NEBULA
-                     * ====================================================
-                     */
 
                     if (
-                        freeParticle >
-                        0.001
+                        distanceToTarget >
+                        0.0001
                     ) {
-                        float freeDrift =
+
+                        vec3 direction =
+                            toTarget /
+                            distanceToTarget;
+
+                        /*
+                         * ====================================================
+                         * LIVING DECONSTRUCTION
+                         * ====================================================
+                         */
+
+                        float cycle =
                             sin(
-                                phase * 1.13 +
-                                uTime * 0.17
+                                uTime * 0.48
+                            ) *
+                            0.5 +
+                            0.5;
+
+                        /*
+                         * About 10-15% of the actual formed particles
+                         * are allowed to become volatile.
+                         */
+
+                        float volatileParticle =
+                            smoothstep(
+                                0.50,
+                                0.59,
+                                personality
+                            ) *
+                            (
+                                1.0 -
+                                smoothstep(
+                                    0.59,
+                                    0.64,
+                                    personality
+                                )
                             );
 
-                        velocity.x +=
-                            freeDrift *
-                            0.000018 *
-                            freeParticle;
+                        float deconstructWindow =
+                            smoothstep(
+                                0.62,
+                                0.82,
+                                cycle
+                            );
 
-                        velocity.y +=
-                            cos(
-                                phase * 0.87 -
-                                uTime * 0.13
-                            ) *
-                            0.000018 *
-                            freeParticle;
-                    }
+                        float reformWindow =
+                            1.0 -
+                            smoothstep(
+                                0.82,
+                                0.98,
+                                cycle
+                            );
 
-                    /* ====================================================
-                     * LOCAL STABILITY
-                     * ====================================================
-                     *
-                     * Gentle damping only.
-                     * The previous value was too strong and contributed
-                     * to the "hit target -> bounce -> hit target" feeling.
-                     */
+                        float deconstruct =
+                            volatileParticle *
+                            deconstructWindow *
+                            reformWindow;
 
-                    if (
-                        distanceToTarget <
-                        0.62
-                    ) {
-                        float localRadial =
+                        /*
+                         * ====================================================
+                         * TEXT FORMATION
+                         * ====================================================
+                         *
+                         * Only the text population receives strong
+                         * formation forces.
+                         */
+
+                        float textWeight =
+                            textParticle;
+
+                        textWeight *=
+                            1.0 -
+                            deconstruct * 0.90;
+
+                        /*
+                         * Faster initial formation.
+                         */
+
+                        float formationSpring =
+                            clamp(
+                                distanceToTarget *
+                                0.00280,
+                                0.00016,
+                                0.0140
+                            );
+
+                        /*
+                         * Soft landing into the glyph.
+                         *
+                         * Prevents the particles from repeatedly
+                         * slamming into the target.
+                         */
+
+                        float approachSoftness =
+                            smoothstep(
+                                0.08,
+                                0.75,
+                                distanceToTarget
+                            );
+
+                        formationSpring *=
+                            approachSoftness;
+
+                        velocity +=
+                            direction *
+                            formationSpring *
+                            uTextStrength *
+                            textWeight;
+
+                        /*
+                         * ====================================================
+                         * VERY LIGHT TARGET LOCK
+                         * ====================================================
+                         */
+
+                        float lockZone =
+                            1.0 -
+                            smoothstep(
+                                0.65,
+                                1.45,
+                                distanceToTarget
+                            );
+
+                        float radialVelocity =
                             dot(
                                 velocity,
                                 direction
                             );
 
-                        float localStability =
-                            0.105 *
-                            (
-                                1.0 -
-                                deconstruct * 0.82
-                            );
-
                         velocity -=
                             direction *
-                            localRadial *
-                            localStability *
-                            coreParticle;
+                            radialVelocity *
+                            0.065 *
+                            lockZone *
+                            textWeight;
+
+                        /*
+                         * ====================================================
+                         * SUBTLE PARTICLE FLOAT
+                         * ====================================================
+                         */
+
+                        vec3 textFloat;
+
+                        textFloat.x =
+                            sin(
+                                target.y * 0.72 +
+                                uTime * 0.36 +
+                                phase * 1.07
+                            );
+
+                        textFloat.y =
+                            cos(
+                                target.x * 0.68 -
+                                uTime * 0.31 +
+                                phase * 0.93
+                            );
+
+                        textFloat.z =
+                            sin(
+                                target.x * 0.43 +
+                                target.y * 0.51 +
+                                uTime * 0.27 +
+                                phase * 0.71
+                            );
+
+                        velocity +=
+                            textFloat *
+                            0.000010 *
+                            lockZone *
+                            textWeight;
+
+                        /*
+                         * ====================================================
+                         * DECONSTRUCTION
+                         * ====================================================
+                         */
+
+                        vec3 escapeDirection =
+                            normalize(
+                                vec3(
+                                    direction.x +
+                                    sin(
+                                        phase * 1.7 +
+                                        uTime * 0.31
+                                    ) *
+                                    0.75,
+
+                                    direction.y +
+                                    cos(
+                                        phase * 1.3 -
+                                        uTime * 0.27
+                                    ) *
+                                    0.75,
+
+                                    direction.z +
+                                    sin(
+                                        phase * 0.8 +
+                                        uTime * 0.22
+                                    ) *
+                                    0.36
+                                )
+                            );
+
+                        velocity +=
+                            escapeDirection *
+                            deconstruct *
+                            0.00030;
+
+                        /*
+                         * Sideways escape.
+                         */
+
+                        vec3 sideways;
+
+                        sideways.x =
+                            cos(
+                                phase * 1.41 +
+                                uTime * 0.27
+                            );
+
+                        sideways.y =
+                            sin(
+                                phase * 1.73 -
+                                uTime * 0.21
+                            );
+
+                        sideways.z =
+                            cos(
+                                phase * 0.91 +
+                                uTime * 0.17
+                            );
+
+                        velocity +=
+                            sideways *
+                            deconstruct *
+                            0.00012;
+
+                        /*
+                         * ====================================================
+                         * REFORM
+                         * ====================================================
+                         */
+
+                        float reformStrength =
+                            smoothstep(
+                                0.70,
+                                0.96,
+                                cycle
+                            );
+
+                        reformStrength *=
+                            volatileParticle;
+
+                        velocity +=
+                            direction *
+                            clamp(
+                                distanceToTarget *
+                                0.00115,
+                                0.00006,
+                                0.0055
+                            ) *
+                            reformStrength *
+                            uTextStrength;
+
+                        /*
+                         * ====================================================
+                         * JOINING PARTICLES
+                         * ====================================================
+                         *
+                         * These are the only particles outside the
+                         * core typography that may join it.
+                         */
+
+                        float joinWave =
+                            sin(
+                                phase * 1.91 +
+                                uTime * 0.24
+                            ) *
+                            0.5 +
+                            0.5;
+
+                        float joining =
+                            smoothstep(
+                                0.70,
+                                0.94,
+                                joinWave
+                            );
+
+                        float joinDistance =
+                            1.0 -
+                            smoothstep(
+                                1.5,
+                                6.5,
+                                distanceToTarget
+                            );
+
+                        float joinActivity =
+                            0.35 +
+                            reformStrength * 0.55;
+
+                        float joinWeight =
+                            joiningParticle *
+                            joining *
+                            joinDistance *
+                            joinActivity;
+
+                        velocity +=
+                            direction *
+                            clamp(
+                                distanceToTarget *
+                                0.00105,
+                                0.00006,
+                                0.0050
+                            ) *
+                            joinWeight *
+                            uTextStrength;
+
+                        velocity +=
+                            textFloat *
+                            0.000024 *
+                            joinWeight;
+
+                        /*
+                         * ====================================================
+                         * LOCAL DAMPING
+                         * ====================================================
+                         */
+
+                        if (
+                            distanceToTarget <
+                            0.58
+                        ) {
+
+                            float localRadial =
+                                dot(
+                                    velocity,
+                                    direction
+                                );
+
+                            velocity -=
+                                direction *
+                                localRadial *
+                                0.085 *
+                                textWeight;
+                        }
                     }
                 }
             }
