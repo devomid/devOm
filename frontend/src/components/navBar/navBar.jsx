@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material'
 import { Link, useLocation } from 'react-router-dom'
 import {
     motion,
+    LayoutGroup,
     useMotionTemplate,
     useTransform,
     useMotionValueEvent,
@@ -45,22 +46,27 @@ const NavBar = ({ scrollProgress }) => {
         getHomeSection(scrollProgress.get()),
     )
 
-    useMotionValueEvent(scrollProgress, 'change', (latest) => {
-        const nextSection = getHomeSection(latest)
+    useMotionValueEvent(
+        scrollProgress,
+        'change',
+        (latest) => {
+            const nextSection = getHomeSection(latest)
 
-        setHomeSection((currentSection) =>
-            currentSection === nextSection
-                ? currentSection
-                : nextSection,
-        )
-    })
+            setHomeSection((currentSection) =>
+                currentSection === nextSection
+                    ? currentSection
+                    : nextSection,
+            )
+        },
+    )
 
     const activeIndex =
         location.pathname === '/'
             ? homeSection
             : navItems.findIndex(
-                  (item) => item.path === location.pathname,
-              )
+                (item) =>
+                    item.path === location.pathname,
+            )
 
     const navbarOpacity = useTransform(
         scrollProgress,
@@ -85,13 +91,15 @@ const NavBar = ({ scrollProgress }) => {
 
     const navbarBackground = useTransform(
         navbarOpacity,
-        (opacity) => `rgba(0, 0, 0, ${opacity})`,
+        (opacity) =>
+            `rgba(0, 0, 0, ${opacity})`,
     )
 
-    const navbarBackdropFilter = useMotionTemplate`
-        blur(${navbarBlur}px)
-        saturate(${navbarSaturate}%)
-    `
+    const navbarBackdropFilter =
+        useMotionTemplate`
+            blur(${navbarBlur}px)
+            saturate(${navbarSaturate}%)
+        `
 
     const navbarHeight = useTransform(
         scrollProgress,
@@ -156,107 +164,134 @@ const NavBar = ({ scrollProgress }) => {
         ],
     )
 
-    const navFontWeight = typography.weight.medium
+    const navFontWeight =
+        typography.weight.medium
 
     return (
-        <MotionBox
-            component="nav"
-            style={{
-                background: navbarBackground,
-                backdropFilter: navbarBackdropFilter,
-                WebkitBackdropFilter: navbarBackdropFilter,
+        <LayoutGroup id="devom-navbar">
+            <MotionBox
+                component="nav"
+                style={{
+                    background: navbarBackground,
+                    backdropFilter:
+                        navbarBackdropFilter,
+                    WebkitBackdropFilter:
+                        navbarBackdropFilter,
 
-                top: navbarTop,
-                left: navbarSide,
-                right: navbarSide,
+                    top: navbarTop,
+                    left: navbarSide,
+                    right: navbarSide,
 
-                height: navbarHeight,
+                    height: navbarHeight,
 
-                borderRadius: navbarRadius,
-                gap: navbarGap,
-            }}
-            sx={{
-                position: 'fixed',
+                    borderRadius: navbarRadius,
+                    gap: navbarGap,
+                }}
+                sx={{
+                    position: 'fixed',
 
-                width: 'auto',
-                maxWidth: layout.container.maxWidth,
+                    width: 'auto',
+                    maxWidth:
+                        layout.container.maxWidth,
 
-                borderBottom: glass.floating.border,
-                boxShadow: glass.floating.shadow,
+                    borderBottom:
+                        glass.floating.border,
+                    boxShadow:
+                        glass.floating.shadow,
 
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
 
-                boxSizing: 'border-box',
-                marginInline: 'auto',
+                    boxSizing: 'border-box',
+                    marginInline: 'auto',
 
-                color: colors.text.primary,
+                    color: colors.text.primary,
 
-                zIndex: 1000,
-            }}
-        >
-            {navItems.map((item, index) => {
-                const isActive = index === activeIndex
+                    zIndex: 1000,
+                }}
+            >
+                {navItems.map((item, index) => {
+                    const isActive =
+                        index === activeIndex
 
-                return (
-                    <Box
-                        key={item.path}
-                        component={Link}
-                        to={item.path}
-                        sx={{
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            height: '100%',
-                            textDecoration: 'none',
-                            color: 'inherit',
-                            flexShrink: 0,
-                        }}
-                    >
-                        <MotionTypography
-                            style={{
-                                fontSize: navFontSize,
-                                color: navFontColor,
-                            }}
+                    return (
+                        <Box
+                            key={item.path}
+                            component={Link}
+                            to={item.path}
                             sx={{
-                                fontFamily: typography.fontFamily.sans,
-                                fontWeight: navFontWeight,
-                                lineHeight: typography.lineHeight.normal,
-                                whiteSpace: 'nowrap',
+                                position:
+                                    'relative',
+                                display: 'flex',
+                                alignItems:
+                                    'center',
+                                height: '100%',
+                                textDecoration:
+                                    'none',
+                                color: 'inherit',
+                                flexShrink: 0,
                             }}
                         >
-                            {item.label}
-                        </MotionTypography>
-
-                        {isActive && (
-                            <Box
-                                component={motion.div}
-                                layoutId="nav-indicator"
+                            <MotionTypography
+                                style={{
+                                    fontSize:
+                                        navFontSize,
+                                    color:
+                                        navFontColor,
+                                }}
                                 sx={{
-                                    position: 'absolute',
-
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-
-                                    height: '4px',
-
-                                    backgroundColor: 'red',
-                                    borderRadius: radius.pill,
+                                    fontFamily:
+                                        typography
+                                            .fontFamily
+                                            .sans,
+                                    fontWeight:
+                                        navFontWeight,
+                                    lineHeight:
+                                        typography
+                                            .lineHeight
+                                            .normal,
+                                    whiteSpace:
+                                        'nowrap',
                                 }}
-                                transition={{
-                                    type: 'spring',
-                                    stiffness: 500,
-                                    damping: 28,
-                                    mass: 0.7,
-                                }}
-                            />
-                        )}
-                    </Box>
-                )
-            })}
-        </MotionBox>
+                            >
+                                {item.label}
+                            </MotionTypography>
+
+                            {isActive && (
+                                <Box
+                                    component={
+                                        motion.div
+                                    }
+                                    layoutId="nav-indicator"
+                                    sx={{
+                                        position:
+                                            'absolute',
+
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+
+                                        height: '4px',
+
+                                        backgroundColor:
+                                            'red',
+                                        borderRadius:
+                                            radius.pill,
+                                    }}
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 500,
+                                        damping: 28,
+                                        mass: 0.7,
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    )
+                })}
+            </MotionBox>
+        </LayoutGroup>
     )
 }
 

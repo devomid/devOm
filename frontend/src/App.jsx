@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import { useRef } from 'react'
-import { useScroll } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { motionValue } from 'framer-motion'
 
 import { colors } from './design'
 import NavBar from './components/navBar/navBar'
@@ -14,15 +14,17 @@ import FourOFour from './pages/404'
 
 function App() {
   const homeRef = useRef(null)
+  const homeScrollProgress = useRef(motionValue(0))
+
   const location = useLocation()
-
-  const { scrollYProgress } = useScroll({
-    target: homeRef,
-    offset: ['start start', 'end end'],
-    layoutEffect: false,
-  })
-
   const isHome = location.pathname === '/'
+
+  useEffect(() => {
+    if (isHome) {
+      window.scrollTo(0, 0)
+      homeScrollProgress.current.set(0)
+    }
+  }, [isHome])
 
   return (
     <Box
@@ -33,21 +35,44 @@ function App() {
       }}
     >
       <NavBar
-        scrollProgress={scrollYProgress}
-        isHome={isHome}
+        scrollProgress={homeScrollProgress.current}
       />
 
       <Routes>
         <Route
           path="/"
-          element={<Home homeRef={homeRef} />}
+          element={
+            <Home
+              homeRef={homeRef}
+              scrollProgress={homeScrollProgress.current}
+            />
+          }
         />
 
-        <Route path="/whatibuild" element={<WhatIBuild />} />
-        <Route path="/works" element={<Works />} />
-        <Route path="/howibuild" element={<HowIBuild />} />
-        <Route path="/contacts" element={<Contacts />} />
-        <Route path="*" element={<FourOFour />} />
+        <Route
+          path="/whatibuild"
+          element={<WhatIBuild />}
+        />
+
+        <Route
+          path="/works"
+          element={<Works />}
+        />
+
+        <Route
+          path="/howibuild"
+          element={<HowIBuild />}
+        />
+
+        <Route
+          path="/contacts"
+          element={<Contacts />}
+        />
+
+        <Route
+          path="*"
+          element={<FourOFour />}
+        />
       </Routes>
     </Box>
   )

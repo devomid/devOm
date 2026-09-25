@@ -1,5 +1,9 @@
 import { Box } from '@mui/material'
 import { Link } from 'react-router-dom'
+import {
+    useScroll,
+    useMotionValueEvent,
+} from 'framer-motion'
 
 import HeroSection from '../components/homeComps/HeroSection'
 import WhatIBuild from './WhatIBuild'
@@ -7,7 +11,20 @@ import HowIBuild from './HowIBuild'
 import Works from './Works'
 import Contacts from './Contacts'
 
-const Home = ({ homeRef }) => {
+const Home = ({ homeRef, scrollProgress }) => {
+    const { scrollYProgress } = useScroll({
+        target: homeRef,
+        offset: ['start start', 'end end'],
+    })
+
+    useMotionValueEvent(
+        scrollYProgress,
+        'change',
+        (latest) => {
+            scrollProgress.set(latest)
+        },
+    )
+
     return (
         <Box
             ref={homeRef}
