@@ -9,64 +9,7 @@ import NebulaBackground from '../components/nebula/nebula'
 
 const TEXTURE_SIZE = 512
 
-const createTextTargetTexture = () => {
-  const canvas =
-    document.createElement(
-      'canvas',
-    )
-
-  canvas.width =
-    TEXTURE_SIZE
-
-  canvas.height =
-    TEXTURE_SIZE
-
-  const context =
-    canvas.getContext(
-      '2d',
-      {
-        willReadFrequently:
-          true,
-      },
-    )
-
-  if (!context) {
-    return null
-  }
-
-  context.clearRect(
-    0,
-    0,
-    TEXTURE_SIZE,
-    TEXTURE_SIZE,
-  )
-
-  context.fillStyle =
-    '#ffffff'
-
-  context.textAlign =
-    'center'
-
-  context.textBaseline =
-    'middle'
-
-  context.font =
-    '900 76px Arial Black, Arial, sans-serif'
-
-  context.fillText(
-    'WHAT I BUILD',
-    TEXTURE_SIZE / 2,
-    TEXTURE_SIZE / 2,
-  )
-
-  const image =
-    context.getImageData(
-      0,
-      0,
-      TEXTURE_SIZE,
-      TEXTURE_SIZE,
-    )
-
+const createCircleTargetTexture = () => {
   const data =
     new Float32Array(
       TEXTURE_SIZE *
@@ -74,49 +17,40 @@ const createTextTargetTexture = () => {
       4,
     )
 
+  /*
+   * Every particle gets a target.
+   *
+   * We map the particle's texture position around
+   * a continuous circle instead of using only the
+   * pixels belonging to a shape.
+   *
+   * This is deliberately simple for the first test.
+   * Once this works, we build the generalized target
+   * system for text, vortices, tendrils, etc.
+   */
+
+  const centerX =
+    0.5
+
+  const centerY =
+    0.5
+
+  const radiusX =
+    6.15
+
+  const radiusY =
+    2.65
+
   for (
     let textureY = 0;
     textureY < TEXTURE_SIZE;
     textureY += 1
   ) {
-    const canvasY =
-      TEXTURE_SIZE -
-      1 -
-      textureY
-
     for (
       let textureX = 0;
       textureX < TEXTURE_SIZE;
       textureX += 1
     ) {
-      const canvasIndex =
-        (
-          canvasY *
-          TEXTURE_SIZE +
-          textureX
-        ) *
-        4
-
-      const textureIndex =
-        (
-          textureY *
-          TEXTURE_SIZE +
-          textureX
-        ) *
-        4
-
-      const alpha =
-        image.data[
-        canvasIndex + 3
-        ] / 255
-
-      if (
-        alpha <
-        0.015
-      ) {
-        continue
-      }
-
       const normalizedX =
         textureX /
         (
@@ -129,57 +63,112 @@ const createTextTargetTexture = () => {
           TEXTURE_SIZE - 1
         )
 
-      let worldX =
-        (
-          normalizedX -
-          0.5
-        ) *
-        16.8
+      /*
+       * Convert the texture coordinate into an
+       * angular position around the circle.
+       *
+       * Every particle gets a location on the ring.
+       */
+      const dx =
+        normalizedX -
+        centerX
 
-      let worldY =
-        (
-          normalizedY -
-          0.5
-        ) *
-        7.4
+      const dy =
+        normalizedY -
+        centerY
 
-      const noise =
-        Math.sin(
-          textureX *
-          12.9898 +
-          textureY *
-          78.233,
-        ) *
-        43758.5453
-
-      const random =
-        noise -
-        Math.floor(
-          noise,
+      let angle =
+        Math.atan2(
+          dy,
+          dx,
         )
 
-      worldX +=
-        (
-          random -
-          0.5
-        ) *
-        0.10
+      /*
+       * Keep the angle in the 0 → 2PI range.
+       */
+      if (
+        angle < 0
+      ) {
+        angle +=
+          Math.PI *
+          2
+      }
 
-      worldY +=
+      /*
+       * Use the texture radius to create controlled
+       * variation along the circle.
+       *
+       * This prevents the formation from becoming
+       * mathematically perfect.
+       */
+      const radialNoise =
         Math.sin(
           textureX *
           0.071 +
           textureY *
-          0.037,
+          0.113,
         ) *
-        0.045
+        0.10
+
+      const breathing =
+        Math.sin(
+          angle *
+          5.0 +
+          textureY *
+          0.021,
+        ) *
+        0.075
+
+      const radiusOffset =
+        radialNoise +
+        breathing
+
+      const targetRadiusX =
+        radiusX +
+        radiusOffset
+
+      const targetRadiusY =
+        radiusY +
+        radiusOffset *
+        0.62
+
+      const worldX =
+        Math.cos(
+          angle,
+        ) *
+        targetRadiusX
+
+      const worldY =
+        Math.sin(
+          angle,
+        ) *
+        targetRadiusY
+
+      /*
+       * Give the circle real depth.
+       *
+       * The depth varies by particle instead of
+       * putting the entire formation on one plane.
+       */
+      const depthNoise =
+        Math.sin(
+          textureX *
+          0.127 +
+          textureY *
+          0.091,
+        )
 
       const worldZ =
+        depthNoise *
+        0.38
+
+      const textureIndex =
         (
-          random -
-          0.5
+          textureY *
+          TEXTURE_SIZE +
+          textureX
         ) *
-        0.72
+        4
 
       data[
         textureIndex
@@ -196,13 +185,15 @@ const createTextTargetTexture = () => {
       ] =
         worldZ
 
+      /*
+       * Every particle participates.
+       *
+       * This is intentional for the first test.
+       */
       data[
         textureIndex + 3
       ] =
-        Math.pow(
-          alpha,
-          0.62,
-        )
+        1.0
     }
   }
 
@@ -238,15 +229,15 @@ const createTextTargetTexture = () => {
 
 const WhatIBuild = () => {
   const [
-    textTargetTexture,
-    setTextTargetTexture,
+    circleTargetTexture,
+    setCircleTargetTexture,
   ] = useState(null)
 
   useEffect(() => {
     const texture =
-      createTextTargetTexture()
+      createCircleTargetTexture()
 
-    setTextTargetTexture(
+    setCircleTargetTexture(
       texture,
     )
 
@@ -277,11 +268,11 @@ const WhatIBuild = () => {
       <NebulaBackground
         textEnabled={
           Boolean(
-            textTargetTexture,
+            circleTargetTexture,
           )
         }
         textTargetTexture={
-          textTargetTexture
+          circleTargetTexture
         }
         textStrength={
           1.0
