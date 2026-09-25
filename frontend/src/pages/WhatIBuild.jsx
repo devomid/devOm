@@ -285,7 +285,7 @@ const WhatIBuild = () => {
           textTargetTexture
         }
         textStrength={
-          0.00058
+          0.0032
         }
       />
     </main>
