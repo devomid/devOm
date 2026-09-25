@@ -34,7 +34,6 @@ export const motion = {
         subtle: 0.35,
         visible: 1,
     },
-
     spring: {
         gentle: {
             type: "spring",

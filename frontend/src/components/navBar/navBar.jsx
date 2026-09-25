@@ -6,7 +6,15 @@ import {
     useTransform,
 } from 'framer-motion'
 
-import { glass, layout } from '../../design'
+import {
+    colors,
+    typography,
+    spacing,
+    radius,
+    glass,
+    motion as motionTokens,
+    layout,
+} from '../../design'
 
 const navItems = [
     { label: 'Home', path: '/' },
@@ -17,83 +25,114 @@ const navItems = [
 ]
 
 const MotionBox = motion(Box)
+const MotionTypography = motion(Typography)
 
 const NavBar = ({ scrollProgress }) => {
     const location = useLocation()
 
-    /*
-     * Home is 500vh.
-     * The actual scrollable distance is 400vh.
-     *
-     * Therefore:
-     *
-     * 0.00 → 0.25 = Hero transition
-     *
-     * We only want the navbar to start changing when
-     * roughly 80% of that transition has happened.
-     *
-     * 0.20 → 0.25 = final 20% of Hero transition.
-     */
-
     const navbarOpacity = useTransform(
         scrollProgress,
         [0, 0.25],
-        [1, 0.01],
+        [
+            motionTokens.opacity.visible,
+            motionTokens.opacity.hidden,
+        ],
     )
 
     const navbarBlur = useTransform(
         scrollProgress,
-        [0, 0.4],
-        [28, 55],
+        [0, 0.25],
+        [
+            28,
+            32,
+        ],
     )
+
+    const navbarSaturate = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [
+            170,
+            160,
+        ],
+    )
+
+    const navbarBackground = useTransform(
+        navbarOpacity,
+        (opacity) => `rgba(0, 0, 0, ${opacity})`,
+    )
+
+    const navbarBackdropFilter = useMotionTemplate`
+        blur(${navbarBlur}px)
+        saturate(${navbarSaturate}%)
+    `
 
     const navbarHeight = useTransform(
         scrollProgress,
         [0, 0.25],
-        [80, 52],
-    )
-
-    const navbarSide = useTransform(
-        scrollProgress,
-        [0, 0.25],
-        [0, 32],
+        [
+            layout.header.heightDesktop,
+            layout.header.heightMobile,
+        ],
     )
 
     const navbarTop = useTransform(
         scrollProgress,
         [0, 0.25],
-        [0, 24],
+        [
+            spacing[0],
+            spacing.lg,
+        ],
+    )
+
+    const navbarSide = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [
+            spacing[0],
+            spacing.colossal,
+        ],
     )
 
     const navbarRadius = useTransform(
         scrollProgress,
         [0, 0.25],
-        [0, 28],
+        [
+            radius.none,
+            radius.lg,
+        ],
     )
 
     const navbarGap = useTransform(
         scrollProgress,
         [0, 0.25],
-        ['56px', '110px'],
+        [
+            spacing.xxl,
+            spacing.colossal,
+        ],
     )
 
     const navFontSize = useTransform(
         scrollProgress,
         [0, 0.25],
-        [22, 10],
+        [
+            typography.size.sm,
+            typography.size.xs,
+        ],
+    )
+    const navFontColor = useTransform(
+        scrollProgress,
+        [0, 0.25],
+        [
+            colors.accent.primary,
+            colors.text.primary,
+        ],
     )
 
-    const MotionTypography = motion(Typography)
 
-    const navbarBackground = useTransform(
-        navbarOpacity,
-        (opacity) => `rgba(25, 255, 255, ${opacity})`,
-    )
 
-    const navbarBackdropFilter = useMotionTemplate`
-        blur(${navbarBlur}px)
-        saturate(170%)
-    `
+
+    const navFontWeight = typography.weight.medium
 
     return (
         <MotionBox
@@ -102,22 +141,34 @@ const NavBar = ({ scrollProgress }) => {
                 background: navbarBackground,
                 backdropFilter: navbarBackdropFilter,
                 WebkitBackdropFilter: navbarBackdropFilter,
-                gap: navbarGap,
+
                 top: navbarTop,
                 left: navbarSide,
                 right: navbarSide,
+
                 height: navbarHeight,
+
                 borderRadius: navbarRadius,
+                gap: navbarGap,
             }}
             sx={{
                 position: 'fixed',
+
                 width: 'auto',
                 maxWidth: layout.container.maxWidth,
+
                 borderBottom: glass.floating.border,
                 boxShadow: glass.floating.shadow,
+
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
+
+                boxSizing: 'border-box',
+                marginInline: 'auto',
+
+                color: colors.text.primary,
+
                 zIndex: 1000,
             }}
         >
@@ -136,11 +187,19 @@ const NavBar = ({ scrollProgress }) => {
                             height: '100%',
                             textDecoration: 'none',
                             color: 'inherit',
+                            flexShrink: 0,
                         }}
                     >
                         <MotionTypography
                             style={{
                                 fontSize: navFontSize,
+                                color: navFontColor
+                            }}
+                            sx={{
+                                fontFamily: typography.fontFamily.sans,
+                                fontWeight: navFontWeight,
+                                lineHeight: typography.lineHeight.normal,
+                                whiteSpace: 'nowrap',
                             }}
                         >
                             {item.label}
@@ -152,12 +211,15 @@ const NavBar = ({ scrollProgress }) => {
                                 layoutId="nav-indicator"
                                 sx={{
                                     position: 'absolute',
+
                                     left: 0,
                                     right: 0,
                                     bottom: 0,
+
                                     height: '4px',
+
                                     backgroundColor: 'red',
-                                    borderRadius: '999px',
+                                    borderRadius: radius.pill,
                                 }}
                                 transition={{
                                     type: 'spring',
