@@ -4,7 +4,9 @@ import {
     motion,
     useMotionTemplate,
     useTransform,
+    useMotionValueEvent,
 } from 'framer-motion'
+import { useState } from 'react'
 
 import {
     colors,
@@ -27,8 +29,38 @@ const navItems = [
 const MotionBox = motion(Box)
 const MotionTypography = motion(Typography)
 
+const getHomeSection = (progress) => {
+    if (progress < 0.2) return 0
+    if (progress < 0.4) return 1
+    if (progress < 0.6) return 2
+    if (progress < 0.8) return 3
+
+    return 4
+}
+
 const NavBar = ({ scrollProgress }) => {
     const location = useLocation()
+
+    const [homeSection, setHomeSection] = useState(() =>
+        getHomeSection(scrollProgress.get()),
+    )
+
+    useMotionValueEvent(scrollProgress, 'change', (latest) => {
+        const nextSection = getHomeSection(latest)
+
+        setHomeSection((currentSection) =>
+            currentSection === nextSection
+                ? currentSection
+                : nextSection,
+        )
+    })
+
+    const activeIndex =
+        location.pathname === '/'
+            ? homeSection
+            : navItems.findIndex(
+                  (item) => item.path === location.pathname,
+              )
 
     const navbarOpacity = useTransform(
         scrollProgress,
@@ -42,19 +74,13 @@ const NavBar = ({ scrollProgress }) => {
     const navbarBlur = useTransform(
         scrollProgress,
         [0, 0.25],
-        [
-            28,
-            32,
-        ],
+        [28, 32],
     )
 
     const navbarSaturate = useTransform(
         scrollProgress,
         [0, 0.25],
-        [
-            170,
-            160,
-        ],
+        [170, 160],
     )
 
     const navbarBackground = useTransform(
@@ -120,6 +146,7 @@ const NavBar = ({ scrollProgress }) => {
             typography.size.xs,
         ],
     )
+
     const navFontColor = useTransform(
         scrollProgress,
         [0, 0.25],
@@ -128,9 +155,6 @@ const NavBar = ({ scrollProgress }) => {
             colors.text.primary,
         ],
     )
-
-
-
 
     const navFontWeight = typography.weight.medium
 
@@ -172,8 +196,8 @@ const NavBar = ({ scrollProgress }) => {
                 zIndex: 1000,
             }}
         >
-            {navItems.map((item) => {
-                const isActive = location.pathname === item.path
+            {navItems.map((item, index) => {
+                const isActive = index === activeIndex
 
                 return (
                     <Box
@@ -193,7 +217,7 @@ const NavBar = ({ scrollProgress }) => {
                         <MotionTypography
                             style={{
                                 fontSize: navFontSize,
-                                color: navFontColor
+                                color: navFontColor,
                             }}
                             sx={{
                                 fontFamily: typography.fontFamily.sans,
