@@ -9,8 +9,30 @@ import NebulaBackground from '../components/nebula/nebula'
 
 const TEXTURE_SIZE = 512
 
-const TEXT_PARTICLE_POPULATION =
-  0.34
+const PARTICLE_COUNT =
+  TEXTURE_SIZE *
+  TEXTURE_SIZE
+
+const PARTICLE_PERSONALITY_MULTIPLIER =
+  15731
+
+const PARTICLE_PERSONALITY_OFFSET =
+  789221
+
+const createParticlePersonality = (
+  particleIndex,
+) => {
+  return (
+    (
+      (
+        particleIndex *
+        PARTICLE_PERSONALITY_MULTIPLIER +
+        PARTICLE_PERSONALITY_OFFSET
+      ) % 10000
+    ) /
+    10000
+  )
+}
 
 const createTextTargetTexture = (
   text,
@@ -107,11 +129,12 @@ const createTextTargetTexture = (
   const textPoints = []
 
   /*
-   * Extract the actual glyph.
+   * ------------------------------------------------
+   * EXTRACT GLYPH
+   * ------------------------------------------------
    *
-   * We remove a small percentage of pixels so
-   * the letters remain particulate rather than
-   * becoming a solid font.
+   * We deliberately keep the glyph particulate.
+   * No stroke and no secondary copy.
    */
 
   for (
@@ -142,6 +165,10 @@ const createTextTargetTexture = (
         continue
       }
 
+      /*
+       * Remove a small amount of the glyph's
+       * raster pixels so it doesn't become solid.
+       */
       const glyphHash =
         (
           textureX * 374761393 +
@@ -192,106 +219,121 @@ const createTextTargetTexture = (
     return null
   }
 
+  /*
+   * ------------------------------------------------
+   * SELECT EXACTLY ONE PARTICLE PER GLYPH POINT
+   * ------------------------------------------------
+   *
+   * This is the important part.
+   *
+   * Previously:
+   *
+   *   thousands of particles
+   *       ↓
+   *   same glyph positions repeatedly
+   *       ↓
+   *   overlapping copies / ghost text
+   *
+   * Now:
+   *
+   *   one selected particle
+   *       ↓
+   *   one glyph position
+   *
+   * The nebula still contains all 262,144 particles.
+   * Only the particles selected here receive text
+   * targets.
+   */
+
   const data =
     new Float32Array(
-      TEXTURE_SIZE *
-      TEXTURE_SIZE *
-      4,
+      PARTICLE_COUNT * 4,
+    )
+
+  const particleCandidates = []
+
+  for (
+    let particleIndex = 0;
+    particleIndex < PARTICLE_COUNT;
+    particleIndex += 1
+  ) {
+    const personality =
+      createParticlePersonality(
+        particleIndex,
+      )
+
+    particleCandidates.push({
+      particleIndex,
+      personality,
+    })
+  }
+
+  /*
+   * Sort deterministically by personality.
+   *
+   * This gives us a stable population beginning
+   * with the lowest personality values.
+   *
+   * Those are also the particles the shader
+   * recognizes as the core text population.
+   */
+
+  particleCandidates.sort(
+    (
+      a,
+      b,
+    ) =>
+      a.personality -
+      b.personality,
+  )
+
+  const textParticleCount =
+    Math.min(
+      textPoints.length,
+      particleCandidates.length,
     )
 
   /*
-   * IMPORTANT
-   *
-   * This personality calculation is now the
-   * exact same calculation used by nebula.jsx.
-   *
-   * Therefore the particle receiving a target
-   * here is the same particle the simulation
-   * recognizes as a text particle.
+   * Each glyph point receives exactly one particle.
    */
 
   for (
-    let textureY = 0;
-    textureY < TEXTURE_SIZE;
-    textureY += 1
+    let pointIndex = 0;
+    pointIndex < textParticleCount;
+    pointIndex += 1
   ) {
-    for (
-      let textureX = 0;
-      textureX < TEXTURE_SIZE;
-      textureX += 1
-    ) {
-      const particleIndex =
-        textureY *
-        TEXTURE_SIZE +
-        textureX
+    const candidate =
+      particleCandidates[
+      pointIndex
+      ]
 
-      const textureIndex =
-        particleIndex * 4
+    const point =
+      textPoints[
+      pointIndex
+      ]
 
-      const personality =
-        (
-          (
-            particleIndex *
-            15731 +
-            789221
-          ) % 10000
-        ) /
-        10000
+    const textureIndex =
+      candidate.particleIndex * 4
 
-      /*
-       * Only the first 34% of particles become
-       * actual text particles.
-       *
-       * This is deliberately sparse enough to
-       * avoid the double/ghost typography.
-       */
+    data[
+      textureIndex
+    ] =
+      point.x
 
-      if (
-        personality >=
-        TEXT_PARTICLE_POPULATION
-      ) {
-        continue
-      }
+    data[
+      textureIndex + 1
+    ] =
+      point.y
 
-      /*
-       * Deterministic glyph assignment.
-       *
-       * Every selected particle gets one position.
-       */
+    data[
+      textureIndex + 2
+    ] =
+      point.z
 
-      const pointSelector =
-        (
-          particleIndex *
-          104729 +
-          31337
-        ) %
-        textPoints.length
-
-      const point =
-        textPoints[
-        pointSelector
-        ]
-
-      data[
-        textureIndex
-      ] =
-        point.x
-
-      data[
-        textureIndex + 1
-      ] =
-        point.y
-
-      data[
-        textureIndex + 2
-      ] =
-        point.z
-
-      data[
-        textureIndex + 3
-      ] =
-        1
-    }
+    data[
+      textureIndex + 3
+    ] =
+      1
   }
 
   const texture =
