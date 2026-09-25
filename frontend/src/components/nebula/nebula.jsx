@@ -595,23 +595,32 @@ if (uTextEnabled > 0.5) {
          * ------------------------------------------------
          */
 
-        velocity.x +=
+       float flowDamping = 1.0;
+
+if (
+    uTextEnabled > 0.5 &&
+    isTextParticle > 0.5
+) {
+    flowDamping = 0.035;
+}
+
+velocity.x +=
     flowX *
     0.00105 *
     particleSpeed *
-    textFormationDamping;
+    flowDamping;
 
 velocity.y +=
     flowY *
     0.00105 *
     particleSpeed *
-    textFormationDamping;
+    flowDamping;
 
 velocity.z +=
     flowZ *
     0.00105 *
     particleSpeed *
-    textFormationDamping;
+    flowDamping;
 
         velocity.x *= 0.965;
         velocity.y *= 0.965;
@@ -680,35 +689,36 @@ velocity.z +=
              * This is intentionally much less dense than before.
              */
 
-            float textParticle =
-                1.0 -
-                smoothstep(
-                    0.60,
-                    0.72,
-                    personality
-                );
+            vec4 targetSample =
+    texture2D(
+        uTextTargetTexture,
+        vUv
+    );
 
-            float joiningParticle =
-                smoothstep(
-                    0.72,
-                    0.82,
-                    personality
-                ) *
-                (
-                    1.0 -
-                    smoothstep(
-                        0.82,
-                        0.94,
-                        personality
-                    )
-                );
+float isTextParticle =
+    targetSample.a;
 
-            float freeParticle =
-                smoothstep(
-                    0.91,
-                    1.0,
-                    personality
-                );
+float joiningParticle =
+    smoothstep(
+        0.68,
+        0.78,
+        personality
+    ) *
+    (
+        1.0 -
+        smoothstep(
+            0.78,
+            0.88,
+            personality
+        )
+    );
+
+float freeParticle =
+    smoothstep(
+        0.88,
+        1.0,
+        personality
+    );
 
             /*
              * ====================================================
@@ -772,20 +782,9 @@ velocity.z +=
              */
 
             if (
-                freeParticle <
-                0.001
-            ) {
-
-                vec4 targetSample =
-                    texture2D(
-                        uTextTargetTexture,
-                        vUv
-                    );
-
-                if (
-                    targetSample.a >
-                    0.001
-                ) {
+    uTextEnabled > 0.5 &&
+    isTextParticle > 0.5
+) {
 
                     vec3 target =
                         targetSample.xyz;
@@ -871,7 +870,7 @@ velocity.z +=
                          */
 
                         float textWeight =
-                            textParticle;
+    isTextParticle;
 
                         textWeight *=
                             1.0 -
@@ -938,42 +937,7 @@ velocity.z +=
                             0.065 *
                             lockZone *
                             textWeight;
-
-                        /*
-                         * ====================================================
-                         * SUBTLE PARTICLE FLOAT
-                         * ====================================================
-                         */
-
-                        vec3 textFloat;
-
-                        textFloat.x =
-                            sin(
-                                target.y * 0.72 +
-                                uTime * 0.36 +
-                                phase * 1.07
-                            );
-
-                        textFloat.y =
-                            cos(
-                                target.x * 0.68 -
-                                uTime * 0.31 +
-                                phase * 0.93
-                            );
-
-                        textFloat.z =
-                            sin(
-                                target.x * 0.43 +
-                                target.y * 0.51 +
-                                uTime * 0.27 +
-                                phase * 0.71
-                            );
-
-                        velocity +=
-                            textFloat *
-                            0.000010 *
-                            lockZone *
-                            textWeight;
+                       
 
                         /*
                          * ====================================================

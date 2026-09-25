@@ -39,12 +39,6 @@ const createTextTargetTexture = (
     TEXTURE_SIZE,
   )
 
-  /*
-   * ----------------------------------------
-   * TYPOGRAPHY
-   * ----------------------------------------
-   */
-
   const fontFamily =
     'Arial, Helvetica, sans-serif'
 
@@ -87,35 +81,16 @@ const createTextTargetTexture = (
   context.fillStyle =
     '#ffffff'
 
-  context.strokeStyle =
-    '#ffffff'
+  context.textAlign =
+    'center'
 
-  context.lineJoin =
-    'round'
-
-  context.lineCap =
-    'round'
-
-  /*
-   * Keep the glyph clean.
-   *
-   * No blur.
-   * No enlarged stroke.
-   * No duplicated outline.
-   */
-  context.lineWidth =
-    1
-
-  const centerX =
-    TEXTURE_SIZE * 0.5
-
-  const centerY =
-    TEXTURE_SIZE * 0.5
+  context.textBaseline =
+    'middle'
 
   context.fillText(
     text,
-    centerX,
-    centerY,
+    TEXTURE_SIZE * 0.5,
+    TEXTURE_SIZE * 0.5,
   )
 
   const imageData =
@@ -129,15 +104,14 @@ const createTextTargetTexture = (
   const textPoints = []
 
   /*
-   * ----------------------------------------
-   * EXTRACT GLYPH GEOMETRY
-   * ----------------------------------------
+   * ------------------------------------------------
+   * EXTRACT ACTUAL GLYPH PIXELS
+   * ------------------------------------------------
    *
-   * We keep most of the actual glyph pixels,
-   * but deliberately remove a small percentage.
+   * We deliberately remove particles from the glyph.
    *
-   * This creates density without producing
-   * a solid particle wall.
+   * This keeps the text visibly particulate instead
+   * of turning it into a solid rasterized font.
    */
 
   for (
@@ -169,21 +143,19 @@ const createTextTargetTexture = (
       }
 
       /*
-       * Around 10% of the glyph pixels are
-       * removed.
+       * Approximately 14% of the actual glyph
+       * pixels are removed.
        *
-       * The old version removed ~18%, which
-       * made the letters unnecessarily thin.
+       * This is intentionally sparse.
        */
       const glyphHash =
         (
           textureX * 374761393 +
           textureY * 668265263
-        ) %
-        100
+        ) % 100
 
       if (
-        glyphHash < 10
+        glyphHash < 14
       ) {
         continue
       }
@@ -213,16 +185,15 @@ const createTextTargetTexture = (
         ) * 6.0
 
       /*
-       * IMPORTANT:
+       * ONE depth plane.
        *
-       * Keep the typography essentially on
-       * one depth plane.
+       * Absolutely no Z noise.
        *
-       * The previous Z variation was one of
-       * the things creating the perceived
-       * duplicate/ghost text.
+       * This is critical for preventing the
+       * perceived second copy of the text.
        */
-      const worldZ = 0
+      const worldZ =
+        0
 
       textPoints.push({
         x: worldX,
@@ -245,19 +216,26 @@ const createTextTargetTexture = (
       4,
     )
 
-  const pointCount =
-    textPoints.length
-
   /*
-   * ----------------------------------------
-   * DISTRIBUTE TARGETS
-   * ----------------------------------------
+   * ------------------------------------------------
+   * PARTICLE → GLYPH OWNERSHIP
+   * ------------------------------------------------
    *
-   * We intentionally don't use every particle.
+   * Only 34% of the complete nebula owns the
+   * typography.
    *
-   * The text should be dense enough to read,
-   * but it must still feel like the nebula.
+   * This is intentional.
+   *
+   * The previous 54% meant ~141,000 particles
+   * were trying to occupy a relatively small
+   * number of glyph positions.
+   *
+   * That produced the "double text" / blurry
+   * appearance.
    */
+
+  const textPopulation =
+    0.34
 
   for (
     let textureY = 0;
@@ -275,37 +253,41 @@ const createTextTargetTexture = (
         textureX
 
       const textureIndex =
-        particleIndex *
-        4
+        particleIndex * 4
 
+      /*
+       * Deterministic particle selection.
+       */
       const personality =
         (
           (
             particleIndex *
             15731 +
             789221
-          ) %
-          10000
+          ) % 10000
         ) /
         10000
 
-      /*
-       * Around 54% of all particles can
-       * participate in the core typography.
-       *
-       * This is slightly lower than the old
-       * 58%, compensating for the denser glyph.
-       */
       if (
         personality >=
-        0.54
+        textPopulation
       ) {
         data[
           textureIndex + 3
-        ] = 0.0
+        ] = 0
 
         continue
       }
+
+      /*
+       * IMPORTANT:
+       *
+       * Every text particle receives exactly
+       * one deterministic glyph point.
+       *
+       * The shader later uses alpha=1 as the
+       * authoritative text-particle identity.
+       */
 
       const pointSelector =
         (
@@ -313,21 +295,13 @@ const createTextTargetTexture = (
           104729 +
           31337
         ) %
-        pointCount
+        textPoints.length
 
       const point =
         textPoints[
         pointSelector
         ]
 
-      /*
-       * No meaningful positional offset.
-       *
-       * Especially no Z offset.
-       *
-       * This is important for eliminating
-       * the double-image effect.
-       */
       data[
         textureIndex
       ] =
@@ -345,7 +319,8 @@ const createTextTargetTexture = (
 
       data[
         textureIndex + 3
-      ] = 1.0
+      ] =
+        1
     }
   }
 
