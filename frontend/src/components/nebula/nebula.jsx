@@ -572,9 +572,9 @@ if (uTextEnabled > 0.5) {
         metadata.z;
 
     if (
-        particlePopulation <
-        0.34
-    ) {
+    particlePopulation <
+    0.091552734375
+) {
         textFormationDamping =
             0.28;
     }
@@ -667,21 +667,23 @@ velocity.z +=
 float particlePopulation =
     metadata.z;
 
-float textParticle =
+    float textParticle =
     1.0 -
     step(
-        0.34,
+        0.091552734375,
+        particlePopulation
+    );
+
+float freeParticle =
+    step(
+        0.091552734375,
         particlePopulation
     );
 
 float joiningParticle =
     0.0;
 
-float freeParticle =
-    step(
-        0.34,
-        particlePopulation
-    );
+
 
 /*
  * The phase-derived personality is still allowed to exist
