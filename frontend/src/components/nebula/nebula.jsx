@@ -1,446 +1,829 @@
-import {
-    useMemo,
-    useRef,
-} from 'react'
-import * as THREE from 'three'
-import {
-    Canvas,
-    useFrame,
-} from '@react-three/fiber'
+'use client';
 
-const PARTICLE_COUNT = 100000
+import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { useMemo, useRef } from 'react';
 
 const vertexShader = `
-    attribute float aSize;
-    attribute float aIntensity;
+  attribute float aIntensity;
+  attribute float aSize;
 
-    varying float vIntensity;
+  varying float vIntensity;
 
-    void main() {
-        vec4 mvPosition =
-            modelViewMatrix *
-            vec4(position, 1.0);
+  void main() {
+    vIntensity = aIntensity;
 
-        gl_PointSize =
-            aSize *
-            (180.0 / -mvPosition.z);
+    vec4 mvPosition =
+      modelViewMatrix *
+      vec4(position, 1.0);
 
-        gl_Position =
-            projectionMatrix *
-            mvPosition;
+    float depth =
+      max(1.0, -mvPosition.z);
 
-        vIntensity =
-            aIntensity;
-    }
-`
+    gl_PointSize =
+      aSize * (440.0 / depth);
+
+    gl_Position =
+      projectionMatrix *
+      mvPosition;
+  }
+`;
 
 const fragmentShader = `
-    varying float vIntensity;
+  varying float vIntensity;
 
-    void main() {
-        vec2 point =
-            gl_PointCoord - 0.5;
+  vec3 getColor(float t) {
+    vec3 shadow =
+      vec3(0.24, 0.22, 0.19);
 
-        float distance =
-            length(point);
+    vec3 stone =
+      vec3(0.41, 0.37, 0.32);
 
-        if (distance > 0.5) {
-            discard;
+    vec3 copper =
+      vec3(0.57, 0.49, 0.40);
+
+    vec3 warm =
+      vec3(0.70, 0.61, 0.51);
+
+    vec3 highlight =
+      vec3(0.80, 0.73, 0.63);
+
+    if (t < 0.20) {
+      return mix(
+        shadow,
+        stone,
+        smoothstep(0.0, 0.20, t)
+      );
+    }
+
+    if (t < 0.52) {
+      return mix(
+        stone,
+        copper,
+        smoothstep(0.20, 0.52, t)
+      );
+    }
+
+    if (t < 0.82) {
+      return mix(
+        copper,
+        warm,
+        smoothstep(0.52, 0.82, t)
+      );
+    }
+
+    return mix(
+      warm,
+      highlight,
+      smoothstep(0.82, 1.0, t)
+    );
+  }
+
+  void main() {
+    vec2 uv =
+      gl_PointCoord -
+      0.5;
+
+    float d =
+      length(uv);
+
+    if (d > 0.5) {
+      discard;
+    }
+
+    float edge =
+      1.0 -
+      smoothstep(
+        0.16,
+        0.50,
+        d
+      );
+
+    float core =
+      1.0 -
+      smoothstep(
+        0.0,
+        0.44,
+        d
+      );
+
+    vec3 color =
+      getColor(vIntensity);
+
+    float alpha =
+      edge *
+      (
+        0.43 +
+        core * 0.30
+      );
+
+    gl_FragColor =
+      vec4(
+        color,
+        alpha
+      );
+  }
+`;
+
+function Particles() {
+    const pointsRef = useRef();
+
+    const particles = useMemo(() => {
+        const count = 200000;
+
+        const positions =
+            new Float32Array(
+                count * 3
+            );
+
+        const velocities =
+            new Float32Array(
+                count * 3
+            );
+
+        const intensities =
+            new Float32Array(count);
+
+        const sizes =
+            new Float32Array(count);
+
+        const phases =
+            new Float32Array(count);
+
+        const speeds =
+            new Float32Array(count);
+
+        for (
+            let i = 0;
+            i < count;
+            i++
+        ) {
+            const i3 = i * 3;
+
+            const x =
+                (Math.random() - 0.5) *
+                21.0;
+
+            const y =
+                (Math.random() - 0.5) *
+                11.5;
+
+            const z =
+                (Math.random() - 0.5) *
+                3.8;
+
+            /*
+             * Broad atmospheric distribution.
+             */
+
+            // const spread =
+            //   0.76 +
+            //   Math.pow(
+            //     Math.random(),
+            //     1.65
+            //   ) *
+            //   0.24;
+
+            const spread =
+                0.84 +
+                Math.pow(
+                    Math.random(),
+                    2.2
+                ) *
+                0.16;
+
+            positions[i3] =
+                x * spread;
+
+            positions[i3 + 1] =
+                y * spread;
+
+            positions[i3 + 2] =
+                z;
+
+            /*
+             * Initial motion.
+             */
+
+            velocities[i3] =
+                (Math.random() - 0.5) *
+                0.0015;
+
+            velocities[i3 + 1] =
+                (Math.random() - 0.5) *
+                0.0015;
+
+            velocities[i3 + 2] =
+                (Math.random() - 0.5) *
+                0.00065;
+
+            /*
+             * Individual phase.
+             */
+
+            phases[i] =
+                Math.random() *
+                Math.PI *
+                2.1;
+
+            /*
+             * Small individual speed variation.
+             */
+
+            speeds[i] =
+                0.72 +
+                Math.random() *
+                0.56;
+
+            /*
+             * Restrained warm palette.
+             */
+
+            intensities[i] =
+                0.13 +
+                Math.pow(
+                    Math.random(),
+                    1.8
+                ) *
+                0.70;
+
+            /*
+             * Soft atmospheric particles.
+             */
+
+            sizes[i] =
+                0.040 +
+                Math.pow(
+                    Math.random(),
+                    3
+                ) *
+                0.068;
         }
 
-        float alpha =
-            1.0 -
-            smoothstep(
-                0.15,
-                0.5,
-                distance
-            );
+        // sizes[i] =
+        //   0.020 +
+        //   Math.pow(
+        //     Math.random(),
+        //     2.6
+        //   ) *
+        //   0.055;
 
-        vec3 dark =
-            vec3(
-                0.28,
-                0.25,
-                0.21
-            );
+        return {
+            positions,
+            velocities,
+            intensities,
+            sizes,
+            phases,
+            speeds,
+            count,
+        };
+    }, []);
 
-        vec3 copper =
-            vec3(
-                0.68,
-                0.55,
-                0.43
-            );
+    const geometry = useMemo(() => {
+        const geometry =
+            new THREE.BufferGeometry();
 
-        vec3 bright =
-            vec3(
-                0.86,
-                0.76,
-                0.64
-            );
+        geometry.setAttribute(
+            'position',
+            new THREE.BufferAttribute(
+                particles.positions,
+                3
+            )
+        );
 
-        vec3 color =
-            mix(
-                dark,
-                copper,
-                vIntensity
-            );
+        geometry.setAttribute(
+            'aIntensity',
+            new THREE.BufferAttribute(
+                particles.intensities,
+                1
+            )
+        );
 
-        color =
-            mix(
-                color,
-                bright,
-                smoothstep(
-                    0.65,
-                    1.0,
-                    vIntensity
-                )
-            );
+        geometry.setAttribute(
+            'aSize',
+            new THREE.BufferAttribute(
+                particles.sizes,
+                1
+            )
+        );
 
-        gl_FragColor =
-            vec4(
-                color,
-                alpha *
-                (
-                    0.35 +
-                    vIntensity *
-                    0.65
-                )
-            );
-    }
-`
+        return geometry;
+    }, [particles]);
 
-const NebulaParticles = ({
-    scrollState,
-}) => {
-    const pointsRef =
-        useRef(null)
+    const material = useMemo(() => {
+        return new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
 
-    const geometry =
-        useMemo(() => {
-            const positions =
-                new Float32Array(
-                    PARTICLE_COUNT * 3,
-                )
+            transparent: true,
 
-            const sizes =
-                new Float32Array(
-                    PARTICLE_COUNT,
-                )
+            depthWrite: false,
 
-            const intensities =
-                new Float32Array(
-                    PARTICLE_COUNT,
-                )
+            blending:
+                THREE.NormalBlending,
+        });
+    }, []);
 
-            for (
-                let i = 0;
-                i < PARTICLE_COUNT;
-                i += 1
-            ) {
-                const i3 =
-                    i * 3
+    useFrame((state) => {
+        const points =
+            pointsRef.current;
 
-                /*
-                 * Broad cloud.
-                 *
-                 * No central blob.
-                 * No disk.
-                 */
-                positions[i3] =
-                    (
-                        Math.random() -
-                        0.5
+        if (!points) return;
+
+        const positions =
+            points.geometry
+                .attributes
+                .position
+                .array;
+
+        const velocities =
+            particles.velocities;
+
+        const phases =
+            particles.phases;
+
+        const speeds =
+            particles.speeds;
+
+        const time =
+            state.clock.elapsedTime;
+
+        /*
+         * Small speed increase.
+         *
+         * Previous: 0.00115
+         * Current:  0.00129
+         */
+        const speed = 0.00220;
+
+        for (
+            let i = 0;
+            i < particles.count;
+            i++
+        ) {
+            const i3 = i * 3;
+
+            const x =
+                positions[i3];
+
+            const y =
+                positions[i3 + 1];
+
+            const z =
+                positions[i3 + 2];
+
+            const phase =
+                phases[i];
+
+            const particleSpeed =
+                speeds[i];
+
+            /*
+             * ------------------------------------------------
+             * LARGE-SCALE CLOUD FLOW
+             * ------------------------------------------------
+             */
+
+            const largeX =
+                Math.sin(
+                    y * 0.29 +
+                    z * 0.63 +
+                    time * 0.075 +
+                    phase
+                );
+
+            const largeY =
+                Math.cos(
+                    x * 0.25 -
+                    z * 0.57 -
+                    time * 0.068 +
+                    phase * 1.37
+                );
+
+            const largeZ =
+                Math.sin(
+                    x * 0.31 +
+                    y * 0.28 +
+                    time * 0.059 +
+                    phase * 0.71
+                );
+
+            /*
+             * ------------------------------------------------
+             * MEDIUM TURBULENCE
+             * ------------------------------------------------
+             */
+
+            const mediumX =
+                Math.sin(
+                    y * 0.78 +
+                    z * 1.17 +
+                    time * 0.16 +
+                    phase * 1.3
+                );
+
+            const mediumY =
+                Math.cos(
+                    x * 0.83 -
+                    z * 0.91 -
+                    time * 0.14 +
+                    phase * 0.8
+                );
+
+            const mediumZ =
+                Math.sin(
+                    x * 0.68 -
+                    y * 0.74 +
+                    time * 0.12 +
+                    phase * 1.7
+                );
+
+            /*
+             * ------------------------------------------------
+             * SMALL TURBULENCE
+             * ------------------------------------------------
+             */
+
+            const smallX =
+                Math.sin(
+                    y * 1.65 +
+                    z * 1.30 +
+                    time * 0.24 +
+                    phase
+                );
+
+            const smallY =
+                Math.cos(
+                    x * 1.48 -
+                    z * 1.16 -
+                    time * 0.21 +
+                    phase * 1.2
+                );
+
+            const smallZ =
+                Math.sin(
+                    x * 1.34 +
+                    y * 1.21 +
+                    time * 0.19 +
+                    phase * 0.6
+                );
+
+            /*
+             * ------------------------------------------------
+             * 3D CURL
+             * ------------------------------------------------
+             */
+
+            const curlX =
+                Math.sin(
+                    y * 0.46 +
+                    z * 0.82 +
+                    time * 0.10 +
+                    phase
+                ) -
+                Math.cos(
+                    z * 0.37 -
+                    time * 0.08 +
+                    phase * 1.4
+                );
+
+            const curlY =
+                Math.cos(
+                    x * 0.43 -
+                    z * 0.69 -
+                    time * 0.09 +
+                    phase
+                ) -
+                Math.sin(
+                    z * 0.32 +
+                    time * 0.07 +
+                    phase * 0.8
+                );
+
+            const curlZ =
+                Math.sin(
+                    x * 0.39 +
+                    y * 0.51 +
+                    time * 0.08 +
+                    phase * 1.1
+                ) -
+                Math.cos(
+                    y * 0.34 -
+                    time * 0.06 +
+                    phase
+                );
+
+            /*
+             * ------------------------------------------------
+             * TEMPORARY COHERENCE FIELD
+             * ------------------------------------------------
+             *
+             * This is what allows shapes to
+             * briefly emerge.
+             *
+             * But the field itself changes
+             * quickly enough that the shape
+             * cannot remain stable.
+             */
+
+            const coherenceA =
+                Math.sin(
+                    x * 0.34 +
+                    y * 0.27 +
+                    z * 0.61 +
+                    time * 0.19 +
+                    phase
+                );
+
+            const coherenceB =
+                Math.cos(
+                    x * 0.51 -
+                    y * 0.37 +
+                    z * 0.43 -
+                    time * 0.23 +
+                    phase * 1.4
+                );
+
+            const coherence =
+                coherenceA *
+                coherenceB;
+
+            /*
+             * ------------------------------------------------
+             * SHAPE FORMATION
+             * ------------------------------------------------
+             *
+             * Local compression can create
+             * temporary ribbons / tendrils /
+             * clusters.
+             */
+
+            const shapeX =
+                coherence *
+                Math.sin(
+                    y * 0.59 +
+                    z * 0.42 +
+                    phase
+                ) *
+                0.13;
+
+            const shapeY =
+                coherence *
+                Math.cos(
+                    x * 0.53 -
+                    z * 0.38 +
+                    phase * 1.2
+                ) *
+                0.12;
+
+            const shapeZ =
+                coherence *
+                Math.sin(
+                    x * 0.47 +
+                    y * 0.64 +
+                    phase * 0.8
+                ) *
+                0.055;
+
+            /*
+             * ------------------------------------------------
+             * SHAPE BREAKER
+             * ------------------------------------------------
+             *
+             * This is the important new piece.
+             *
+             * A second field moves at a different
+             * temporal frequency and actively
+             * destroys coherence.
+             */
+
+            const breakup =
+                Math.sin(
+                    x * 0.91 -
+                    y * 0.73 +
+                    z * 1.17 +
+                    time * 0.31 +
+                    phase * 1.7
+                ) *
+                Math.cos(
+                    y * 0.82 +
+                    z * 0.91 -
+                    time * 0.27 +
+                    phase
+                );
+
+            const breakupX =
+                breakup *
+                Math.cos(
+                    y * 0.71 +
+                    phase
+                ) *
+                0.065;
+
+            const breakupY =
+                breakup *
+                Math.sin(
+                    x * 0.67 -
+                    phase
+                ) *
+                0.060;
+
+            const breakupZ =
+                breakup *
+                Math.cos(
+                    z * 0.94 +
+                    phase
+                ) *
+                0.035;
+
+            /*
+             * ------------------------------------------------
+             * COMBINE
+             * ------------------------------------------------
+             */
+
+            const flowX =
+                largeX * 0.19 +
+                largeY * 0.13 +
+                mediumX * 0.095 +
+                mediumY * 0.07 +
+                smallX * 0.035 +
+                curlX * 0.095 +
+                shapeX +
+                breakupX;
+
+            const flowY =
+                largeY * 0.17 +
+                largeZ * 0.13 +
+                mediumY * 0.095 +
+                mediumZ * 0.07 +
+                smallY * 0.035 +
+                curlY * 0.095 +
+                shapeY +
+                breakupY;
+
+            const flowZ =
+                largeZ * 0.075 +
+                largeX * 0.035 +
+                mediumZ * 0.045 +
+                smallZ * 0.025 +
+                curlZ * 0.075 +
+                shapeZ +
+                breakupZ;
+
+            /*
+             * ------------------------------------------------
+             * CONTINUOUS MOTION
+             * ------------------------------------------------
+             */
+
+            velocities[i3] +=
+                flowX *
+                speed *
+                particleSpeed;
+
+            velocities[i3 + 1] +=
+                flowY *
+                speed *
+                particleSpeed;
+
+            velocities[i3 + 2] +=
+                flowZ *
+                speed *
+                particleSpeed;
+
+            /*
+             * Inertia.
+             *
+             * Slightly stronger damping on Z
+             * keeps the cloud visually broad.
+             */
+
+            velocities[i3] *=
+                0.965;
+
+            velocities[i3 + 1] *=
+                0.965;
+
+            velocities[i3 + 2] *=
+                0.978;
+
+            /*
+             * ------------------------------------------------
+             * MOVE
+             * ------------------------------------------------
+             */
+
+            positions[i3] +=
+                velocities[i3];
+
+            positions[i3 + 1] +=
+                velocities[i3 + 1];
+
+            positions[i3 + 2] +=
+                velocities[i3 + 2];
+
+            /*
+             * ------------------------------------------------
+             * SOFT OUTER CONTAINMENT
+             * ------------------------------------------------
+             */
+
+            const edgeX =
+                Math.abs(
+                    positions[i3]
+                ) / 10.8;
+
+            const edgeY =
+                Math.abs(
+                    positions[i3 + 1]
+                ) / 5.95;
+
+            const edgeZ =
+                Math.abs(
+                    positions[i3 + 2]
+                ) / 2.05;
+
+            if (edgeX > 0.82) {
+                velocities[i3] +=
+                    -Math.sign(
+                        positions[i3]
                     ) *
-                    21
-
-                positions[i3 + 1] =
-                    (
-                        Math.random() -
-                        0.5
-                    ) *
-                    11.5
-
-                positions[i3 + 2] =
-                    (
-                        Math.random() -
-                        0.5
-                    ) *
-                    3.8
-
-                sizes[i] =
-                    0.020 +
                     Math.pow(
-                        Math.random(),
-                        2.6,
+                        edgeX - 0.82,
+                        2
                     ) *
-                    0.055
-
-                intensities[i] =
-                    0.15 +
-                    Math.random() *
-                    0.85
+                    0.00085;
             }
 
-            const nextGeometry =
-                new THREE.BufferGeometry()
-
-            nextGeometry.setAttribute(
-                'position',
-                new THREE.BufferAttribute(
-                    positions,
-                    3,
-                ),
-            )
-
-            nextGeometry.setAttribute(
-                'aSize',
-                new THREE.BufferAttribute(
-                    sizes,
-                    1,
-                ),
-            )
-
-            nextGeometry.setAttribute(
-                'aIntensity',
-                new THREE.BufferAttribute(
-                    intensities,
-                    1,
-                ),
-            )
-
-            return nextGeometry
-        }, [])
-
-    const material =
-        useMemo(
-            () =>
-                new THREE.ShaderMaterial({
-                    vertexShader,
-                    fragmentShader,
-
-                    transparent: true,
-
-                    depthWrite: false,
-
-                    blending:
-                        THREE.NormalBlending,
-                }),
-            [],
-        )
-
-    useFrame(
-        ({
-            clock,
-        }) => {
-            const points =
-                pointsRef.current
-
-            if (!points) {
-                return
+            if (edgeY > 0.82) {
+                velocities[i3 + 1] +=
+                    -Math.sign(
+                        positions[i3 + 1]
+                    ) *
+                    Math.pow(
+                        edgeY - 0.82,
+                        2
+                    ) *
+                    0.00070;
             }
 
-            const position =
-                geometry.attributes
-                    .position.array
-
-            const time =
-                clock.getElapsedTime()
-
-            const state =
-                scrollState?.current
-
-            const progress =
-                state?.progress ?? 0
-
-            const velocity =
-                state?.velocity ?? 0
-
-            const scrollEnergy =
-                Math.min(
-                    1,
-                    Math.abs(
-                        velocity,
-                    ) * 220,
-                )
-
-            for (
-                let i = 0;
-                i < PARTICLE_COUNT;
-                i += 1
-            ) {
-                const i3 =
-                    i * 3
-
-                const x =
-                    position[i3]
-
-                const y =
-                    position[i3 + 1]
-
-                const z =
-                    position[i3 + 2]
-
-                const phase =
-                    i * 0.00017
-
-                /*
-                 * Continuous organic movement.
-                 */
-                const flowX =
-                    Math.sin(
-                        y * 0.55 +
-                        time * 0.18 +
-                        phase,
+            if (edgeZ > 0.80) {
+                velocities[i3 + 2] +=
+                    -Math.sign(
+                        positions[i3 + 2]
                     ) *
-                    0.0012
-
-                const flowY =
-                    Math.cos(
-                        x * 0.42 +
-                        time * 0.15 +
-                        phase * 1.7,
+                    Math.pow(
+                        edgeZ - 0.80,
+                        2
                     ) *
-                    0.0012
-
-                const flowZ =
-                    Math.sin(
-                        x * 0.31 +
-                        y * 0.23 +
-                        time * 0.12,
-                    ) *
-                    0.0005
-
-                /*
-                 * Scroll adds energy without
-                 * changing your chosen speed.
-                 */
-                const agitation =
-                    scrollEnergy *
-                    (
-                        1 +
-                        Math.sin(
-                            phase * 9 +
-                            time * 2,
-                        ) *
-                        0.5
-                    )
-
-                position[i3] =
-                    x +
-                    flowX *
-                    (
-                        1 +
-                        agitation * 2
-                    )
-
-                position[i3 + 1] =
-                    y +
-                    flowY *
-                    (
-                        1 +
-                        agitation * 2
-                    )
-
-                position[i3 + 2] =
-                    z +
-                    flowZ *
-                    (
-                        1 +
-                        agitation
-                    )
-
-                /*
-                 * Very soft containment.
-                 */
-                if (
-                    position[i3] >
-                    10.5
-                ) {
-                    position[i3] =
-                        -10.5
-                }
-
-                if (
-                    position[i3] <
-                    -10.5
-                ) {
-                    position[i3] =
-                        10.5
-                }
-
-                if (
-                    position[i3 + 1] >
-                    5.75
-                ) {
-                    position[i3 + 1] =
-                        -5.75
-                }
-
-                if (
-                    position[i3 + 1] <
-                    -5.75
-                ) {
-                    position[i3 + 1] =
-                        5.75
-                }
+                    0.00032;
             }
+        }
 
-            geometry.attributes.position.needsUpdate =
-                true
-        },
-    )
+        points.geometry
+            .attributes
+            .position
+            .needsUpdate = true;
+    });
 
     return (
         <points
             ref={pointsRef}
             geometry={geometry}
-            frustumCulled={false}
-        >
-            <primitive
-                object={material}
-                attach="material"
-            />
-        </points>
-    )
+            material={material}
+        />
+    );
 }
 
-const NebulaBackground = ({
-    scrollState,
-}) => {
+export default function Home() {
     return (
-        <Canvas
-            orthographic={false}
-            camera={{
-                position: [
-                    0,
-                    0,
-                    14,
-                ],
-                fov: 50,
-                near: 0.1,
-                far: 100,
-            }}
-            dpr={[1, 1.5]}
-            gl={{
-                alpha: true,
-                antialias: false,
-                powerPreference:
-                    'high-performance',
-            }}
+        <main
             style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'none',
+                width: '100vw',
+                height: '100vh',
+                overflow: 'hidden',
+                background: '#050403',
             }}
         >
-            <NebulaParticles
-                scrollState={
-                    scrollState
-                }
-            />
-        </Canvas>
-    )
-}
+            <Canvas
+                camera={{
+                    position: [0, 0, 10],
+                    fov: 60,
+                }}
+                gl={{
+                    antialias: true,
+                    alpha: false,
+                }}
+            >
+                <Particles />
 
-export default NebulaBackground
+                <OrbitControls
+                    enablePan={false}
+                    enableZoom={false}
+                />
+            </Canvas>
+        </main>
+    );
+}

@@ -1,0 +1,115 @@
+{"timestamp":"00:00:00.980","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:03:14.646","source":"Server","level":"LOG","message":"○ Compiling / ..."}
+{"timestamp":"00:03:20.005","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:03:20.127","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:04:14.733","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:04:14.850","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:05:27.824","source":"Server","level":"LOG","message":"✓ Compiled in 120ms"}
+{"timestamp":"00:06:41.526","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:08:39.060","source":"Server","level":"LOG","message":"✓ Compiled in 27ms"}
+{"timestamp":"00:18:19.683","source":"Server","level":"LOG","message":"✓ Compiled in 58ms"}
+{"timestamp":"00:18:28.223","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:18:28.285","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:18:57.131","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:19:05.350","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:19:05.351","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:19:43.051","source":"Server","level":"LOG","message":"✓ Compiled in 25ms"}
+{"timestamp":"00:22:11.014","source":"Server","level":"LOG","message":"✓ Compiled in 31ms"}
+{"timestamp":"00:23:42.456","source":"Server","level":"LOG","message":"✓ Compiled in 28ms"}
+{"timestamp":"00:25:46.150","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:27:25.674","source":"Server","level":"LOG","message":"✓ Compiled in 26ms"}
+{"timestamp":"00:31:16.649","source":"Server","level":"ERROR","message":"⨯ ReferenceError: useFrame is not defined"}
+{"timestamp":"00:31:16.651","source":"Server","level":"ERROR","message":"⨯ ReferenceError: useFrame is not defined"}
+{"timestamp":"00:31:18.591","source":"Server","level":"ERROR","message":"⨯ ReferenceError: useFrame is not defined"}
+{"timestamp":"00:31:18.595","source":"Server","level":"ERROR","message":"⨯ ReferenceError: useFrame is not defined"}
+{"timestamp":"00:31:18.937","source":"Browser","level":"ERROR","message":"Uncaught ReferenceError: useFrame is not defined\n    at Object.eval (.next/dev/server/chunks/ssr/[root-of-the-server]__1ci--20._.js:3:1)\n    at module evaluation (.next/dev/server/chunks/ssr/[root-of-the-server]__13fpsww._.js:64:47)"}
+{"timestamp":"00:31:18.938","source":"Server","level":"ERROR","message":"[browser] \"\\u001b[31mUncaught ReferenceError: useFrame is not defined\\u001b[39m\\n\\u001b[31m    at Object.eval (.next/dev/server/chunks/ssr/[root-of-the-server]__1ci--20._.js:3:1)\\n    at module evaluation (.next/dev/server/chunks/ssr/[root-of-the-server]__13fpsww._.js:64:47)\\u001b[39m\""}
+{"timestamp":"00:32:01.682","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:32:01.683","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:34:50.527","source":"Server","level":"LOG","message":"✓ Compiled in 23ms"}
+{"timestamp":"00:37:36.216","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"00:41:58.113","source":"Server","level":"LOG","message":"✓ Compiled in 133ms"}
+{"timestamp":"00:42:13.573","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:42:13.573","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:43:22.927","source":"Server","level":"LOG","message":"✓ Compiled in 30ms"}
+{"timestamp":"00:43:23.185","source":"Browser","level":"ERROR","message":"./app/page.js:858:10\nError: Unexpected token `string literal`. Expected jsx identifier\n  856 | export default function Home() {\n  857 |   return (\n> 858 |     <main'use client';\n      |          ^^^^^^^^^^^^\n  859 |\n  860 |   import * as THREE from 'three';\n  861 |   import { Canvas, useFrame } from '@react-three/fiber';\n\nParsing ecmascript source code failed\n\nImport traces:\n  Client Component Browser:\n    ./app/page.js [Client Component Browser]\n    ./app/page.js [Server Component]\n\n  Client Component SSR:\n    ./app/page.js [Client Component SSR]\n    ./app/page.js [Server Component] "}
+{"timestamp":"00:43:23.186","source":"Server","level":"ERROR","message":"[browser] \"./app/page.js:858:10\\nError: Unexpected token `string literal`. Expected jsx identifier\\n  856 | export default function Home() {\\n  857 |   return (\\n> 858 |     <main'use client';\\n      |          ^^^^^^^^^^^^\\n  859 |\\n  860 |   import * as THREE from 'three';\\n  861 |   import { Canvas, useFrame } from '@react-three/fiber';\\n\\nParsing ecmascript source code failed\\n\\nImport traces:\\n  Client Component Browser:\\n    ./app/page.js [Client Component Browser]\\n    ./app/page.js [Server Component]\\n\\n  Client Component SSR:\\n    ./app/page.js [Client Component SSR]\\n    ./app/page.js [Server Component]\" \"\""}
+{"timestamp":"00:43:23.316","source":"Browser","level":"ERROR","message":"./app/page.js:858:10\nError: Unexpected token `string literal`. Expected jsx identifier\n  856 | export default function Home() {\n  857 |   return (\n> 858 |     <main'use client';\n      |          ^^^^^^^^^^^^\n  859 |\n  860 |   import * as THREE from 'three';\n  861 |   import { Canvas, useFrame } from '@react-three/fiber';\n\nParsing ecmascript source code failed\n\nImport traces:\n  Client Component Browser:\n    ./app/page.js [Client Component Browser]\n    ./app/page.js [Server Component]\n\n  Client Component SSR:\n    ./app/page.js [Client Component SSR]\n    ./app/page.js [Server Component] "}
+{"timestamp":"00:43:23.316","source":"Server","level":"ERROR","message":"[browser] \"./app/page.js:858:10\\nError: Unexpected token `string literal`. Expected jsx identifier\\n  856 | export default function Home() {\\n  857 |   return (\\n> 858 |     <main'use client';\\n      |          ^^^^^^^^^^^^\\n  859 |\\n  860 |   import * as THREE from 'three';\\n  861 |   import { Canvas, useFrame } from '@react-three/fiber';\\n\\nParsing ecmascript source code failed\\n\\nImport traces:\\n  Client Component Browser:\\n    ./app/page.js [Client Component Browser]\\n    ./app/page.js [Server Component]\\n\\n  Client Component SSR:\\n    ./app/page.js [Client Component SSR]\\n    ./app/page.js [Server Component]\" \"\""}
+{"timestamp":"00:47:08.415","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:49:13.882","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:49:24.671","source":"Server","level":"LOG","message":"✓ Compiled in 20ms"}
+{"timestamp":"00:50:05.968","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:52:39.505","source":"Server","level":"LOG","message":"✓ Compiled in 8ms"}
+{"timestamp":"00:53:03.234","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
+{"timestamp":"00:53:06.041","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:53:14.859","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:53:22.259","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:53:23.903","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:54:35.356","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"00:55:23.129","source":"Server","level":"LOG","message":"✓ Compiled in 137ms"}
+{"timestamp":"00:57:31.171","source":"Server","level":"LOG","message":"✓ Compiled in 29ms"}
+{"timestamp":"00:57:31.908","source":"Browser","level":"ERROR","message":"./app/page.js:264:4\nError: Expression expected\n  262 |       count,\n  263 |     };\n> 264 |   }, []);\n      |    ^\n  265 |\n  266 |   const geometry = useMemo(() => {\n  267 |     const geometry =\n\nParsing ecmascript source code failed\n\nImport traces:\n  Client Component Browser:\n    ./app/page.js [Client Component Browser]\n    ./app/page.js [Server Component]\n\n  Client Component SSR:\n    ./app/page.js [Client Component SSR]\n    ./app/page.js [Server Component] "}
+{"timestamp":"00:57:31.908","source":"Server","level":"ERROR","message":"[browser] \"./app/page.js:264:4\\nError: Expression expected\\n  262 |       count,\\n  263 |     };\\n> 264 |   }, []);\\n      |    ^\\n  265 |\\n  266 |   const geometry = useMemo(() => {\\n  267 |     const geometry =\\n\\nParsing ecmascript source code failed\\n\\nImport traces:\\n  Client Component Browser:\\n    ./app/page.js [Client Component Browser]\\n    ./app/page.js [Server Component]\\n\\n  Client Component SSR:\\n    ./app/page.js [Client Component SSR]\\n    ./app/page.js [Server Component]\" \"\""}
+{"timestamp":"00:57:46.651","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
+{"timestamp":"00:57:48.935","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:57:56.527","source":"Server","level":"WARN","message":"⚠ Fast Refresh had to perform a full reload due to a runtime error."}
+{"timestamp":"00:57:56.583","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:58:01.551","source":"Server","level":"LOG","message":"✓ Compiled in 29ms"}
+{"timestamp":"00:58:02.720","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:58:02.720","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:58:21.228","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:58:28.816","source":"Server","level":"WARN","message":"⚠ Fast Refresh had to perform a full reload due to a runtime error."}
+{"timestamp":"00:58:28.862","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:58:32.957","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
+{"timestamp":"00:58:38.482","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:58:40.479","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:58:45.338","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"00:58:46.112","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:58:46.113","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:58:46.120","source":"Server","level":"WARN","message":"⚠ Fast Refresh had to perform a full reload due to a runtime error."}
+{"timestamp":"00:58:46.126","source":"Browser","level":"ERROR","message":"Uncaught ReferenceError: i is not defined\n    at Particles.useMemo[particles] (app/page.js:256:5)\n    at Particles (app/page.js:132:28)\n    at Home (app/page.js:806:9)\n  \u001b[90m254 |\u001b[0m     }\n  \u001b[90m255 |\u001b[0m\n\u001b[31m\u001b[1m>\u001b[0m \u001b[90m256 |\u001b[0m     \u001b[90m// sizes[i] =\u001b[0m\n  \u001b[90m    |\u001b[0m     \u001b[31m\u001b[1m^\u001b[0m\n  \u001b[90m257 |\u001b[0m     \u001b[90m//   0.020 +\u001b[0m\n  \u001b[90m258 |\u001b[0m     \u001b[90m//   Math.pow(\u001b[0m\n  \u001b[90m259 |\u001b[0m     \u001b[90m//     Math.random(),\u001b[0m"}
+{"timestamp":"00:58:46.127","source":"Server","level":"ERROR","message":"[browser] \"\\u001b[31mUncaught ReferenceError: i is not defined\\u001b[39m\\n\\u001b[31m    at Particles.useMemo[particles] (app/page.js:256:5)\\n    at Particles (app/page.js:132:28)\\n    at Home (app/page.js:806:9)\\u001b[39m\\n  \\u001b[90m254 |\\u001b[0m     }\\n  \\u001b[90m255 |\\u001b[0m\\n\\u001b[31m\\u001b[1m>\\u001b[0m \\u001b[90m256 |\\u001b[0m     \\u001b[90m// sizes[i] =\\u001b[0m\\n  \\u001b[90m    |\\u001b[0m     \\u001b[31m\\u001b[1m^\\u001b[0m\\n  \\u001b[90m257 |\\u001b[0m     \\u001b[90m//   0.020 +\\u001b[0m\\n  \\u001b[90m258 |\\u001b[0m     \\u001b[90m//   Math.pow(\\u001b[0m\\n  \\u001b[90m259 |\\u001b[0m     \\u001b[90m//     Math.random(),\\u001b[0m\""}
+{"timestamp":"00:58:46.138","source":"Browser","level":"ERROR","message":"Uncaught ReferenceError: i is not defined\n    at Particles.useMemo[particles] (app/page.js:256:5)\n    at Particles (app/page.js:132:28)\n    at Home (app/page.js:795:14)\n  \u001b[90m254 |\u001b[0m     }\n  \u001b[90m255 |\u001b[0m\n\u001b[31m\u001b[1m>\u001b[0m \u001b[90m256 |\u001b[0m     \u001b[90m// sizes[i] =\u001b[0m\n  \u001b[90m    |\u001b[0m     \u001b[31m\u001b[1m^\u001b[0m\n  \u001b[90m257 |\u001b[0m     \u001b[90m//   0.020 +\u001b[0m\n  \u001b[90m258 |\u001b[0m     \u001b[90m//   Math.pow(\u001b[0m\n  \u001b[90m259 |\u001b[0m     \u001b[90m//     Math.random(),\u001b[0m"}
+{"timestamp":"00:58:46.139","source":"Server","level":"ERROR","message":"[browser] \"\\u001b[31mUncaught ReferenceError: i is not defined\\u001b[39m\\n\\u001b[31m    at Particles.useMemo[particles] (app/page.js:256:5)\\n    at Particles (app/page.js:132:28)\\n    at Home (app/page.js:795:14)\\u001b[39m\\n  \\u001b[90m254 |\\u001b[0m     }\\n  \\u001b[90m255 |\\u001b[0m\\n\\u001b[31m\\u001b[1m>\\u001b[0m \\u001b[90m256 |\\u001b[0m     \\u001b[90m// sizes[i] =\\u001b[0m\\n  \\u001b[90m    |\\u001b[0m     \\u001b[31m\\u001b[1m^\\u001b[0m\\n  \\u001b[90m257 |\\u001b[0m     \\u001b[90m//   0.020 +\\u001b[0m\\n  \\u001b[90m258 |\\u001b[0m     \\u001b[90m//   Math.pow(\\u001b[0m\\n  \\u001b[90m259 |\\u001b[0m     \\u001b[90m//     Math.random(),\\u001b[0m\""}
+{"timestamp":"00:58:46.603","source":"Browser","level":"WARN","message":"THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."}
+{"timestamp":"00:58:46.604","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mTHREE.Clock: This module has been deprecated. Please use THREE.Timer instead.\\u001b[39m\""}
+{"timestamp":"00:59:30.029","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:59:31.278","source":"Server","level":"ERROR","message":"[Server HMR] Update failed, full reload needed: SyntaxError: Identifier 'spread' has already been declared"}
+{"timestamp":"00:59:31.282","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:59:34.576","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"01:00:04.376","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
+{"timestamp":"01:00:05.836","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"01:00:16.443","source":"Server","level":"ERROR","message":"[Server HMR] Update failed, full reload needed: SyntaxError: Identifier 'spread' has already been declared"}
+{"timestamp":"01:00:16.468","source":"Server","level":"LOG","message":"✓ Compiled in 9ms"}
+{"timestamp":"01:00:19.803","source":"Browser","level":"ERROR","message":"./app/page.js:188:13\nError: the name `spread` is defined multiple times\n  186 |         0.24;\n  187 |       \n> 188 |       const spread =\n      |             ^^^^^^\n  189 |         0.84 +\n  190 |         Math.pow(\n  191 |           Math.random(),\n\nEcmascript file had an error\n\nImport traces:\n  Client Component Browser:\n    ./app/page.js [Client Component Browser]\n    ./app/page.js [Server Component]\n\n  Client Component SSR:\n    ./app/page.js [Client Component SSR]\n    ./app/page.js [Server Component] "}
+{"timestamp":"01:00:19.804","source":"Server","level":"ERROR","message":"[browser] \"./app/page.js:188:13\\nError: the name `spread` is defined multiple times\\n  186 |         0.24;\\n  187 |       \\n> 188 |       const spread =\\n      |             ^^^^^^\\n  189 |         0.84 +\\n  190 |         Math.pow(\\n  191 |           Math.random(),\\n\\nEcmascript file had an error\\n\\nImport traces:\\n  Client Component Browser:\\n    ./app/page.js [Client Component Browser]\\n    ./app/page.js [Server Component]\\n\\n  Client Component SSR:\\n    ./app/page.js [Client Component SSR]\\n    ./app/page.js [Server Component]\" \"\""}
+{"timestamp":"01:00:19.804","source":"Browser","level":"ERROR","message":"./app/page.js:188:13\nError: the name `spread` is defined multiple times\n  186 |         0.24;\n  187 |       \n> 188 |       const spread =\n      |             ^^^^^^\n  189 |         0.84 +\n  190 |         Math.pow(\n  191 |           Math.random(),\n\nEcmascript file had an error\n\nImport traces:\n  Client Component Browser:\n    ./app/page.js [Client Component Browser]\n    ./app/page.js [Server Component]\n\n  Client Component SSR:\n    ./app/page.js [Client Component SSR]\n    ./app/page.js [Server Component] "}
+{"timestamp":"01:00:19.804","source":"Server","level":"ERROR","message":"[browser] \"./app/page.js:188:13\\nError: the name `spread` is defined multiple times\\n  186 |         0.24;\\n  187 |       \\n> 188 |       const spread =\\n      |             ^^^^^^\\n  189 |         0.84 +\\n  190 |         Math.pow(\\n  191 |           Math.random(),\\n\\nEcmascript file had an error\\n\\nImport traces:\\n  Client Component Browser:\\n    ./app/page.js [Client Component Browser]\\n    ./app/page.js [Server Component]\\n\\n  Client Component SSR:\\n    ./app/page.js [Client Component SSR]\\n    ./app/page.js [Server Component]\" \"\""}
+{"timestamp":"01:00:19.804","source":"Browser","level":"ERROR","message":"./app/page.js:188:13\nError: the name `spread` is defined multiple times\n  186 |         0.24;\n  187 |       \n> 188 |       const spread =\n      |             ^^^^^^\n  189 |         0.84 +\n  190 |         Math.pow(\n  191 |           Math.random(),\n\nEcmascript file had an error\n\nImport traces:\n  Client Component Browser:\n    ./app/page.js [Client Component Browser]\n    ./app/page.js [Server Component]\n\n  Client Component SSR:\n    ./app/page.js [Client Component SSR]\n    ./app/page.js [Server Component] "}
+{"timestamp":"01:00:19.804","source":"Server","level":"ERROR","message":"[browser] \"./app/page.js:188:13\\nError: the name `spread` is defined multiple times\\n  186 |         0.24;\\n  187 |       \\n> 188 |       const spread =\\n      |             ^^^^^^\\n  189 |         0.84 +\\n  190 |         Math.pow(\\n  191 |           Math.random(),\\n\\nEcmascript file had an error\\n\\nImport traces:\\n  Client Component Browser:\\n    ./app/page.js [Client Component Browser]\\n    ./app/page.js [Server Component]\\n\\n  Client Component SSR:\\n    ./app/page.js [Client Component SSR]\\n    ./app/page.js [Server Component]\" \"\""}
+{"timestamp":"01:00:19.876","source":"Server","level":"LOG","message":"✓ Compiled in 31ms"}
+{"timestamp":"01:06:29.889","source":"Server","level":"LOG","message":"✓ Compiled in 28ms"}
+{"timestamp":"01:06:59.124","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"01:07:16.502","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"01:07:19.387","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
+{"timestamp":"01:07:21.234","source":"Server","level":"LOG","message":"✓ Compiled in 27ms"}
+{"timestamp":"01:07:36.374","source":"Server","level":"LOG","message":"✓ Compiled in 29ms"}
+{"timestamp":"01:08:33.231","source":"Server","level":"LOG","message":"✓ Compiled in 26ms"}
+{"timestamp":"01:08:42.731","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"01:08:43.504","source":"Browser","level":"ERROR","message":"THREE.BufferGeometry.computeBoundingSphere(): Computed radius is NaN. The \"position\" attribute is likely to have NaN values. [object Object] "}
+{"timestamp":"01:08:43.505","source":"Server","level":"ERROR","message":"[browser] \"THREE.BufferGeometry.computeBoundingSphere(): Computed radius is NaN. The \\\"position\\\" attribute is likely to have NaN values.\" \"[object Object]\" \"\""}
+{"timestamp":"01:08:51.644","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"01:09:05.532","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"01:09:07.847","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
+{"timestamp":"01:09:22.496","source":"Server","level":"LOG","message":"✓ Compiled in 9ms"}
+{"timestamp":"01:09:24.206","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"01:09:28.794","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"01:09:35.036","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"01:09:36.580","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"01:09:42.894","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"01:10:15.797","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"01:10:25.176","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"01:10:48.191","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"01:11:05.494","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"01:11:24.944","source":"Server","level":"LOG","message":"✓ Compiled in 10ms"}
