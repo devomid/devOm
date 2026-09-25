@@ -22,7 +22,7 @@ const vertexShader = `
       max(1.0, -mvPosition.z);
 
     gl_PointSize =
-      aSize * (420.0 / depth);
+      aSize * (440.0 / depth);
 
     gl_Position =
       projectionMatrix *
@@ -34,87 +34,53 @@ const fragmentShader = `
   varying float vIntensity;
 
   vec3 getColor(float t) {
+    vec3 shadow =
+      vec3(0.24, 0.22, 0.19);
 
-    /*
-     * Muted warm material palette.
-     *
-     * Much less yellow/gold than before.
-     *
-     * Think:
-     * smoked bronze
-     * aged brass
-     * warm stone
-     * incandescent ivory
-     */
+    vec3 stone =
+      vec3(0.41, 0.37, 0.32);
 
-    vec3 dark =
-      vec3(
-        0.22,
-        0.18,
-        0.135
-      );
-
-    vec3 bronze =
-      vec3(
-        0.42,
-        0.35,
-        0.25
-      );
+    vec3 copper =
+      vec3(0.57, 0.49, 0.40);
 
     vec3 warm =
-      vec3(
-        0.66,
-        0.56,
-        0.40
-      );
+      vec3(0.70, 0.61, 0.51);
 
-    vec3 light =
-      vec3(
-        0.86,
-        0.78,
-        0.63
-      );
+    vec3 highlight =
+      vec3(0.80, 0.73, 0.63);
 
-    if (t < 0.40) {
+    if (t < 0.20) {
       return mix(
-        dark,
-        bronze,
-        smoothstep(
-          0.0,
-          0.40,
-          t
-        )
+        shadow,
+        stone,
+        smoothstep(0.0, 0.20, t)
       );
     }
 
-    if (t < 0.78) {
+    if (t < 0.52) {
       return mix(
-        bronze,
+        stone,
+        copper,
+        smoothstep(0.20, 0.52, t)
+      );
+    }
+
+    if (t < 0.82) {
+      return mix(
+        copper,
         warm,
-        smoothstep(
-          0.40,
-          0.78,
-          t
-        )
+        smoothstep(0.52, 0.82, t)
       );
     }
 
     return mix(
       warm,
-      light,
-      smoothstep(
-        0.78,
-        1.0,
-        t
-      )
+      highlight,
+      smoothstep(0.82, 1.0, t)
     );
   }
 
   void main() {
-
-    /*
-     * Soft circular particle.
-     */
     vec2 uv =
       gl_PointCoord -
       0.5;
@@ -126,25 +92,19 @@ const fragmentShader = `
       discard;
     }
 
-    /*
-     * Feathered edge.
-     */
     float edge =
       1.0 -
       smoothstep(
-        0.18,
+        0.16,
         0.50,
         d
       );
 
-    /*
-     * Soft center.
-     */
     float core =
       1.0 -
       smoothstep(
         0.0,
-        0.43,
+        0.44,
         d
       );
 
@@ -154,8 +114,8 @@ const fragmentShader = `
     float alpha =
       edge *
       (
-        0.40 +
-        core * 0.45
+        0.43 +
+        core * 0.30
       );
 
     gl_FragColor =
@@ -170,7 +130,7 @@ function Particles() {
   const pointsRef = useRef();
 
   const particles = useMemo(() => {
-    const count = 50000;
+    const count = 150000;
 
     const positions =
       new Float32Array(
@@ -188,6 +148,12 @@ function Particles() {
     const sizes =
       new Float32Array(count);
 
+    const phases =
+      new Float32Array(count);
+
+    const speeds =
+      new Float32Array(count);
+
     for (
       let i = 0;
       i < count;
@@ -195,134 +161,121 @@ function Particles() {
     ) {
       const i3 = i * 3;
 
-      /*
-       * Wide horizontal gas field.
-       *
-       * Instead of a spherical cloud,
-       * the nebula occupies a broad volume.
-       */
-
       const x =
         (Math.random() - 0.5) *
-        17.0;
+        21.0;
 
       const y =
         (Math.random() - 0.5) *
-        8.0;
+        11.5;
 
-      /*
-       * Keep the depth relatively shallow.
-       *
-       * This dramatically reduces particles
-       * flying directly through the camera.
-       */
       const z =
         (Math.random() - 0.5) *
-        4.0;
+        3.8;
 
       /*
-       * Density envelope.
-       *
-       * We don't make a hard central blob.
-       * Instead, the middle is somewhat denser
-       * while the edges fade naturally.
+       * Broad atmospheric distribution.
        */
 
-      const normalizedX =
-        x / 8.5;
+      // const spread =
+      //   0.76 +
+      //   Math.pow(
+      //     Math.random(),
+      //     1.65
+      //   ) *
+      //   0.24;
+      
+      const spread =
+        0.84 +
+        Math.pow(
+          Math.random(),
+          2.2
+        ) *
+        0.16;
 
-      const normalizedY =
-        y / 4.0;
+      positions[i3] =
+        x * spread;
 
-      const envelope =
-        Math.max(
-          0,
-          1 -
-          Math.sqrt(
-            normalizedX *
-            normalizedX +
-            normalizedY *
-            normalizedY
-          )
-        );
+      positions[i3 + 1] =
+        y * spread;
+
+      positions[i3 + 2] =
+        z;
 
       /*
-       * Slightly bias particle density toward
-       * the middle without collapsing everything.
+       * Initial motion.
        */
-      if (
-        Math.random() >
-        0.32 +
-        envelope * 0.68
-      ) {
-        /*
-         * Reposition rejected particles into
-         * the broader surrounding field.
-         */
-        positions[i3] =
-          x *
-          1.18;
 
-        positions[i3 + 1] =
-          y *
-          1.10;
-
-        positions[i3 + 2] =
-          z;
-      } else {
-        positions[i3] =
-          x;
-
-        positions[i3 + 1] =
-          y;
-
-        positions[i3 + 2] =
-          z;
-      }
-
-      /*
-       * Almost entirely lateral initial movement.
-       */
       velocities[i3] =
-        0.001 +
-        Math.random() * 0.0015;
+        (Math.random() - 0.5) *
+        0.0015;
 
       velocities[i3 + 1] =
         (Math.random() - 0.5) *
-        0.0008;
+        0.0015;
 
       velocities[i3 + 2] =
         (Math.random() - 0.5) *
-        0.00025;
+        0.00065;
 
       /*
-       * Warm but restrained intensity.
+       * Individual phase.
        */
+
+      phases[i] =
+        Math.random() *
+        Math.PI *
+        2.0;
+
+      /*
+       * Small individual speed variation.
+       */
+
+      speeds[i] =
+        0.72 +
+        Math.random() *
+        0.56;
+
+      /*
+       * Restrained warm palette.
+       */
+
       intensities[i] =
-        0.10 +
+        0.13 +
         Math.pow(
           Math.random(),
-          2.1
+          1.8
         ) *
-        0.90;
+        0.70;
 
       /*
-       * Small soft particles.
+       * Soft atmospheric particles.
        */
+
       sizes[i] =
-        0.025 +
+        0.030 +
         Math.pow(
           Math.random(),
-          3.0
+          2.6
         ) *
-        0.075;
+        0.072;
     }
+
+    // sizes[i] =
+    //   0.020 +
+    //   Math.pow(
+    //     Math.random(),
+    //     2.6
+    //   ) *
+    //   0.055;
 
     return {
       positions,
       velocities,
       intensities,
       sizes,
+      phases,
+      speeds,
       count,
     };
   }, []);
@@ -362,10 +315,13 @@ function Particles() {
     return new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
+
       transparent: true,
+
       depthWrite: false,
+
       blending:
-        THREE.AdditiveBlending,
+        THREE.NormalBlending,
     });
   }, []);
 
@@ -384,13 +340,22 @@ function Particles() {
     const velocities =
       particles.velocities;
 
+    const phases =
+      particles.phases;
+
+    const speeds =
+      particles.speeds;
+
     const time =
       state.clock.elapsedTime;
 
     /*
-     * Gentle simulation speed.
+     * Small speed increase.
+     *
+     * Previous: 0.00115
+     * Current:  0.00129
      */
-    const speed = 0.00075;
+    const speed = 0.00219;
 
     for (
       let i = 0;
@@ -408,129 +373,348 @@ function Particles() {
       const z =
         positions[i3 + 2];
 
-      /*
-       * ------------------------------------------
-       * LONG CONTINUOUS CURRENT
-       * ------------------------------------------
-       *
-       * The whole field has a very slow drift,
-       * but different regions drift at different
-       * speeds.
-       */
+      const phase =
+        phases[i];
 
-      const current =
-        Math.sin(
-          y * 0.34 +
-          z * 0.25 +
-          time * 0.10
-        );
+      const particleSpeed =
+        speeds[i];
 
       /*
-       * ------------------------------------------
-       * LARGE SHEAR
-       * ------------------------------------------
-       *
-       * Upper and lower regions move differently.
-       * This creates gas-like stretching instead
-       * of central rotation.
+       * ------------------------------------------------
+       * LARGE-SCALE CLOUD FLOW
+       * ------------------------------------------------
        */
 
-      const shear =
+      const largeX =
         Math.sin(
-          y * 0.55 +
-          time * 0.08
+          y * 0.29 +
+          z * 0.63 +
+          time * 0.075 +
+          phase
         );
 
-      /*
-       * ------------------------------------------
-       * LATERAL TURBULENCE
-       * ------------------------------------------
-       */
-
-      const turbulenceX =
-        Math.sin(
-          y * 1.05 +
-          z * 0.70 +
-          time * 0.23
-        );
-
-      const turbulenceY =
+      const largeY =
         Math.cos(
-          x * 0.72 +
-          z * 0.50 -
-          time * 0.18
+          x * 0.25 -
+          z * 0.57 -
+          time * 0.068 +
+          phase * 1.37
         );
 
-      /*
-       * ------------------------------------------
-       * SMALL LOCAL MOTION
-       * ------------------------------------------
-       */
-
-      const localX =
+      const largeZ =
         Math.sin(
-          x * 1.30 +
-          y * 0.80 +
-          time * 0.31
-        );
-
-      const localY =
-        Math.cos(
-          y * 1.25 -
-          x * 0.65 -
-          time * 0.27
+          x * 0.31 +
+          y * 0.28 +
+          time * 0.059 +
+          phase * 0.71
         );
 
       /*
-       * X is the dominant gas direction.
+       * ------------------------------------------------
+       * MEDIUM TURBULENCE
+       * ------------------------------------------------
        */
+
+      const mediumX =
+        Math.sin(
+          y * 0.78 +
+          z * 1.17 +
+          time * 0.16 +
+          phase * 1.3
+        );
+
+      const mediumY =
+        Math.cos(
+          x * 0.83 -
+          z * 0.91 -
+          time * 0.14 +
+          phase * 0.8
+        );
+
+      const mediumZ =
+        Math.sin(
+          x * 0.68 -
+          y * 0.74 +
+          time * 0.12 +
+          phase * 1.7
+        );
+
+      /*
+       * ------------------------------------------------
+       * SMALL TURBULENCE
+       * ------------------------------------------------
+       */
+
+      const smallX =
+        Math.sin(
+          y * 1.65 +
+          z * 1.30 +
+          time * 0.24 +
+          phase
+        );
+
+      const smallY =
+        Math.cos(
+          x * 1.48 -
+          z * 1.16 -
+          time * 0.21 +
+          phase * 1.2
+        );
+
+      const smallZ =
+        Math.sin(
+          x * 1.34 +
+          y * 1.21 +
+          time * 0.19 +
+          phase * 0.6
+        );
+
+      /*
+       * ------------------------------------------------
+       * 3D CURL
+       * ------------------------------------------------
+       */
+
+      const curlX =
+        Math.sin(
+          y * 0.46 +
+          z * 0.82 +
+          time * 0.10 +
+          phase
+        ) -
+        Math.cos(
+          z * 0.37 -
+          time * 0.08 +
+          phase * 1.4
+        );
+
+      const curlY =
+        Math.cos(
+          x * 0.43 -
+          z * 0.69 -
+          time * 0.09 +
+          phase
+        ) -
+        Math.sin(
+          z * 0.32 +
+          time * 0.07 +
+          phase * 0.8
+        );
+
+      const curlZ =
+        Math.sin(
+          x * 0.39 +
+          y * 0.51 +
+          time * 0.08 +
+          phase * 1.1
+        ) -
+        Math.cos(
+          y * 0.34 -
+          time * 0.06 +
+          phase
+        );
+
+      /*
+       * ------------------------------------------------
+       * TEMPORARY COHERENCE FIELD
+       * ------------------------------------------------
+       *
+       * This is what allows shapes to
+       * briefly emerge.
+       *
+       * But the field itself changes
+       * quickly enough that the shape
+       * cannot remain stable.
+       */
+
+      const coherenceA =
+        Math.sin(
+          x * 0.34 +
+          y * 0.27 +
+          z * 0.61 +
+          time * 0.19 +
+          phase
+        );
+
+      const coherenceB =
+        Math.cos(
+          x * 0.51 -
+          y * 0.37 +
+          z * 0.43 -
+          time * 0.23 +
+          phase * 1.4
+        );
+
+      const coherence =
+        coherenceA *
+        coherenceB;
+
+      /*
+       * ------------------------------------------------
+       * SHAPE FORMATION
+       * ------------------------------------------------
+       *
+       * Local compression can create
+       * temporary ribbons / tendrils /
+       * clusters.
+       */
+
+      const shapeX =
+        coherence *
+        Math.sin(
+          y * 0.59 +
+          z * 0.42 +
+          phase
+        ) *
+        0.13;
+
+      const shapeY =
+        coherence *
+        Math.cos(
+          x * 0.53 -
+          z * 0.38 +
+          phase * 1.2
+        ) *
+        0.12;
+
+      const shapeZ =
+        coherence *
+        Math.sin(
+          x * 0.47 +
+          y * 0.64 +
+          phase * 0.8
+        ) *
+        0.055;
+
+      /*
+       * ------------------------------------------------
+       * SHAPE BREAKER
+       * ------------------------------------------------
+       *
+       * This is the important new piece.
+       *
+       * A second field moves at a different
+       * temporal frequency and actively
+       * destroys coherence.
+       */
+
+      const breakup =
+        Math.sin(
+          x * 0.91 -
+          y * 0.73 +
+          z * 1.17 +
+          time * 0.31 +
+          phase * 1.7
+        ) *
+        Math.cos(
+          y * 0.82 +
+          z * 0.91 -
+          time * 0.27 +
+          phase
+        );
+
+      const breakupX =
+        breakup *
+        Math.cos(
+          y * 0.71 +
+          phase
+        ) *
+        0.065;
+
+      const breakupY =
+        breakup *
+        Math.sin(
+          x * 0.67 -
+          phase
+        ) *
+        0.060;
+
+      const breakupZ =
+        breakup *
+        Math.cos(
+          z * 0.94 +
+          phase
+        ) *
+        0.035;
+
+      /*
+       * ------------------------------------------------
+       * COMBINE
+       * ------------------------------------------------
+       */
+
       const flowX =
-        0.70 +
-        current * 0.24 +
-        shear * 0.18 +
-        turbulenceX * 0.12 +
-        localX * 0.06;
+        largeX * 0.19 +
+        largeY * 0.13 +
+        mediumX * 0.095 +
+        mediumY * 0.07 +
+        smallX * 0.035 +
+        curlX * 0.095 +
+        shapeX +
+        breakupX;
 
-      /*
-       * Y creates vertical deformation.
-       */
       const flowY =
-        shear * 0.30 +
-        turbulenceY * 0.20 +
-        localY * 0.10;
+        largeY * 0.17 +
+        largeZ * 0.13 +
+        mediumY * 0.095 +
+        mediumZ * 0.07 +
+        smallY * 0.035 +
+        curlY * 0.095 +
+        shapeY +
+        breakupY;
+
+      const flowZ =
+        largeZ * 0.075 +
+        largeX * 0.035 +
+        mediumZ * 0.045 +
+        smallZ * 0.025 +
+        curlZ * 0.075 +
+        shapeZ +
+        breakupZ;
 
       /*
-       * Z is intentionally tiny.
-       *
-       * This is the important change that
-       * prevents particles constantly crossing
-       * directly through the camera.
+       * ------------------------------------------------
+       * CONTINUOUS MOTION
+       * ------------------------------------------------
        */
-      const flowZ =
-        turbulenceX * 0.025 +
-        turbulenceY * 0.018;
 
       velocities[i3] +=
-        flowX * speed;
+        flowX *
+        speed *
+        particleSpeed;
 
       velocities[i3 + 1] +=
-        flowY * speed;
+        flowY *
+        speed *
+        particleSpeed;
 
       velocities[i3 + 2] +=
-        flowZ * speed;
+        flowZ *
+        speed *
+        particleSpeed;
 
       /*
-       * Very light damping.
+       * Inertia.
+       *
+       * Slightly stronger damping on Z
+       * keeps the cloud visually broad.
        */
-      velocities[i3] *= 0.9987;
 
-      velocities[i3 + 1] *= 0.9987;
+      velocities[i3] *=
+        0.965;
 
-      velocities[i3 + 2] *= 0.9975;
+      velocities[i3 + 1] *=
+        0.965;
+
+      velocities[i3 + 2] *=
+        0.978;
 
       /*
-       * Move.
+       * ------------------------------------------------
+       * MOVE
+       * ------------------------------------------------
        */
+
       positions[i3] +=
         velocities[i3];
 
@@ -541,49 +725,60 @@ function Particles() {
         velocities[i3 + 2];
 
       /*
-       * ------------------------------------------
-       * SOFT OUTER LIMIT
-       * ------------------------------------------
-       *
-       * No central attraction.
-       *
-       * If a particle gets too far away,
-       * it gets gently redirected back into
-       * the broad field.
+       * ------------------------------------------------
+       * SOFT OUTER CONTAINMENT
+       * ------------------------------------------------
        */
 
-      if (positions[i3] > 10.5) {
-        velocities[i3] -=
-          0.00035;
-      }
+      const edgeX =
+        Math.abs(
+          positions[i3]
+        ) / 10.8;
 
-      if (positions[i3] < -10.5) {
+      const edgeY =
+        Math.abs(
+          positions[i3 + 1]
+        ) / 5.95;
+
+      const edgeZ =
+        Math.abs(
+          positions[i3 + 2]
+        ) / 2.05;
+
+      if (edgeX > 0.82) {
         velocities[i3] +=
-          0.00035;
+          -Math.sign(
+            positions[i3]
+          ) *
+          Math.pow(
+            edgeX - 0.82,
+            2
+          ) *
+          0.00085;
       }
 
-      if (positions[i3 + 1] > 5.2) {
-        velocities[i3 + 1] -=
-          0.00018;
-      }
-
-      if (positions[i3 + 1] < -5.2) {
+      if (edgeY > 0.82) {
         velocities[i3 + 1] +=
-          0.00018;
+          -Math.sign(
+            positions[i3 + 1]
+          ) *
+          Math.pow(
+            edgeY - 0.82,
+            2
+          ) *
+          0.00070;
       }
 
-      /*
-       * Keep the depth within a narrow
-       * atmospheric layer.
-       */
-      if (positions[i3 + 2] > 2.4) {
-        velocities[i3 + 2] -=
-          0.00012;
-      }
-
-      if (positions[i3 + 2] < -2.4) {
+      if (edgeZ > 0.80) {
         velocities[i3 + 2] +=
-          0.00012;
+          -Math.sign(
+            positions[i3 + 2]
+          ) *
+          Math.pow(
+            edgeZ - 0.80,
+            2
+          ) *
+          0.00032;
       }
     }
 
