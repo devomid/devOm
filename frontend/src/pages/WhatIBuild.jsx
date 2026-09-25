@@ -97,10 +97,11 @@ const createTextTargetTexture = (
     'round'
 
   /*
-   * Keep the glyph geometry clean.
+   * Keep the glyph clean.
    *
-   * We do NOT use blur.
-   * We do NOT enlarge the stroke.
+   * No blur.
+   * No enlarged stroke.
+   * No duplicated outline.
    */
   context.lineWidth =
     1
@@ -132,14 +133,11 @@ const createTextTargetTexture = (
    * EXTRACT GLYPH GEOMETRY
    * ----------------------------------------
    *
-   * We intentionally remove some pixels from
-   * the glyph itself.
+   * We keep most of the actual glyph pixels,
+   * but deliberately remove a small percentage.
    *
-   * This creates real holes in the letters.
-   *
-   * It is fundamentally different from
-   * scattering particles around a complete
-   * glyph.
+   * This creates density without producing
+   * a solid particle wall.
    */
 
   for (
@@ -171,13 +169,11 @@ const createTextTargetTexture = (
       }
 
       /*
-       * Deterministic sparse sampling.
+       * Around 10% of the glyph pixels are
+       * removed.
        *
-       * About 18% of the actual glyph
-       * pixels are removed.
-       *
-       * The remaining points still preserve
-       * the recognizable letter geometry.
+       * The old version removed ~18%, which
+       * made the letters unnecessarily thin.
        */
       const glyphHash =
         (
@@ -187,7 +183,7 @@ const createTextTargetTexture = (
         100
 
       if (
-        glyphHash < 18
+        glyphHash < 10
       ) {
         continue
       }
@@ -217,16 +213,16 @@ const createTextTargetTexture = (
         ) * 6.0
 
       /*
-       * Almost flat depth.
+       * IMPORTANT:
        *
-       * The typography should not become
-       * two visible layers in 3D.
+       * Keep the typography essentially on
+       * one depth plane.
+       *
+       * The previous Z variation was one of
+       * the things creating the perceived
+       * duplicate/ghost text.
        */
-      const worldZ =
-        Math.sin(
-          textureX * 0.11 +
-          textureY * 0.07,
-        ) * 0.018
+      const worldZ = 0
 
       textPoints.push({
         x: worldX,
@@ -254,23 +250,13 @@ const createTextTargetTexture = (
 
   /*
    * ----------------------------------------
-   * DISTRIBUTE SPARSE TARGETS
+   * DISTRIBUTE TARGETS
    * ----------------------------------------
    *
-   * IMPORTANT:
+   * We intentionally don't use every particle.
    *
-   * Not every GPU particle receives a target.
-   *
-   * Approximately:
-   *
-   *   58% -> may participate in typography
-   *   42% -> completely free
-   *
-   * The shader then divides the 58% into
-   * stable text particles and joining particles.
-   *
-   * Free particles have alpha = 0 and therefore
-   * cannot accidentally return to the text.
+   * The text should be dense enough to read,
+   * but it must still feel like the nebula.
    */
 
   for (
@@ -292,13 +278,6 @@ const createTextTargetTexture = (
         particleIndex *
         4
 
-      /*
-       * Deterministic particle personality.
-       *
-       * It is stable for the lifetime of the
-       * particle, so particles don't randomly
-       * change identity every frame.
-       */
       const personality =
         (
           (
@@ -311,11 +290,15 @@ const createTextTargetTexture = (
         10000
 
       /*
-       * Only 58% of particles receive a target.
+       * Around 54% of all particles can
+       * participate in the core typography.
+       *
+       * This is slightly lower than the old
+       * 58%, compensating for the denser glyph.
        */
       if (
         personality >=
-        0.58
+        0.54
       ) {
         data[
           textureIndex + 3
@@ -324,12 +307,6 @@ const createTextTargetTexture = (
         continue
       }
 
-      /*
-       * Spread the selected particles across
-       * the actual glyph geometry.
-       *
-       * No neighboring-pixel duplication.
-       */
       const pointSelector =
         (
           particleIndex *
@@ -344,48 +321,27 @@ const createTextTargetTexture = (
         ]
 
       /*
-       * Extremely tiny positional variation.
+       * No meaningful positional offset.
        *
-       * This is small enough that it cannot
-       * create a visible second copy of the
-       * typography.
+       * Especially no Z offset.
+       *
+       * This is important for eliminating
+       * the double-image effect.
        */
-      const phase =
-        particleIndex *
-        0.017
-
-      const microX =
-        Math.sin(
-          phase * 1.73,
-        ) * 0.0025
-
-      const microY =
-        Math.cos(
-          phase * 1.31,
-        ) * 0.0025
-
-      const microZ =
-        Math.sin(
-          phase * 0.87,
-        ) * 0.004
-
       data[
         textureIndex
       ] =
-        point.x +
-        microX
+        point.x
 
       data[
         textureIndex + 1
       ] =
-        point.y +
-        microY
+        point.y
 
       data[
         textureIndex + 2
       ] =
-        point.z +
-        microZ
+        point.z
 
       data[
         textureIndex + 3

@@ -544,6 +544,51 @@ const velocityFlowFragmentShader = `
             shapeZ +
             breakupZ;
 
+            /*
+ * ------------------------------------------------
+ * TEXT FORMATION MOTION CONTROL
+ * ------------------------------------------------
+ *
+ * The normal nebula flow should still influence
+ * the text, but much less while the typography
+ * is forming.
+ *
+ * Otherwise the same particles can visually
+ * smear into a second copy of the glyph.
+ * ------------------------------------------------
+ */
+
+float textFormationDamping = 1.0;
+
+if (uTextEnabled > 0.5) {
+    vec4 formationMetadata =
+        texture2D(
+            uMetadataTexture,
+            vUv
+        );
+
+    float formationPersonality =
+        fract(
+            sin(
+                formationMetadata.x * 12.9898 +
+                78.233
+            ) *
+            43758.5453
+        );
+
+    /*
+     * Core text population:
+     * reduce free nebula motion substantially.
+     */
+    if (
+        formationPersonality <
+        0.54
+    ) {
+        textFormationDamping =
+            0.28;
+    }
+}
+
         /*
          * ------------------------------------------------
          * ORIGINAL NEBULA MOTION
@@ -551,19 +596,22 @@ const velocityFlowFragmentShader = `
          */
 
         velocity.x +=
-            flowX *
-            0.00105 *
-            particleSpeed;
+    flowX *
+    0.00105 *
+    particleSpeed *
+    textFormationDamping;
 
-        velocity.y +=
-            flowY *
-            0.00105 *
-            particleSpeed;
+velocity.y +=
+    flowY *
+    0.00105 *
+    particleSpeed *
+    textFormationDamping;
 
-        velocity.z +=
-            flowZ *
-            0.00105 *
-            particleSpeed;
+velocity.z +=
+    flowZ *
+    0.00105 *
+    particleSpeed *
+    textFormationDamping;
 
         velocity.x *= 0.965;
         velocity.y *= 0.965;
@@ -1364,12 +1412,12 @@ const createParticleData = () => {
             0.70
 
         sizes[i] =
-            0.040 +
+            0.035 +
             Math.pow(
                 Math.random(),
                 3,
             ) *
-            0.068
+            0.060
     }
 
     return {
