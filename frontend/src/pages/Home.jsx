@@ -6,6 +6,7 @@ import {
 } from 'framer-motion'
 
 import HeroSection from '../components/homeComps/HeroSection'
+import NebulaBackground from '../components/nebula/nebula'
 import WhatIBuild from './WhatIBuild'
 import HowIBuild from './HowIBuild'
 import Works from './Works'
@@ -44,83 +45,104 @@ const Home = ({
                 height: '500vh',
             }}
         >
+            {/* Continuous nebula field */}
             <Box
                 sx={{
-                    position: 'sticky',
-                    top: 0,
-                    height: '100vh',
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 0,
+                    pointerEvents: 'none',
                     overflow: 'hidden',
                 }}
             >
-                <HeroSection
+                <NebulaBackground
                     scrollState={
                         scrollState
                     }
                 />
             </Box>
 
+            {/* Home content */}
             <Box
-                component={Link}
-                to="/whatibuild"
                 sx={{
-                    position: 'sticky',
-                    top: 0,
-                    height: '100vh',
-                    overflow: 'hidden',
-                    display: 'block',
-                    textDecoration: 'none',
-                    color: 'inherit',
+                    position: 'relative',
+                    zIndex: 1,
                 }}
             >
-                <WhatIBuild />
-            </Box>
+                <Box
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        height: '100vh',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <HeroSection />
+                </Box>
 
-            <Box
-                component={Link}
-                to="/works"
-                sx={{
-                    position: 'sticky',
-                    top: 0,
-                    height: '100vh',
-                    overflow: 'hidden',
-                    display: 'block',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                }}
-            >
-                <Works />
-            </Box>
+                <Box
+                    component={Link}
+                    to="/whatibuild"
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        height: '100vh',
+                        overflow: 'hidden',
+                        display: 'block',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                    }}
+                >
+                    <WhatIBuild />
+                </Box>
 
-            <Box
-                component={Link}
-                to="/howibuild"
-                sx={{
-                    position: 'sticky',
-                    top: 0,
-                    height: '100vh',
-                    overflow: 'hidden',
-                    display: 'block',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                }}
-            >
-                <HowIBuild />
-            </Box>
+                <Box
+                    component={Link}
+                    to="/works"
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        height: '100vh',
+                        overflow: 'hidden',
+                        display: 'block',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                    }}
+                >
+                    <Works />
+                </Box>
 
-            <Box
-                component={Link}
-                to="/contacts"
-                sx={{
-                    position: 'sticky',
-                    top: 0,
-                    height: '100vh',
-                    overflow: 'hidden',
-                    display: 'block',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                }}
-            >
-                <Contacts />
+                <Box
+                    component={Link}
+                    to="/howibuild"
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        height: '100vh',
+                        overflow: 'hidden',
+                        display: 'block',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                    }}
+                >
+                    <HowIBuild />
+                </Box>
+
+                <Box
+                    component={Link}
+                    to="/contacts"
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        height: '100vh',
+                        overflow: 'hidden',
+                        display: 'block',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                    }}
+                >
+                    <Contacts />
+                </Box>
             </Box>
         </Box>
     )
