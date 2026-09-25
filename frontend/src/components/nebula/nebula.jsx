@@ -13,7 +13,7 @@ import {
 } from '@react-three/fiber'
 
 const PARTICLE_COUNT = 262144
-const TEXTURE_SIZE = 470
+const TEXTURE_SIZE = 512
 const TEXTURE_CAPACITY =
     TEXTURE_SIZE * TEXTURE_SIZE
 
