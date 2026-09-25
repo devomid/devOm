@@ -74,14 +74,16 @@ const NavBar = ({ scrollProgress }) => {
     const navbarGap = useTransform(
         scrollProgress,
         [0, 0.25],
-        [28, 52],
+        ['56px', '110px'],
     )
 
     const navFontSize = useTransform(
         scrollProgress,
         [0, 0.25],
-        [1, 0.2],
+        [22, 10],
     )
+
+    const MotionTypography = motion(Typography)
 
     const navbarBackground = useTransform(
         navbarOpacity,
@@ -136,12 +138,13 @@ const NavBar = ({ scrollProgress }) => {
                             color: 'inherit',
                         }}
                     >
-                        <Typography
-                            sx={{
-                                fontSize: navFontSize
-                            }} >
+                        <MotionTypography
+                            style={{
+                                fontSize: navFontSize,
+                            }}
+                        >
                             {item.label}
-                        </Typography>
+                        </MotionTypography>
 
                         {isActive && (
                             <Box
