@@ -1,829 +1,1848 @@
-'use client';
+import {
+    useEffect,
+    useMemo,
+    useRef,
+} from 'react'
 
-import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { useMemo, useRef } from 'react';
+import * as THREE from 'three'
 
-const vertexShader = `
-  attribute float aIntensity;
-  attribute float aSize;
+import {
+    Canvas,
+    useFrame,
+    useThree,
+} from '@react-three/fiber'
 
-  varying float vIntensity;
+const PARTICLE_COUNT = 262144
+const TEXTURE_SIZE = 470
+const TEXTURE_CAPACITY =
+    TEXTURE_SIZE * TEXTURE_SIZE
 
-  void main() {
-    vIntensity = aIntensity;
+const PARTICLE_SPEED = 0.00105
 
-    vec4 mvPosition =
-      modelViewMatrix *
-      vec4(position, 1.0);
+/*
+ * ============================================================
+ * PARTICLE RENDER SHADERS
+ * ============================================================
+ *
+ * These are the same visual shaders used by:
+ *
+ * nebula/app/page.js
+ *
+ * The only difference is that position now comes from
+ * the GPU simulation texture instead of a CPU BufferAttribute.
+ */
 
-    float depth =
-      max(1.0, -mvPosition.z);
+const particleVertexShader = `
+    attribute vec2 aParticleUv;
+    attribute float aIntensity;
+    attribute float aSize;
 
-    gl_PointSize =
-      aSize * (440.0 / depth);
+    uniform sampler2D uPositionTexture;
 
-    gl_Position =
-      projectionMatrix *
-      mvPosition;
-  }
-`;
+    varying float vIntensity;
 
-const fragmentShader = `
-  varying float vIntensity;
+    void main() {
+        vIntensity = aIntensity;
 
-  vec3 getColor(float t) {
-    vec3 shadow =
-      vec3(0.24, 0.22, 0.19);
+        vec3 particlePosition =
+            texture2D(
+                uPositionTexture,
+                aParticleUv
+            ).xyz;
 
-    vec3 stone =
-      vec3(0.41, 0.37, 0.32);
-
-    vec3 copper =
-      vec3(0.57, 0.49, 0.40);
-
-    vec3 warm =
-      vec3(0.70, 0.61, 0.51);
-
-    vec3 highlight =
-      vec3(0.80, 0.73, 0.63);
-
-    if (t < 0.20) {
-      return mix(
-        shadow,
-        stone,
-        smoothstep(0.0, 0.20, t)
-      );
-    }
-
-    if (t < 0.52) {
-      return mix(
-        stone,
-        copper,
-        smoothstep(0.20, 0.52, t)
-      );
-    }
-
-    if (t < 0.82) {
-      return mix(
-        copper,
-        warm,
-        smoothstep(0.52, 0.82, t)
-      );
-    }
-
-    return mix(
-      warm,
-      highlight,
-      smoothstep(0.82, 1.0, t)
-    );
-  }
-
-  void main() {
-    vec2 uv =
-      gl_PointCoord -
-      0.5;
-
-    float d =
-      length(uv);
-
-    if (d > 0.5) {
-      discard;
-    }
-
-    float edge =
-      1.0 -
-      smoothstep(
-        0.16,
-        0.50,
-        d
-      );
-
-    float core =
-      1.0 -
-      smoothstep(
-        0.0,
-        0.44,
-        d
-      );
-
-    vec3 color =
-      getColor(vIntensity);
-
-    float alpha =
-      edge *
-      (
-        0.43 +
-        core * 0.30
-      );
-
-    gl_FragColor =
-      vec4(
-        color,
-        alpha
-      );
-  }
-`;
-
-function Particles() {
-    const pointsRef = useRef();
-
-    const particles = useMemo(() => {
-        const count = 200000;
-
-        const positions =
-            new Float32Array(
-                count * 3
+        vec4 mvPosition =
+            modelViewMatrix *
+            vec4(
+                particlePosition,
+                1.0
             );
 
-        const velocities =
-            new Float32Array(
-                count * 3
+        float depth =
+            max(
+                1.0,
+                -mvPosition.z
             );
 
-        const intensities =
-            new Float32Array(count);
+        gl_PointSize =
+            aSize *
+            (440.0 / depth);
 
-        const sizes =
-            new Float32Array(count);
+        gl_Position =
+            projectionMatrix *
+            mvPosition;
+    }
+`
 
-        const phases =
-            new Float32Array(count);
+const particleFragmentShader = `
+    varying float vIntensity;
 
-        const speeds =
-            new Float32Array(count);
+    vec3 getColor(float t) {
+        vec3 shadow =
+            vec3(
+                0.24,
+                0.22,
+                0.19
+            );
 
-        for (
-            let i = 0;
-            i < count;
-            i++
-        ) {
-            const i3 = i * 3;
+        vec3 stone =
+            vec3(
+                0.41,
+                0.37,
+                0.32
+            );
 
-            const x =
-                (Math.random() - 0.5) *
-                21.0;
+        vec3 copper =
+            vec3(
+                0.57,
+                0.49,
+                0.40
+            );
 
-            const y =
-                (Math.random() - 0.5) *
-                11.5;
+        vec3 warm =
+            vec3(
+                0.70,
+                0.61,
+                0.51
+            );
 
-            const z =
-                (Math.random() - 0.5) *
-                3.8;
+        vec3 highlight =
+            vec3(
+                0.80,
+                0.73,
+                0.63
+            );
 
-            /*
-             * Broad atmospheric distribution.
-             */
-
-            // const spread =
-            //   0.76 +
-            //   Math.pow(
-            //     Math.random(),
-            //     1.65
-            //   ) *
-            //   0.24;
-
-            const spread =
-                0.84 +
-                Math.pow(
-                    Math.random(),
-                    2.2
-                ) *
-                0.16;
-
-            positions[i3] =
-                x * spread;
-
-            positions[i3 + 1] =
-                y * spread;
-
-            positions[i3 + 2] =
-                z;
-
-            /*
-             * Initial motion.
-             */
-
-            velocities[i3] =
-                (Math.random() - 0.5) *
-                0.0015;
-
-            velocities[i3 + 1] =
-                (Math.random() - 0.5) *
-                0.0015;
-
-            velocities[i3 + 2] =
-                (Math.random() - 0.5) *
-                0.00065;
-
-            /*
-             * Individual phase.
-             */
-
-            phases[i] =
-                Math.random() *
-                Math.PI *
-                2.1;
-
-            /*
-             * Small individual speed variation.
-             */
-
-            speeds[i] =
-                0.72 +
-                Math.random() *
-                0.56;
-
-            /*
-             * Restrained warm palette.
-             */
-
-            intensities[i] =
-                0.13 +
-                Math.pow(
-                    Math.random(),
-                    1.8
-                ) *
-                0.70;
-
-            /*
-             * Soft atmospheric particles.
-             */
-
-            sizes[i] =
-                0.040 +
-                Math.pow(
-                    Math.random(),
-                    3
-                ) *
-                0.068;
+        if (t < 0.20) {
+            return mix(
+                shadow,
+                stone,
+                smoothstep(
+                    0.0,
+                    0.20,
+                    t
+                )
+            );
         }
 
-        // sizes[i] =
-        //   0.020 +
-        //   Math.pow(
-        //     Math.random(),
-        //     2.6
-        //   ) *
-        //   0.055;
+        if (t < 0.52) {
+            return mix(
+                stone,
+                copper,
+                smoothstep(
+                    0.20,
+                    0.52,
+                    t
+                )
+            );
+        }
 
-        return {
-            positions,
-            velocities,
-            intensities,
-            sizes,
-            phases,
-            speeds,
-            count,
-        };
-    }, []);
+        if (t < 0.82) {
+            return mix(
+                copper,
+                warm,
+                smoothstep(
+                    0.52,
+                    0.82,
+                    t
+                )
+            );
+        }
 
-    const geometry = useMemo(() => {
-        const geometry =
-            new THREE.BufferGeometry();
-
-        geometry.setAttribute(
-            'position',
-            new THREE.BufferAttribute(
-                particles.positions,
-                3
+        return mix(
+            warm,
+            highlight,
+            smoothstep(
+                0.82,
+                1.0,
+                t
             )
         );
+    }
 
-        geometry.setAttribute(
-            'aIntensity',
-            new THREE.BufferAttribute(
-                particles.intensities,
-                1
-            )
-        );
+    void main() {
+        vec2 uv =
+            gl_PointCoord -
+            0.5;
 
-        geometry.setAttribute(
-            'aSize',
-            new THREE.BufferAttribute(
-                particles.sizes,
-                1
-            )
-        );
+        float d =
+            length(uv);
 
-        return geometry;
-    }, [particles]);
+        if (d > 0.5) {
+            discard;
+        }
 
-    const material = useMemo(() => {
-        return new THREE.ShaderMaterial({
-            vertexShader,
-            fragmentShader,
+        float edge =
+            1.0 -
+            smoothstep(
+                0.16,
+                0.50,
+                d
+            );
 
-            transparent: true,
+        float core =
+            1.0 -
+            smoothstep(
+                0.0,
+                0.44,
+                d
+            );
 
-            depthWrite: false,
+        vec3 color =
+            getColor(
+                vIntensity
+            );
 
-            blending:
-                THREE.NormalBlending,
-        });
-    }, []);
+        float alpha =
+            edge *
+            (
+                0.43 +
+                core * 0.30
+            );
 
-    useFrame((state) => {
-        const points =
-            pointsRef.current;
+        gl_FragColor =
+            vec4(
+                color,
+                alpha
+            );
+    }
+`
 
-        if (!points) return;
+/*
+ * ============================================================
+ * GPU SIMULATION
+ * ============================================================
+ *
+ * The original CPU simulation performs:
+ *
+ * 1. calculate flow
+ * 2. add flow to velocity
+ * 3. damp velocity
+ * 4. move position
+ * 5. apply containment force based on new position
+ *
+ * We preserve that order using three GPU passes.
+ *
+ * Pass 1:
+ *     old position + old velocity
+ *          -> new velocity
+ *
+ * Pass 2:
+ *     old position + new velocity
+ *          -> new position
+ *
+ * Pass 3:
+ *     new position + new velocity
+ *          -> contained velocity
+ *
+ * No CPU particle loop.
+ */
 
-        const positions =
-            points.geometry
-                .attributes
-                .position
-                .array;
+const simulationVertexShader = `
+    varying vec2 vUv;
 
-        const velocities =
-            particles.velocities;
+    void main() {
+        vUv = uv;
 
-        const phases =
-            particles.phases;
+        gl_Position =
+            vec4(
+                position.xy,
+                0.0,
+                1.0
+            );
+    }
+`
 
-        const speeds =
-            particles.speeds;
+const velocityFlowFragmentShader = `
+    precision highp float;
 
-        const time =
-            state.clock.elapsedTime;
+    uniform sampler2D uPositionTexture;
+    uniform sampler2D uVelocityTexture;
+    uniform sampler2D uMetadataTexture;
+
+    uniform float uTime;
+
+    varying vec2 vUv;
+
+    void main() {
+        vec3 position =
+            texture2D(
+                uPositionTexture,
+                vUv
+            ).xyz;
+
+        vec3 velocity =
+            texture2D(
+                uVelocityTexture,
+                vUv
+            ).xyz;
+
+        vec4 metadata =
+            texture2D(
+                uMetadataTexture,
+                vUv
+            );
+
+        float phase =
+            metadata.x;
+
+        float particleSpeed =
+            metadata.y;
+
+        float x =
+            position.x;
+
+        float y =
+            position.y;
+
+        float z =
+            position.z;
 
         /*
-         * Small speed increase.
-         *
-         * Previous: 0.00115
-         * Current:  0.00129
+         * ------------------------------------------------
+         * LARGE-SCALE CLOUD FLOW
+         * ------------------------------------------------
          */
-        const speed = 0.00220;
 
-        for (
-            let i = 0;
-            i < particles.count;
-            i++
-        ) {
-            const i3 = i * 3;
+        float largeX =
+            sin(
+                y * 0.29 +
+                z * 0.63 +
+                uTime * 0.075 +
+                phase
+            );
 
-            const x =
-                positions[i3];
+        float largeY =
+            cos(
+                x * 0.25 -
+                z * 0.57 -
+                uTime * 0.068 +
+                phase * 1.37
+            );
 
-            const y =
-                positions[i3 + 1];
+        float largeZ =
+            sin(
+                x * 0.31 +
+                y * 0.28 +
+                uTime * 0.059 +
+                phase * 0.71
+            );
 
-            const z =
-                positions[i3 + 2];
+        /*
+         * ------------------------------------------------
+         * MEDIUM TURBULENCE
+         * ------------------------------------------------
+         */
 
-            const phase =
-                phases[i];
+        float mediumX =
+            sin(
+                y * 0.78 +
+                z * 1.17 +
+                uTime * 0.16 +
+                phase * 1.3
+            );
 
-            const particleSpeed =
-                speeds[i];
+        float mediumY =
+            cos(
+                x * 0.83 -
+                z * 0.91 -
+                uTime * 0.14 +
+                phase * 0.8
+            );
 
-            /*
-             * ------------------------------------------------
-             * LARGE-SCALE CLOUD FLOW
-             * ------------------------------------------------
-             */
+        float mediumZ =
+            sin(
+                x * 0.68 -
+                y * 0.74 +
+                uTime * 0.12 +
+                phase * 1.7
+            );
 
-            const largeX =
-                Math.sin(
-                    y * 0.29 +
-                    z * 0.63 +
-                    time * 0.075 +
-                    phase
-                );
+        /*
+         * ------------------------------------------------
+         * SMALL TURBULENCE
+         * ------------------------------------------------
+         */
 
-            const largeY =
-                Math.cos(
-                    x * 0.25 -
-                    z * 0.57 -
-                    time * 0.068 +
-                    phase * 1.37
-                );
+        float smallX =
+            sin(
+                y * 1.65 +
+                z * 1.30 +
+                uTime * 0.24 +
+                phase
+            );
 
-            const largeZ =
-                Math.sin(
-                    x * 0.31 +
-                    y * 0.28 +
-                    time * 0.059 +
-                    phase * 0.71
-                );
+        float smallY =
+            cos(
+                x * 1.48 -
+                z * 1.16 -
+                uTime * 0.21 +
+                phase * 1.2
+            );
 
-            /*
-             * ------------------------------------------------
-             * MEDIUM TURBULENCE
-             * ------------------------------------------------
-             */
+        float smallZ =
+            sin(
+                x * 1.34 +
+                y * 1.21 +
+                uTime * 0.19 +
+                phase * 0.6
+            );
 
-            const mediumX =
-                Math.sin(
-                    y * 0.78 +
-                    z * 1.17 +
-                    time * 0.16 +
-                    phase * 1.3
-                );
+        /*
+         * ------------------------------------------------
+         * 3D CURL
+         * ------------------------------------------------
+         */
 
-            const mediumY =
-                Math.cos(
-                    x * 0.83 -
-                    z * 0.91 -
-                    time * 0.14 +
-                    phase * 0.8
-                );
+        float curlX =
+            sin(
+                y * 0.46 +
+                z * 0.82 +
+                uTime * 0.10 +
+                phase
+            ) -
+            cos(
+                z * 0.37 -
+                uTime * 0.08 +
+                phase * 1.4
+            );
 
-            const mediumZ =
-                Math.sin(
-                    x * 0.68 -
-                    y * 0.74 +
-                    time * 0.12 +
-                    phase * 1.7
-                );
+        float curlY =
+            cos(
+                x * 0.43 -
+                z * 0.69 -
+                uTime * 0.09 +
+                phase
+            ) -
+            sin(
+                z * 0.32 +
+                uTime * 0.07 +
+                phase * 0.8
+            );
 
-            /*
-             * ------------------------------------------------
-             * SMALL TURBULENCE
-             * ------------------------------------------------
-             */
+        float curlZ =
+            sin(
+                x * 0.39 +
+                y * 0.51 +
+                uTime * 0.08 +
+                phase * 1.1
+            ) -
+            cos(
+                y * 0.34 -
+                uTime * 0.06 +
+                phase
+            );
 
-            const smallX =
-                Math.sin(
-                    y * 1.65 +
-                    z * 1.30 +
-                    time * 0.24 +
-                    phase
-                );
+        /*
+         * ------------------------------------------------
+         * TEMPORARY COHERENCE
+         * ------------------------------------------------
+         */
 
-            const smallY =
-                Math.cos(
-                    x * 1.48 -
-                    z * 1.16 -
-                    time * 0.21 +
-                    phase * 1.2
-                );
+        float coherenceA =
+            sin(
+                x * 0.34 +
+                y * 0.27 +
+                z * 0.61 +
+                uTime * 0.19 +
+                phase
+            );
 
-            const smallZ =
-                Math.sin(
-                    x * 1.34 +
-                    y * 1.21 +
-                    time * 0.19 +
-                    phase * 0.6
-                );
+        float coherenceB =
+            cos(
+                x * 0.51 -
+                y * 0.37 +
+                z * 0.43 -
+                uTime * 0.23 +
+                phase * 1.4
+            );
 
-            /*
-             * ------------------------------------------------
-             * 3D CURL
-             * ------------------------------------------------
-             */
+        float coherence =
+            coherenceA *
+            coherenceB;
 
-            const curlX =
-                Math.sin(
-                    y * 0.46 +
-                    z * 0.82 +
-                    time * 0.10 +
-                    phase
-                ) -
-                Math.cos(
-                    z * 0.37 -
-                    time * 0.08 +
-                    phase * 1.4
-                );
+        /*
+         * ------------------------------------------------
+         * SHAPE FORMATION
+         * ------------------------------------------------
+         */
 
-            const curlY =
-                Math.cos(
-                    x * 0.43 -
-                    z * 0.69 -
-                    time * 0.09 +
-                    phase
-                ) -
-                Math.sin(
-                    z * 0.32 +
-                    time * 0.07 +
-                    phase * 0.8
-                );
+        float shapeX =
+            coherence *
+            sin(
+                y * 0.59 +
+                z * 0.42 +
+                phase
+            ) *
+            0.13;
 
-            const curlZ =
-                Math.sin(
-                    x * 0.39 +
-                    y * 0.51 +
-                    time * 0.08 +
-                    phase * 1.1
-                ) -
-                Math.cos(
-                    y * 0.34 -
-                    time * 0.06 +
-                    phase
-                );
+        float shapeY =
+            coherence *
+            cos(
+                x * 0.53 -
+                z * 0.38 +
+                phase * 1.2
+            ) *
+            0.12;
 
-            /*
-             * ------------------------------------------------
-             * TEMPORARY COHERENCE FIELD
-             * ------------------------------------------------
-             *
-             * This is what allows shapes to
-             * briefly emerge.
-             *
-             * But the field itself changes
-             * quickly enough that the shape
-             * cannot remain stable.
-             */
+        float shapeZ =
+            coherence *
+            sin(
+                x * 0.47 +
+                y * 0.64 +
+                phase * 0.8
+            ) *
+            0.055;
 
-            const coherenceA =
-                Math.sin(
-                    x * 0.34 +
-                    y * 0.27 +
-                    z * 0.61 +
-                    time * 0.19 +
-                    phase
-                );
+        /*
+         * ------------------------------------------------
+         * SHAPE BREAKER
+         * ------------------------------------------------
+         */
 
-            const coherenceB =
-                Math.cos(
-                    x * 0.51 -
-                    y * 0.37 +
-                    z * 0.43 -
-                    time * 0.23 +
-                    phase * 1.4
-                );
+        float breakup =
+            sin(
+                x * 0.91 -
+                y * 0.73 +
+                z * 1.17 +
+                uTime * 0.31 +
+                phase * 1.7
+            ) *
+            cos(
+                y * 0.82 +
+                z * 0.91 -
+                uTime * 0.27 +
+                phase
+            );
 
-            const coherence =
-                coherenceA *
-                coherenceB;
+        float breakupX =
+            breakup *
+            cos(
+                y * 0.71 +
+                phase
+            ) *
+            0.065;
 
-            /*
-             * ------------------------------------------------
-             * SHAPE FORMATION
-             * ------------------------------------------------
-             *
-             * Local compression can create
-             * temporary ribbons / tendrils /
-             * clusters.
-             */
+        float breakupY =
+            breakup *
+            sin(
+                x * 0.67 -
+                phase
+            ) *
+            0.060;
 
-            const shapeX =
-                coherence *
-                Math.sin(
-                    y * 0.59 +
-                    z * 0.42 +
-                    phase
+        float breakupZ =
+            breakup *
+            cos(
+                z * 0.94 +
+                phase
+            ) *
+            0.035;
+
+        /*
+         * ------------------------------------------------
+         * COMBINE
+         * ------------------------------------------------
+         */
+
+        float flowX =
+            largeX * 0.19 +
+            largeY * 0.13 +
+            mediumX * 0.095 +
+            mediumY * 0.07 +
+            smallX * 0.035 +
+            curlX * 0.095 +
+            shapeX +
+            breakupX;
+
+        float flowY =
+            largeY * 0.17 +
+            largeZ * 0.13 +
+            mediumY * 0.095 +
+            mediumZ * 0.07 +
+            smallY * 0.035 +
+            curlY * 0.095 +
+            shapeY +
+            breakupY;
+
+        float flowZ =
+            largeZ * 0.075 +
+            largeX * 0.035 +
+            mediumZ * 0.045 +
+            smallZ * 0.025 +
+            curlZ * 0.075 +
+            shapeZ +
+            breakupZ;
+
+        /*
+         * ------------------------------------------------
+         * CONTINUOUS MOTION
+         * ------------------------------------------------
+         */
+
+        velocity.x +=
+            flowX *
+            ${PARTICLE_SPEED.toFixed(5)} *
+            particleSpeed;
+
+        velocity.y +=
+            flowY *
+            ${PARTICLE_SPEED.toFixed(5)} *
+            particleSpeed;
+
+        velocity.z +=
+            flowZ *
+            ${PARTICLE_SPEED.toFixed(5)} *
+            particleSpeed;
+
+        /*
+         * Same damping as playground.
+         */
+
+        velocity.x *= 0.965;
+        velocity.y *= 0.965;
+        velocity.z *= 0.978;
+
+        gl_FragColor =
+            vec4(
+                velocity,
+                1.0
+            );
+    }
+`
+
+const positionFragmentShader = `
+    precision highp float;
+
+    uniform sampler2D uPositionTexture;
+    uniform sampler2D uVelocityTexture;
+
+    varying vec2 vUv;
+
+    void main() {
+        vec3 position =
+            texture2D(
+                uPositionTexture,
+                vUv
+            ).xyz;
+
+        vec3 velocity =
+            texture2D(
+                uVelocityTexture,
+                vUv
+            ).xyz;
+
+        position += velocity;
+
+        gl_FragColor =
+            vec4(
+                position,
+                1.0
+            );
+    }
+`
+
+const containmentFragmentShader = `
+    precision highp float;
+
+    uniform sampler2D uPositionTexture;
+    uniform sampler2D uVelocityTexture;
+
+    varying vec2 vUv;
+
+    void main() {
+        vec3 position =
+            texture2D(
+                uPositionTexture,
+                vUv
+            ).xyz;
+
+        vec3 velocity =
+            texture2D(
+                uVelocityTexture,
+                vUv
+            ).xyz;
+
+        float edgeX =
+            abs(position.x) /
+            10.8;
+
+        float edgeY =
+            abs(position.y) /
+            5.95;
+
+        float edgeZ =
+            abs(position.z) /
+            2.05;
+
+        /*
+         * Exact containment behavior from
+         * the playground.
+         */
+
+        if (edgeX > 0.82) {
+            velocity.x +=
+                -sign(position.x) *
+                pow(
+                    edgeX - 0.82,
+                    2.0
                 ) *
-                0.13;
-
-            const shapeY =
-                coherence *
-                Math.cos(
-                    x * 0.53 -
-                    z * 0.38 +
-                    phase * 1.2
-                ) *
-                0.12;
-
-            const shapeZ =
-                coherence *
-                Math.sin(
-                    x * 0.47 +
-                    y * 0.64 +
-                    phase * 0.8
-                ) *
-                0.055;
-
-            /*
-             * ------------------------------------------------
-             * SHAPE BREAKER
-             * ------------------------------------------------
-             *
-             * This is the important new piece.
-             *
-             * A second field moves at a different
-             * temporal frequency and actively
-             * destroys coherence.
-             */
-
-            const breakup =
-                Math.sin(
-                    x * 0.91 -
-                    y * 0.73 +
-                    z * 1.17 +
-                    time * 0.31 +
-                    phase * 1.7
-                ) *
-                Math.cos(
-                    y * 0.82 +
-                    z * 0.91 -
-                    time * 0.27 +
-                    phase
-                );
-
-            const breakupX =
-                breakup *
-                Math.cos(
-                    y * 0.71 +
-                    phase
-                ) *
-                0.065;
-
-            const breakupY =
-                breakup *
-                Math.sin(
-                    x * 0.67 -
-                    phase
-                ) *
-                0.060;
-
-            const breakupZ =
-                breakup *
-                Math.cos(
-                    z * 0.94 +
-                    phase
-                ) *
-                0.035;
-
-            /*
-             * ------------------------------------------------
-             * COMBINE
-             * ------------------------------------------------
-             */
-
-            const flowX =
-                largeX * 0.19 +
-                largeY * 0.13 +
-                mediumX * 0.095 +
-                mediumY * 0.07 +
-                smallX * 0.035 +
-                curlX * 0.095 +
-                shapeX +
-                breakupX;
-
-            const flowY =
-                largeY * 0.17 +
-                largeZ * 0.13 +
-                mediumY * 0.095 +
-                mediumZ * 0.07 +
-                smallY * 0.035 +
-                curlY * 0.095 +
-                shapeY +
-                breakupY;
-
-            const flowZ =
-                largeZ * 0.075 +
-                largeX * 0.035 +
-                mediumZ * 0.045 +
-                smallZ * 0.025 +
-                curlZ * 0.075 +
-                shapeZ +
-                breakupZ;
-
-            /*
-             * ------------------------------------------------
-             * CONTINUOUS MOTION
-             * ------------------------------------------------
-             */
-
-            velocities[i3] +=
-                flowX *
-                speed *
-                particleSpeed;
-
-            velocities[i3 + 1] +=
-                flowY *
-                speed *
-                particleSpeed;
-
-            velocities[i3 + 2] +=
-                flowZ *
-                speed *
-                particleSpeed;
-
-            /*
-             * Inertia.
-             *
-             * Slightly stronger damping on Z
-             * keeps the cloud visually broad.
-             */
-
-            velocities[i3] *=
-                0.965;
-
-            velocities[i3 + 1] *=
-                0.965;
-
-            velocities[i3 + 2] *=
-                0.978;
-
-            /*
-             * ------------------------------------------------
-             * MOVE
-             * ------------------------------------------------
-             */
-
-            positions[i3] +=
-                velocities[i3];
-
-            positions[i3 + 1] +=
-                velocities[i3 + 1];
-
-            positions[i3 + 2] +=
-                velocities[i3 + 2];
-
-            /*
-             * ------------------------------------------------
-             * SOFT OUTER CONTAINMENT
-             * ------------------------------------------------
-             */
-
-            const edgeX =
-                Math.abs(
-                    positions[i3]
-                ) / 10.8;
-
-            const edgeY =
-                Math.abs(
-                    positions[i3 + 1]
-                ) / 5.95;
-
-            const edgeZ =
-                Math.abs(
-                    positions[i3 + 2]
-                ) / 2.05;
-
-            if (edgeX > 0.82) {
-                velocities[i3] +=
-                    -Math.sign(
-                        positions[i3]
-                    ) *
-                    Math.pow(
-                        edgeX - 0.82,
-                        2
-                    ) *
-                    0.00085;
-            }
-
-            if (edgeY > 0.82) {
-                velocities[i3 + 1] +=
-                    -Math.sign(
-                        positions[i3 + 1]
-                    ) *
-                    Math.pow(
-                        edgeY - 0.82,
-                        2
-                    ) *
-                    0.00070;
-            }
-
-            if (edgeZ > 0.80) {
-                velocities[i3 + 2] +=
-                    -Math.sign(
-                        positions[i3 + 2]
-                    ) *
-                    Math.pow(
-                        edgeZ - 0.80,
-                        2
-                    ) *
-                    0.00032;
-            }
+                0.00085;
         }
 
-        points.geometry
-            .attributes
-            .position
-            .needsUpdate = true;
-    });
+        if (edgeY > 0.82) {
+            velocity.y +=
+                -sign(position.y) *
+                pow(
+                    edgeY - 0.82,
+                    2.0
+                ) *
+                0.00070;
+        }
+
+        if (edgeZ > 0.80) {
+            velocity.z +=
+                -sign(position.z) *
+                pow(
+                    edgeZ - 0.80,
+                    2.0
+                ) *
+                0.00032;
+        }
+
+        gl_FragColor =
+            vec4(
+                velocity,
+                1.0
+            );
+    }
+`
+
+const initializeFragmentShader = `
+    precision highp float;
+
+    uniform sampler2D uInitialTexture;
+
+    varying vec2 vUv;
+
+    void main() {
+        gl_FragColor =
+            texture2D(
+                uInitialTexture,
+                vUv
+            );
+    }
+`
+
+/*
+ * ============================================================
+ * FULLSCREEN SIMULATION GEOMETRY
+ * ============================================================
+ */
+
+const createSimulationQuad = (
+    material,
+) => {
+    const geometry =
+        new THREE.PlaneGeometry(
+            2,
+            2,
+        )
+
+    const mesh =
+        new THREE.Mesh(
+            geometry,
+            material,
+        )
+
+    return mesh
+}
+
+/*
+ * ============================================================
+ * PARTICLE DATA
+ * ============================================================
+ *
+ * This initialization follows the playground's random
+ * generation order and exact values.
+ */
+
+const createParticleData = () => {
+    const positions =
+        new Float32Array(
+            PARTICLE_COUNT * 3,
+        )
+
+    const velocities =
+        new Float32Array(
+            PARTICLE_COUNT * 3,
+        )
+
+    const intensities =
+        new Float32Array(
+            PARTICLE_COUNT,
+        )
+
+    const sizes =
+        new Float32Array(
+            PARTICLE_COUNT,
+        )
+
+    const phases =
+        new Float32Array(
+            PARTICLE_COUNT,
+        )
+
+    const speeds =
+        new Float32Array(
+            PARTICLE_COUNT,
+        )
+
+    for (
+        let i = 0;
+        i < PARTICLE_COUNT;
+        i += 1
+    ) {
+        const i3 =
+            i * 3
+
+        const x =
+            (
+                Math.random() -
+                0.5
+            ) *
+            21.0
+
+        const y =
+            (
+                Math.random() -
+                0.5
+            ) *
+            11.5
+
+        const z =
+            (
+                Math.random() -
+                0.5
+            ) *
+            3.8
+
+        const spread =
+            0.84 +
+            Math.pow(
+                Math.random(),
+                2.2,
+            ) *
+            0.16
+
+        positions[i3] =
+            x * spread
+
+        positions[i3 + 1] =
+            y * spread
+
+        positions[i3 + 2] =
+            z
+
+        velocities[i3] =
+            (
+                Math.random() -
+                0.5
+            ) *
+            0.0015
+
+        velocities[i3 + 1] =
+            (
+                Math.random() -
+                0.5
+            ) *
+            0.0015
+
+        velocities[i3 + 2] =
+            (
+                Math.random() -
+                0.5
+            ) *
+            0.00065
+
+        phases[i] =
+            Math.random() *
+            Math.PI *
+            2.1
+
+        speeds[i] =
+            0.72 +
+            Math.random() *
+            0.56
+
+        intensities[i] =
+            0.13 +
+            Math.pow(
+                Math.random(),
+                1.8,
+            ) *
+            0.70
+
+        sizes[i] =
+            0.040 +
+            Math.pow(
+                Math.random(),
+                3,
+            ) *
+            0.068
+    }
+
+    return {
+        positions,
+        velocities,
+        intensities,
+        sizes,
+        phases,
+        speeds,
+    }
+}
+
+/*
+ * ============================================================
+ * TEXTURE CREATION
+ * ============================================================
+ */
+
+const createFloatTexture = (
+    data,
+) => {
+    const texture =
+        new THREE.DataTexture(
+            data,
+            TEXTURE_SIZE,
+            TEXTURE_SIZE,
+            THREE.RGBAFormat,
+            THREE.FloatType,
+        )
+
+    texture.minFilter =
+        THREE.NearestFilter
+
+    texture.magFilter =
+        THREE.NearestFilter
+
+    texture.wrapS =
+        THREE.ClampToEdgeWrapping
+
+    texture.wrapT =
+        THREE.ClampToEdgeWrapping
+
+    texture.generateMipmaps =
+        false
+
+    texture.needsUpdate =
+        true
+
+    return texture
+}
+
+const createInitialTextures = (
+    particles,
+) => {
+    const positionData =
+        new Float32Array(
+            TEXTURE_CAPACITY * 4,
+        )
+
+    const velocityData =
+        new Float32Array(
+            TEXTURE_CAPACITY * 4,
+        )
+
+    const metadataData =
+        new Float32Array(
+            TEXTURE_CAPACITY * 4,
+        )
+
+    for (
+        let i = 0;
+        i < PARTICLE_COUNT;
+        i += 1
+    ) {
+        const i3 =
+            i * 3
+
+        const i4 =
+            i * 4
+
+        positionData[i4] =
+            particles.positions[i3]
+
+        positionData[i4 + 1] =
+            particles.positions[i3 + 1]
+
+        positionData[i4 + 2] =
+            particles.positions[i3 + 2]
+
+        positionData[i4 + 3] =
+            1.0
+
+        velocityData[i4] =
+            particles.velocities[i3]
+
+        velocityData[i4 + 1] =
+            particles.velocities[i3 + 1]
+
+        velocityData[i4 + 2] =
+            particles.velocities[i3 + 2]
+
+        velocityData[i4 + 3] =
+            1.0
+
+        metadataData[i4] =
+            particles.phases[i]
+
+        metadataData[i4 + 1] =
+            particles.speeds[i]
+
+        metadataData[i4 + 2] =
+            1.0
+
+        metadataData[i4 + 3] =
+            i < PARTICLE_COUNT
+                ? 1.0
+                : 0.0
+    }
+
+    return {
+        position:
+            createFloatTexture(
+                positionData,
+            ),
+
+        velocity:
+            createFloatTexture(
+                velocityData,
+            ),
+
+        metadata:
+            createFloatTexture(
+                metadataData,
+            ),
+    }
+}
+
+/*
+ * ============================================================
+ * RENDER TARGET
+ * ============================================================
+ */
+
+const createStateTarget = () => {
+    return new THREE.WebGLRenderTarget(
+        TEXTURE_SIZE,
+        TEXTURE_SIZE,
+        {
+            minFilter:
+                THREE.NearestFilter,
+
+            magFilter:
+                THREE.NearestFilter,
+
+            wrapS:
+                THREE.ClampToEdgeWrapping,
+
+            wrapT:
+                THREE.ClampToEdgeWrapping,
+
+            format:
+                THREE.RGBAFormat,
+
+            type:
+                THREE.FloatType,
+
+            depthBuffer:
+                false,
+
+            stencilBuffer:
+                false,
+
+            generateMipmaps:
+                false,
+        },
+    )
+}
+
+/*
+ * ============================================================
+ * GPU NEBULA
+ * ============================================================
+ */
+
+const NebulaParticles = () => {
+    const pointsRef =
+        useRef(null)
+
+    const simulationRef =
+        useRef(null)
+
+    const {
+        gl,
+    } = useThree()
+
+    const particles =
+        useMemo(
+            () =>
+                createParticleData(),
+            [],
+        )
+
+    const initialTextures =
+        useMemo(
+            () =>
+                createInitialTextures(
+                    particles,
+                ),
+            [particles],
+        )
+
+    /*
+     * Particle UVs map every particle to exactly one
+     * simulation texel.
+     */
+
+    const particleGeometry =
+        useMemo(() => {
+            const geometry =
+                new THREE.BufferGeometry()
+
+            const uvs =
+                new Float32Array(
+                    PARTICLE_COUNT * 2,
+                )
+
+            /*
+             * Keep these as zeroes.
+             *
+             * The actual position comes from
+             * uPositionTexture in the vertex shader.
+             */
+
+            const dummyPositions =
+                new Float32Array(
+                    PARTICLE_COUNT * 3,
+                )
+
+            for (
+                let i = 0;
+                i < PARTICLE_COUNT;
+                i += 1
+            ) {
+                const x =
+                    i %
+                    TEXTURE_SIZE
+
+                const y =
+                    Math.floor(
+                        i /
+                        TEXTURE_SIZE,
+                    )
+
+                const i2 =
+                    i * 2
+
+                uvs[i2] =
+                    (
+                        x + 0.5
+                    ) /
+                    TEXTURE_SIZE
+
+                uvs[i2 + 1] =
+                    (
+                        y + 0.5
+                    ) /
+                    TEXTURE_SIZE
+            }
+
+            geometry.setAttribute(
+                'position',
+                new THREE.BufferAttribute(
+                    dummyPositions,
+                    3,
+                ),
+            )
+
+            geometry.setAttribute(
+                'aParticleUv',
+                new THREE.BufferAttribute(
+                    uvs,
+                    2,
+                ),
+            )
+
+            geometry.setAttribute(
+                'aIntensity',
+                new THREE.BufferAttribute(
+                    particles.intensities,
+                    1,
+                ),
+            )
+
+            geometry.setAttribute(
+                'aSize',
+                new THREE.BufferAttribute(
+                    particles.sizes,
+                    1,
+                ),
+            )
+
+            return geometry
+        }, [particles])
+
+    const particleMaterial =
+        useMemo(
+            () =>
+                new THREE.ShaderMaterial({
+                    vertexShader:
+                        particleVertexShader,
+
+                    fragmentShader:
+                        particleFragmentShader,
+
+                    uniforms: {
+                        uPositionTexture: {
+                            value: null,
+                        },
+                    },
+
+                    transparent:
+                        true,
+
+                    depthWrite:
+                        false,
+
+                    depthTest:
+                        true,
+
+                    blending:
+                        THREE.NormalBlending,
+                }),
+            [],
+        )
+
+    useEffect(() => {
+        if (
+            !gl ||
+            !gl.capabilities.isWebGL2
+        ) {
+            console.error(
+                '[Nebula] WebGL2 is required for GPU simulation.',
+            )
+
+            return undefined
+        }
+
+        /*
+         * ----------------------------------------------------
+         * RENDER TARGETS
+         * ----------------------------------------------------
+         *
+         * Position:
+         *
+         *   positionA <-> positionB
+         *
+         * Velocity:
+         *
+         *   velocityA <-> velocityB
+         *
+         * Every frame:
+         *
+         *   velocityA -> velocityB
+         *   positionA + velocityB -> positionB
+         *   positionB + velocityB -> velocityA
+         *
+         * Then:
+         *
+         *   positionB / velocityA
+         *
+         * become the next state.
+         */
+
+        const positionA =
+            createStateTarget()
+
+        const positionB =
+            createStateTarget()
+
+        const velocityA =
+            createStateTarget()
+
+        const velocityB =
+            createStateTarget()
+
+        /*
+         * ----------------------------------------------------
+         * SIMULATION SCENE
+         * ----------------------------------------------------
+         */
+
+        const simulationScene =
+            new THREE.Scene()
+
+        const simulationCamera =
+            new THREE.OrthographicCamera(
+                -1,
+                1,
+                1,
+                -1,
+                0,
+                1,
+            )
+
+        /*
+         * ----------------------------------------------------
+         * INITIALIZATION MATERIAL
+         * ----------------------------------------------------
+         */
+
+        const initializationMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
+
+                fragmentShader:
+                    initializeFragmentShader,
+
+                uniforms: {
+                    uInitialTexture: {
+                        value: null,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        const initializationQuad =
+            createSimulationQuad(
+                initializationMaterial,
+            )
+
+        simulationScene.add(
+            initializationQuad,
+        )
+
+        /*
+         * Initialize all four state targets.
+         */
+
+        const initializeTarget = (
+            target,
+            texture,
+        ) => {
+            initializationMaterial
+                .uniforms
+                .uInitialTexture
+                .value = texture
+
+            gl.setRenderTarget(
+                target,
+            )
+
+            gl.clear()
+
+            gl.render(
+                simulationScene,
+                simulationCamera,
+            )
+        }
+
+        initializeTarget(
+            positionA,
+            initialTextures.position,
+        )
+
+        initializeTarget(
+            positionB,
+            initialTextures.position,
+        )
+
+        initializeTarget(
+            velocityA,
+            initialTextures.velocity,
+        )
+
+        initializeTarget(
+            velocityB,
+            initialTextures.velocity,
+        )
+
+        gl.setRenderTarget(
+            null,
+        )
+
+        /*
+         * ----------------------------------------------------
+         * FLOW / VELOCITY MATERIAL
+         * ----------------------------------------------------
+         */
+
+        const velocityMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
+
+                fragmentShader:
+                    velocityFlowFragmentShader,
+
+                uniforms: {
+                    uPositionTexture: {
+                        value: null,
+                    },
+
+                    uVelocityTexture: {
+                        value: null,
+                    },
+
+                    uMetadataTexture: {
+                        value:
+                            initialTextures.metadata,
+                    },
+
+                    uTime: {
+                        value: 0,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        /*
+         * ----------------------------------------------------
+         * POSITION MATERIAL
+         * ----------------------------------------------------
+         */
+
+        const positionMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
+
+                fragmentShader:
+                    positionFragmentShader,
+
+                uniforms: {
+                    uPositionTexture: {
+                        value: null,
+                    },
+
+                    uVelocityTexture: {
+                        value: null,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        /*
+         * ----------------------------------------------------
+         * CONTAINMENT MATERIAL
+         * ----------------------------------------------------
+         */
+
+        const containmentMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
+
+                fragmentShader:
+                    containmentFragmentShader,
+
+                uniforms: {
+                    uPositionTexture: {
+                        value: null,
+                    },
+
+                    uVelocityTexture: {
+                        value: null,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        /*
+         * One reusable quad.
+         */
+
+        const simulationQuad =
+            createSimulationQuad(
+                velocityMaterial,
+            )
+
+        simulationScene.add(
+            simulationQuad,
+        )
+
+        simulationRef.current = {
+            positionA,
+            positionB,
+
+            velocityA,
+            velocityB,
+
+            velocityMaterial,
+            positionMaterial,
+            containmentMaterial,
+
+            simulationScene,
+            simulationCamera,
+            simulationQuad,
+
+            initialized: true,
+        }
+
+        /*
+         * Render current state immediately.
+         */
+
+        particleMaterial
+            .uniforms
+            .uPositionTexture
+            .value =
+            positionA.texture
+
+        return () => {
+            if (
+                simulationRef.current
+            ) {
+                simulationRef.current =
+                    null
+            }
+
+            positionA.dispose()
+            positionB.dispose()
+
+            velocityA.dispose()
+            velocityB.dispose()
+
+            initializationMaterial
+                .dispose()
+
+            velocityMaterial
+                .dispose()
+
+            positionMaterial
+                .dispose()
+
+            containmentMaterial
+                .dispose()
+
+            simulationQuad
+                .geometry
+                .dispose()
+        }
+    }, [
+        gl,
+        initialTextures,
+        particleMaterial,
+    ])
+
+    useFrame(
+        (state) => {
+            const simulation =
+                simulationRef.current
+
+            if (
+                !simulation ||
+                !simulation.initialized
+            ) {
+                return
+            }
+
+            /*
+             * ------------------------------------------------
+             * CURRENT STATE
+             * ------------------------------------------------
+             */
+
+            const {
+                positionA,
+                positionB,
+                velocityA,
+                velocityB,
+
+                velocityMaterial,
+                positionMaterial,
+                containmentMaterial,
+
+                simulationScene,
+                simulationCamera,
+                simulationQuad,
+            } = simulation
+
+            const time =
+                state.clock.elapsedTime
+
+            /*
+             * ------------------------------------------------
+             * PASS 1
+             *
+             * old position
+             * old velocity
+             *
+             * ->
+             *
+             * new velocity
+             * ------------------------------------------------
+             */
+
+            velocityMaterial
+                .uniforms
+                .uPositionTexture
+                .value =
+                positionA.texture
+
+            velocityMaterial
+                .uniforms
+                .uVelocityTexture
+                .value =
+                velocityA.texture
+
+            velocityMaterial
+                .uniforms
+                .uTime
+                .value =
+                time
+
+            simulationQuad.material =
+                velocityMaterial
+
+            gl.setRenderTarget(
+                velocityB,
+            )
+
+            gl.clear()
+
+            gl.render(
+                simulationScene,
+                simulationCamera,
+            )
+
+            /*
+             * ------------------------------------------------
+             * PASS 2
+             *
+             * old position
+             * new velocity
+             *
+             * ->
+             *
+             * new position
+             * ------------------------------------------------
+             */
+
+            positionMaterial
+                .uniforms
+                .uPositionTexture
+                .value =
+                positionA.texture
+
+            positionMaterial
+                .uniforms
+                .uVelocityTexture
+                .value =
+                velocityB.texture
+
+            simulationQuad.material =
+                positionMaterial
+
+            gl.setRenderTarget(
+                positionB,
+            )
+
+            gl.clear()
+
+            gl.render(
+                simulationScene,
+                simulationCamera,
+            )
+
+            /*
+             * ------------------------------------------------
+             * PASS 3
+             *
+             * new position
+             * new velocity
+             *
+             * ->
+             *
+             * contained velocity
+             * ------------------------------------------------
+             *
+             * This preserves the exact ordering from
+             * page.js:
+             *
+             * move first,
+             * containment second.
+             */
+
+            containmentMaterial
+                .uniforms
+                .uPositionTexture
+                .value =
+                positionB.texture
+
+            containmentMaterial
+                .uniforms
+                .uVelocityTexture
+                .value =
+                velocityB.texture
+
+            simulationQuad.material =
+                containmentMaterial
+
+            gl.setRenderTarget(
+                velocityA,
+            )
+
+            gl.clear()
+
+            gl.render(
+                simulationScene,
+                simulationCamera,
+            )
+
+            /*
+             * ------------------------------------------------
+             * SWAP
+             * ------------------------------------------------
+             *
+             * We can't mutate the constants above, so update
+             * the simulation object references.
+             */
+
+            simulation.positionA =
+                positionB
+
+            simulation.positionB =
+                positionA
+
+            simulation.velocityA =
+                velocityA
+
+            simulation.velocityB =
+                velocityB
+
+            /*
+             * velocityA now contains the final contained
+             * velocity, so on the next frame it is the
+             * current velocity.
+             *
+             * positionB is now the current position.
+             */
+
+            particleMaterial
+                .uniforms
+                .uPositionTexture
+                .value =
+                positionB.texture
+
+            gl.setRenderTarget(
+                null,
+            )
+        },
+        -1,
+    )
+
+    useEffect(() => {
+        return () => {
+            particleGeometry.dispose()
+            particleMaterial.dispose()
+
+            initialTextures.position
+                .dispose()
+
+            initialTextures.velocity
+                .dispose()
+
+            initialTextures.metadata
+                .dispose()
+        }
+    }, [
+        particleGeometry,
+        particleMaterial,
+        initialTextures,
+    ])
 
     return (
         <points
             ref={pointsRef}
-            geometry={geometry}
-            material={material}
+            geometry={
+                particleGeometry
+            }
+            material={
+                particleMaterial
+            }
+            frustumCulled={false}
         />
-    );
+    )
 }
 
-export default function Home() {
+/*
+ * ============================================================
+ * PUBLIC COMPONENT
+ * ============================================================
+ */
+
+const NebulaBackground = () => {
     return (
-        <main
+        <Canvas
+            orthographic={false}
+            camera={{
+                position: [
+                    0,
+                    0,
+                    10,
+                ],
+
+                fov: 60,
+            }}
+            dpr={[1, 1.5]}
+            gl={{
+                antialias: true,
+                alpha: false,
+                powerPreference:
+                    'high-performance',
+            }}
             style={{
-                width: '100vw',
-                height: '100vh',
-                overflow: 'hidden',
-                background: '#050403',
+                position:
+                    'absolute',
+
+                inset: 0,
+
+                width: '100%',
+                height: '100%',
+
+                pointerEvents:
+                    'none',
+
+                background:
+                    '#050403',
             }}
         >
-            <Canvas
-                camera={{
-                    position: [0, 0, 10],
-                    fov: 60,
-                }}
-                gl={{
-                    antialias: true,
-                    alpha: false,
-                }}
-            >
-                <Particles />
-
-                <OrbitControls
-                    enablePan={false}
-                    enableZoom={false}
-                />
-            </Canvas>
-        </main>
-    );
+            <NebulaParticles />
+        </Canvas>
+    )
 }
+
+export default NebulaBackground
