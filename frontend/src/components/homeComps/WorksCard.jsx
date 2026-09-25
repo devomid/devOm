@@ -9,7 +9,7 @@ import {
     layout,
 } from '../../design'
 
-const HeroSection = () => {
+const WorksCard = () => {
     return (
         <Box
             sx={{
@@ -60,7 +60,7 @@ const HeroSection = () => {
                                 mb: spacing.xl,
                             }}
                         >
-                            Hero Section
+                            Works Card
                         </Typography>
 
                         <Typography
@@ -80,4 +80,4 @@ const HeroSection = () => {
     )
 }
 
-export default HeroSection
+export default WorksCard

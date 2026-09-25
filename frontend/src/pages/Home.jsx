@@ -5,12 +5,12 @@ import {
     useMotionValueEvent,
 } from 'framer-motion'
 
-import HeroSection from '../components/homeComps/HeroSection'
+import HeroSectionCard from '../components/homeComps/HeroSectionCard'
 import NebulaBackground from '../components/nebula/nebula'
-import WhatIBuild from './WhatIBuild'
-import HowIBuild from './HowIBuild'
-import Works from './Works'
-import Contacts from './Contacts'
+import WhatIBuildCard from '../components/homeComps/WhatIbuildCard';
+import HowIBuildCard from '../components/homeComps/HowIbuildCard';
+import WorksCard from '../components/homeComps/WorksCard';
+import ContactsCard from '../components/homeComps/ContactsCard';
 
 const Home = ({
     homeRef,
@@ -75,7 +75,7 @@ const Home = ({
                         overflow: 'hidden',
                     }}
                 >
-                    <HeroSection />
+                    <HeroSectionCard />
                 </Box>
 
                 <Box
@@ -91,7 +91,7 @@ const Home = ({
                         color: 'inherit',
                     }}
                 >
-                    <WhatIBuild />
+                    <WhatIBuildCard />
                 </Box>
 
                 <Box
@@ -107,7 +107,7 @@ const Home = ({
                         color: 'inherit',
                     }}
                 >
-                    <Works />
+                    <WorksCard />
                 </Box>
 
                 <Box
@@ -123,7 +123,7 @@ const Home = ({
                         color: 'inherit',
                     }}
                 >
-                    <HowIBuild />
+                    <HowIBuildCard />
                 </Box>
 
                 <Box
@@ -139,7 +139,7 @@ const Home = ({
                         color: 'inherit',
                     }}
                 >
-                    <Contacts />
+                    <ContactsCard />
                 </Box>
             </Box>
         </Box>
