@@ -41,11 +41,6 @@ const createTextTargetTexture = () => {
     TEXTURE_SIZE,
   )
 
-  /*
-   * Make the text substantially thicker than the previous
-   * version so a large, unmistakable population of the
-   * existing 262,144 particles participates.
-   */
   context.fillStyle =
     '#ffffff'
 
@@ -119,10 +114,6 @@ const createTextTargetTexture = () => {
         alpha <
         0.015
       ) {
-        data[
-          textureIndex + 3
-        ] = 0.0
-
         continue
       }
 
@@ -138,9 +129,6 @@ const createTextTargetTexture = () => {
           TEXTURE_SIZE - 1
         )
 
-      /*
-       * Match the actual Nebula world dimensions.
-       */
       let worldX =
         (
           normalizedX -
@@ -155,13 +143,6 @@ const createTextTargetTexture = () => {
         ) *
         7.4
 
-      /*
-       * Organic displacement.
-       *
-       * This keeps the text from becoming a perfectly
-       * rigid bitmap while the Nebula's normal flow
-       * continues to move the particles.
-       */
       const noise =
         Math.sin(
           textureX *
@@ -177,15 +158,12 @@ const createTextTargetTexture = () => {
           noise,
         )
 
-      const jitter =
+      worldX +=
         (
           random -
           0.5
         ) *
         0.10
-
-      worldX +=
-        jitter
 
       worldY +=
         Math.sin(
@@ -218,10 +196,6 @@ const createTextTargetTexture = () => {
       ] =
         worldZ
 
-      /*
-       * Preserve anti-aliased edges, but give the
-       * interior enough weight to hold the letters.
-       */
       data[
         textureIndex + 3
       ] =
@@ -309,10 +283,6 @@ const WhatIBuild = () => {
         textTargetTexture={
           textTargetTexture
         }
-        /*
-         * This is now a convergence multiplier,
-         * not the raw GPU force.
-         */
         textStrength={
           1.0
         }

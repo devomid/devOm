@@ -17,7 +17,11 @@ const TEXTURE_SIZE = 512
 const TEXTURE_CAPACITY =
     TEXTURE_SIZE * TEXTURE_SIZE
 
-const PARTICLE_SPEED = 0.00105
+/*
+ * ============================================================
+ * PARTICLE RENDER SHADERS
+ * ============================================================
+ */
 
 const particleVertexShader = `
     attribute vec2 aParticleUv;
@@ -193,6 +197,12 @@ const particleFragmentShader = `
             );
     }
 `
+
+/*
+ * ============================================================
+ * GPU SIMULATION
+ * ============================================================
+ */
 
 const simulationVertexShader = `
     varying vec2 vUv;
@@ -536,23 +546,23 @@ const velocityFlowFragmentShader = `
 
         /*
          * ------------------------------------------------
-         * NORMAL NEBULA MOTION
+         * ORIGINAL NEBULA MOTION
          * ------------------------------------------------
          */
 
         velocity.x +=
             flowX *
-            PARTICLE_SPEED *
+            0.00105 *
             particleSpeed;
 
         velocity.y +=
             flowY *
-            PARTICLE_SPEED *
+            0.00105 *
             particleSpeed;
 
         velocity.z +=
             flowZ *
-            PARTICLE_SPEED *
+            0.00105 *
             particleSpeed;
 
         velocity.x *= 0.965;
@@ -561,14 +571,19 @@ const velocityFlowFragmentShader = `
 
         /*
          * ------------------------------------------------
-         * TEXT ATTRACTOR
+         * TEXT FORMATION
+         * ------------------------------------------------
          *
-         * This is a real spring/convergence force rather
-         * than a weak directional nudge.
+         * Important:
          *
-         * The normal Nebula remains active underneath it.
-         * Particles therefore form the words while still
-         * drifting, breaking away, and rejoining.
+         * The text particles NEVER become static.
+         *
+         * We add a spring toward the target while retaining
+         * the original Nebula velocity and adding a small
+         * moving tangent force around the target.
+         *
+         * This makes the letters continuously breathe,
+         * crawl, break apart and reform.
          * ------------------------------------------------
          */
 
@@ -604,71 +619,92 @@ const velocityFlowFragmentShader = `
                         distanceToTarget;
 
                     /*
-                     * Strong at long range so particles
-                     * actually leave the cloud and travel
-                     * toward the text.
-                     */
-                    float longRange =
-                        smoothstep(
-                            0.0,
-                            11.0,
-                            distanceToTarget
-                        );
-
-                    /*
-                     * Spring gets stronger as the particle
-                     * approaches the target, preventing the
-                     * "fly past and never settle" behavior.
+                     * Strong enough to visibly pull the
+                     * existing Nebula into the letters.
                      */
                     float spring =
-                        mix(
-                            0.00034,
-                            0.00016,
-                            smoothstep(
-                                0.0,
-                                3.0,
-                                distanceToTarget
-                            )
-                        );
+                        0.00026 +
+                        min(
+                            distanceToTarget,
+                            8.0
+                        ) *
+                        0.000035;
 
                     /*
-                     * Slightly stronger convergence when
-                     * the particle is very far away.
+                     * uTextStrength is intentionally used
+                     * as a simple multiplier.
                      */
-                    float convergence =
-                        (
-                            0.75 +
-                            longRange * 0.85
-                        ) *
-                        uTextStrength *
-                        textWeight;
-
                     velocity +=
                         direction *
                         spring *
-                        convergence *
-                        (
-                            1.0 +
-                            distanceToTarget *
-                            0.055
+                        uTextStrength *
+                        textWeight;
+
+                    /*
+                     * Moving organic disturbance around
+                     * the target.
+                     */
+                    vec3 swirl;
+
+                    swirl.x =
+                        sin(
+                            target.y * 0.85 +
+                            uTime * 0.70 +
+                            phase
+                        );
+
+                    swirl.y =
+                        cos(
+                            target.x * 0.78 -
+                            uTime * 0.62 +
+                            phase * 1.31
+                        );
+
+                    swirl.z =
+                        sin(
+                            target.x * 0.55 +
+                            target.y * 0.43 +
+                            uTime * 0.52 +
+                            phase * 0.71
                         );
 
                     /*
-                     * Damping near the target prevents
-                     * oscillation while preserving movement.
+                     * Only a subtle amount of swirl is
+                     * necessary. The original flow remains
+                     * dominant.
                      */
-                    float targetDamping =
-                        1.0 -
-                        smoothstep(
-                            0.0,
-                            1.25,
-                            distanceToTarget
-                        ) *
-                        0.34 *
+                    velocity +=
+                        swirl *
+                        0.000035 *
+                        uTextStrength *
                         textWeight;
 
-                    velocity *=
-                        targetDamping;
+                    /*
+                     * Near the target, remove only the
+                     * velocity component that points directly
+                     * away from the target.
+                     *
+                     * Tangential movement survives.
+                     */
+                    float radialVelocity =
+                        dot(
+                            velocity,
+                            direction
+                        );
+
+                    if (
+                        radialVelocity >
+                        0.00055
+                    ) {
+                        velocity -=
+                            direction *
+                            (
+                                radialVelocity -
+                                0.00055
+                            ) *
+                            0.42 *
+                            textWeight;
+                    }
                 }
             }
         }
@@ -1487,12 +1523,8 @@ const NebulaParticles = ({
             positionA.texture
 
         return () => {
-            if (
-                simulationRef.current
-            ) {
-                simulationRef.current =
-                    null
-            }
+            simulationRef.current =
+                null
 
             positionA.dispose()
             positionB.dispose()
@@ -1546,18 +1578,6 @@ const NebulaParticles = ({
                 simulationQuad,
             } = simulation
 
-            const time =
-                state.clock.elapsedTime
-
-            /*
-             * PASS 1
-             *
-             * Position A +
-             * Velocity A
-             *
-             * -> Velocity B
-             */
-
             velocityMaterial
                 .uniforms
                 .uPositionTexture
@@ -1574,7 +1594,7 @@ const NebulaParticles = ({
                 .uniforms
                 .uTime
                 .value =
-                time
+                state.clock.elapsedTime
 
             velocityMaterial
                 .uniforms
@@ -1611,15 +1631,6 @@ const NebulaParticles = ({
                 simulationCamera,
             )
 
-            /*
-             * PASS 2
-             *
-             * Position A +
-             * Velocity B
-             *
-             * -> Position B
-             */
-
             positionMaterial
                 .uniforms
                 .uPositionTexture
@@ -1646,15 +1657,6 @@ const NebulaParticles = ({
                 simulationCamera,
             )
 
-            /*
-             * PASS 3
-             *
-             * Position B +
-             * Velocity B
-             *
-             * -> Velocity A
-             */
-
             containmentMaterial
                 .uniforms
                 .uPositionTexture
@@ -1680,10 +1682,6 @@ const NebulaParticles = ({
                 simulationScene,
                 simulationCamera,
             )
-
-            /*
-             * Swap simulation state.
-             */
 
             simulation.positionA =
                 positionB
@@ -1748,9 +1746,7 @@ const NebulaBackground = ({
 }) => {
     return (
         <Canvas
-            orthographic={
-                false
-            }
+            orthographic={false}
             camera={{
                 position: [
                     0,
