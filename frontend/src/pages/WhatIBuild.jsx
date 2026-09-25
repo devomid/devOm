@@ -9,42 +9,9 @@ import NebulaBackground from '../components/nebula/nebula'
 
 const TEXTURE_SIZE = 512
 
-/*
- * Keep this deliberately low.
- *
- * 24,000 text particles are enough to make the glyph
- * clearly readable while leaving the majority of the
- * nebula completely free.
- */
-const TEXT_PARTICLE_COUNT = 24000
+const TEXT_PARTICLE_COUNT = 12000
 
 const PARTICLE_COUNT = 262144
-
-const TEXT_PARTICLE_POPULATION =
-  TEXT_PARTICLE_COUNT /
-  PARTICLE_COUNT
-
-/*
- * This MUST match nebula.jsx.
- *
- * Every particle receives exactly the same deterministic
- * population value in both places.
- */
-const getParticlePopulation =
-  (
-    particleIndex,
-  ) => {
-    return (
-      (
-        (
-          particleIndex *
-          15731 +
-          789221
-        ) % 10000
-      ) /
-      10000
-    )
-  }
 
 const createTextTargetTexture = (
   text,
@@ -76,13 +43,6 @@ const createTextTargetTexture = (
     TEXTURE_SIZE,
   )
 
-  /*
-   * Use a strong, clean font shape first.
-   *
-   * We do NOT randomly delete pixels here.
-   * Randomly deleting individual pixels was making
-   * the letter structure fall apart.
-   */
   const fontFamily =
     'Arial, Helvetica, sans-serif'
 
@@ -98,11 +58,15 @@ const createTextTargetTexture = (
   context.textBaseline =
     'middle'
 
+  /*
+   * Find the largest font that fits
+   * comfortably inside the target texture.
+   */
   while (
     fontSize > 20
   ) {
     context.font =
-      `${ fontWeight } ${ fontSize }px ${ fontFamily } `
+      `${fontWeight} ${fontSize}px ${fontFamily}`
 
     const measuredWidth =
       context.measureText(
@@ -120,16 +84,10 @@ const createTextTargetTexture = (
   }
 
   context.font =
-    `${ fontWeight } ${ fontSize }px ${ fontFamily } `
+    `${fontWeight} ${fontSize}px ${fontFamily}`
 
   context.fillStyle =
     '#ffffff'
-
-  context.textAlign =
-    'center'
-
-  context.textBaseline =
-    'middle'
 
   context.fillText(
     text,
@@ -146,48 +104,46 @@ const createTextTargetTexture = (
     )
 
   /*
-   * First collect the COMPLETE glyph.
-   *
-   * No random thinning yet.
+   * Collect the actual glyph pixels.
    */
   const glyphPoints = []
 
   for (
-    let textureY = 0;
-    textureY < TEXTURE_SIZE;
-    textureY += 1
+    let y = 0;
+    y < TEXTURE_SIZE;
+    y += 1
   ) {
     for (
-      let textureX = 0;
-      textureX < TEXTURE_SIZE;
-      textureX += 1
+      let x = 0;
+      x < TEXTURE_SIZE;
+      x += 1
     ) {
       const pixelIndex =
         (
-          textureY *
+          y *
           TEXTURE_SIZE +
-          textureX
+          x
         ) * 4
 
       const alpha =
         imageData.data[
-          pixelIndex + 3
+        pixelIndex + 3
         ]
 
       if (
-        alpha <= 40
+        alpha < 80
       ) {
         continue
       }
 
       const normalizedX =
-        textureX /
+        x /
         (
           TEXTURE_SIZE - 1
         )
 
       const normalizedY =
-        textureY /
+        y /
         (
           TEXTURE_SIZE - 1
         )
@@ -217,11 +173,11 @@ const createTextTargetTexture = (
   }
 
   /*
-   * Reduce the solid font to a controlled number of particles.
+   * We deliberately keep the number of target points
+   * lower than the old 24,000.
    *
-   * The points are taken at a regular interval instead of
-   * randomly deleting pixels. This keeps the geometry of
-   * every letter intact.
+   * This makes the formed typography look like particles,
+   * rather than a solid duplicated raster image.
    */
   const targetPointCount =
     Math.min(
@@ -231,6 +187,11 @@ const createTextTargetTexture = (
 
   const textPoints = []
 
+  /*
+   * Evenly sample the complete glyph.
+   *
+   * Every selected particle gets one unique target.
+   */
   const step =
     glyphPoints.length /
     targetPointCount
@@ -241,28 +202,29 @@ const createTextTargetTexture = (
     i += 1
   ) {
     const sourceIndex =
-      Math.floor(
-        i * step,
+      Math.min(
+        glyphPoints.length - 1,
+        Math.floor(
+          (
+            i +
+            0.5
+          ) *
+          step,
+        ),
       )
 
     textPoints.push(
       glyphPoints[
-        sourceIndex
+      sourceIndex
       ],
     )
   }
 
   /*
-   * One texel = one simulation particle.
+   * One simulation texel corresponds to one particle.
    *
-   * Only the deterministic text population receives
-   * an actual target.
-   *
-   * Most importantly:
-   *
-   * ONE particle -> ONE glyph point
-   *
-   * There is NO modulo reuse of glyph coordinates.
+   * Only particles 0 ... TEXT_PARTICLE_COUNT - 1
+   * are text particles.
    */
   const data =
     new Float32Array(
@@ -271,45 +233,16 @@ const createTextTargetTexture = (
       4,
     )
 
-  let textPointIndex = 0
-
   for (
-    let particleIndex = 0;
-    particleIndex <
-    PARTICLE_COUNT;
-    particleIndex += 1
+    let i = 0;
+    i < targetPointCount;
+    i += 1
   ) {
     const textureIndex =
-      particleIndex * 4
-
-    const population =
-      getParticlePopulation(
-        particleIndex,
-      )
-
-    if (
-      population >=
-      TEXT_PARTICLE_POPULATION
-    ) {
-      continue
-    }
-
-    /*
-     * If the deterministic population produces slightly
-     * more particles than the glyph has target points,
-     * those extra particles simply remain free.
-     */
-    if (
-      textPointIndex >=
-      textPoints.length
-    ) {
-      continue
-    }
+      i * 4
 
     const point =
-      textPoints[
-        textPointIndex
-      ]
+      textPoints[i]
 
     data[
       textureIndex
@@ -329,9 +262,7 @@ const createTextTargetTexture = (
     data[
       textureIndex + 3
     ] =
-      1
-
-    textPointIndex += 1
+      1.0
   }
 
   const texture =
