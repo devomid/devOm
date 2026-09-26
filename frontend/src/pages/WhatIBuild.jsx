@@ -8,161 +8,305 @@ import * as THREE from 'three'
 import NebulaBackground from '../components/nebula/nebula'
 
 const TEXTURE_SIZE = 512
+const PARTICLE_COUNT =
+  TEXTURE_SIZE *
+  TEXTURE_SIZE
 
-const createCircleTargetTexture = () => {
+const TEXT_PARTICLE_RATIO = 0.58
+
+const createTextTargetTexture = (
+  text,
+) => {
   const data =
     new Float32Array(
-      TEXTURE_SIZE *
-      TEXTURE_SIZE *
-      4,
+      PARTICLE_COUNT * 4,
     )
 
-  const centerX =
-    0.5
+  /*
+   * ------------------------------------------------
+   * CREATE TEXT MASK
+   * ------------------------------------------------
+   */
 
-  const centerY =
-    0.5
+  const canvas =
+    document.createElement(
+      'canvas',
+    )
 
-  const radiusX =
-    6.15
+  canvas.width = 1600
+  canvas.height = 420
 
-  const radiusY =
-    2.65
+  const context =
+    canvas.getContext('2d')
+
+  if (!context) {
+    return null
+  }
+
+  context.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  )
+
+  context.fillStyle =
+    '#ffffff'
+
+  context.textAlign =
+    'center'
+
+  context.textBaseline =
+    'middle'
+
+  context.font =
+    '700 170px Arial, sans-serif'
+
+  context.fillText(
+    text,
+    canvas.width / 2,
+    canvas.height / 2,
+  )
+
+  const image =
+    context.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    )
+
+  /*
+   * ------------------------------------------------
+   * EXTRACT TEXT PARTICLES
+   * ------------------------------------------------
+   *
+   * Sample the text mask at a controlled spacing.
+   * We deliberately do not use every opaque pixel.
+   */
+
+  const candidates = []
+
+  const sampleStep = 1
 
   for (
-    let textureY = 0;
-    textureY < TEXTURE_SIZE;
-    textureY += 1
+    let y = 0;
+    y < canvas.height;
+    y += sampleStep
   ) {
     for (
-      let textureX = 0;
-      textureX < TEXTURE_SIZE;
-      textureX += 1
+      let x = 0;
+      x < canvas.width;
+      x += sampleStep
     ) {
-      const normalizedX =
-        textureX /
+      const pixelIndex =
         (
-          TEXTURE_SIZE - 1
-        )
-
-      const normalizedY =
-        textureY /
-        (
-          TEXTURE_SIZE - 1
-        )
-
-      const dx =
-        normalizedX -
-        centerX
-
-      const dy =
-        normalizedY -
-        centerY
-
-      let angle =
-        Math.atan2(
-          dy,
-          dx,
-        )
-
-      if (
-        angle < 0
-      ) {
-        angle +=
-          Math.PI *
-          2
-      }
-
-      const radialNoise =
-        Math.sin(
-          textureX *
-          0.071 +
-          textureY *
-          0.113,
-        ) *
-        0.10
-
-      const breathing =
-        Math.sin(
-          angle *
-          5.0 +
-          textureY *
-          0.021,
-        ) *
-        0.075
-
-      const radiusOffset =
-        radialNoise +
-        breathing
-
-      const targetRadiusX =
-        radiusX +
-        radiusOffset
-
-      const targetRadiusY =
-        radiusY +
-        radiusOffset *
-        0.62
-
-      const worldX =
-        Math.cos(
-          angle,
-        ) *
-        targetRadiusX
-
-      const worldY =
-        Math.sin(
-          angle,
-        ) *
-        targetRadiusY
-
-      const depthNoise =
-        Math.sin(
-          textureX *
-          0.127 +
-          textureY *
-          0.091,
-        )
-
-      const worldZ =
-        depthNoise *
-        0.38
-
-      const textureIndex =
-        (
-          textureY *
-          TEXTURE_SIZE +
-          textureX
+          y *
+          canvas.width +
+          x
         ) *
         4
 
-      data[
-        textureIndex
-      ] =
-        worldX
+      const alpha =
+        image.data[
+          pixelIndex + 3
+        ]
 
-      data[
-        textureIndex + 1
-      ] =
-        worldY
-
-      data[
-        textureIndex + 2
-      ] =
-        worldZ
-
-      /*
-       * Every particle remains eligible to participate.
-       *
-       * The shader now controls attachment dynamically,
-       * so particles can leave and later return.
-       */
-      data[
-        textureIndex + 3
-      ] =
-        1.0
+      if (
+        alpha >
+        100
+      ) {
+        candidates.push({
+          x,
+          y,
+        })
+      }
     }
   }
+
+  if (
+    candidates.length === 0
+  ) {
+    return null
+  }
+
+  /*
+   * ------------------------------------------------
+   * MAP TEXT INTO WORLD SPACE
+   * ------------------------------------------------
+   *
+   * These values keep the text inside the same
+   * visual area occupied by the previous circle.
+   */
+
+  const worldWidth = 8.9
+  const worldHeight = 2.45
+
+  const centerX =
+    canvas.width / 2
+
+  const centerY =
+    canvas.height / 2
+
+  /*
+   * ------------------------------------------------
+   * DISTRIBUTE TARGET PARTICLES THROUGH THE
+   * ENTIRE 512 × 512 SIMULATION TEXTURE
+   * ------------------------------------------------
+   *
+   * This is important.
+   *
+   * The particle geometry maps particle index
+   * directly to this texture. Therefore target
+   * particles must be distributed across the
+   * entire texture rather than occupying the first
+   * N texture pixels.
+   */
+
+  for (
+    let particleIndex = 0;
+    particleIndex < PARTICLE_COUNT;
+    particleIndex += 1
+  ) {
+    /*
+     * Deterministic hash.
+     *
+     * Approximately 30% of the nebula particles
+     * become text particles.
+     */
+    const hash =
+      (
+        particleIndex *
+        1664525 +
+        1013904223
+      ) >>> 0
+
+    const normalizedHash =
+      hash /
+      4294967295
+
+    const textureIndex =
+      particleIndex * 4
+
+    if (
+      normalizedHash >
+      TEXT_PARTICLE_RATIO
+    ) {
+      data[
+        textureIndex + 3
+      ] = 0.0
+
+      continue
+    }
+
+    /*
+     * Scramble the candidate selection so the
+     * text particles are not concentrated into
+     * one region of the text.
+     */
+    const candidateIndex =
+      (
+        (
+          particleIndex *
+          15731
+        ) +
+        789221
+      ) %
+      candidates.length
+
+    const candidate =
+      candidates[
+        candidateIndex
+      ]
+
+    /*
+     * Tiny deterministic positional variation.
+     *
+     * This prevents every repeated target from
+     * sitting on exactly the same mathematical
+     * point while preserving the letter shape.
+     */
+    const variation =
+      (
+        particleIndex *
+        0.0137
+      )
+
+    const localX =
+      candidate.x -
+      centerX
+
+    const localY =
+      candidate.y -
+      centerY
+
+    const worldX =
+      (
+        localX /
+        (
+          canvas.width / 2
+        )
+      ) *
+      worldWidth
+
+    const worldY =
+      -(
+        localY /
+        (
+          canvas.height / 2
+        )
+      ) *
+      worldHeight
+
+    const jitterX =
+      Math.sin(
+        variation *
+        1.71,
+      ) *
+      0.008
+
+    const jitterY =
+      Math.cos(
+        variation *
+        1.43,
+      ) *
+      0.008
+
+    const jitterZ =
+      Math.sin(
+        variation *
+        0.91,
+      ) *
+      0.025
+
+    data[
+      textureIndex
+    ] =
+      worldX +
+      jitterX
+
+    data[
+      textureIndex + 1
+    ] =
+      worldY +
+      jitterY
+
+    data[
+      textureIndex + 2
+    ] =
+      jitterZ
+
+    data[
+      textureIndex + 3
+    ] =
+      1.0
+  }
+
+  /*
+   * ------------------------------------------------
+   * THREE DATA TEXTURE
+   * ------------------------------------------------
+   */
 
   const texture =
     new THREE.DataTexture(
@@ -196,15 +340,17 @@ const createCircleTargetTexture = () => {
 
 const WhatIBuild = () => {
   const [
-    circleTargetTexture,
-    setCircleTargetTexture,
+    textTargetTexture,
+    setTextTargetTexture,
   ] = useState(null)
 
   useEffect(() => {
     const texture =
-      createCircleTargetTexture()
+      createTextTargetTexture(
+        'WHAT I BUILD',
+      )
 
-    setCircleTargetTexture(
+    setTextTargetTexture(
       texture,
     )
 
@@ -235,11 +381,11 @@ const WhatIBuild = () => {
       <NebulaBackground
         textEnabled={
           Boolean(
-            circleTargetTexture,
+            textTargetTexture,
           )
         }
         textTargetTexture={
-          circleTargetTexture
+          textTargetTexture
         }
         textStrength={
           1.0

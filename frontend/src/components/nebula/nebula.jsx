@@ -672,7 +672,7 @@ const velocityFlowFragmentShader = `
                     float formationWeight =
                         attachment *
                         (
-                            0.72 +
+                            0.84 +
                             distanceInfluence * 0.28
                         );
 
@@ -685,9 +685,9 @@ const velocityFlowFragmentShader = `
                     float springAcceleration =
                         clamp(
                             distanceToTarget *
-                            0.00112,
-                            0.00020,
-                            0.0088
+                            0.00175,
+                            0.00028,
+                            0.0075
                         );
 
                     velocity +=
