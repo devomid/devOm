@@ -1,13 +1,6 @@
 import { Box } from '@mui/material'
-import {
-  Routes,
-  Route,
-  useLocation,
-} from 'react-router-dom'
-import {
-  useEffect,
-  useRef,
-} from 'react'
+import { Routes, Route, useLocation, } from 'react-router-dom'
+import { useEffect, useRef, } from 'react'
 import { motionValue } from 'framer-motion'
 
 import { colors } from './design'
@@ -67,64 +60,16 @@ function App() {
         minHeight: '100svh',
       }}
     >
-      <NavBar
-        scrollProgress={
-          homeScrollProgress.current
-        }
-      />
+      <NavBar scrollProgress={homeScrollProgress.current} />
 
       <Routes>
-        <Route
-          path="/"
-          element={
-            <Home
-              homeRef={
-                homeRef
-              }
-              scrollProgress={
-                homeScrollProgress.current
-              }
-              scrollState={
-                homeScrollState
-              }
-            />
-          }
-        />
-
-        <Route
-          path="/whatibuild"
-          element={
-            <WhatIBuild />
-          }
-        />
-
-        <Route
-          path="/works"
-          element={
-            <Works />
-          }
-        />
-
-        <Route
-          path="/howibuild"
-          element={
-            <HowIBuild />
-          }
-        />
-
-        <Route
-          path="/contacts"
-          element={
-            <Contacts />
-          }
-        />
-
-        <Route
-          path="*"
-          element={
-            <FourOFour />
-          }
-        />
+        <Route path="/" element={<Home homeRef={homeRef} scrollProgress={homeScrollProgress.current} scrollState={homeScrollState} />} />
+        <Route path="/whatibuild" element={<WhatIBuild />} />
+        <Route path="/works" element={<Works />} />
+        <Route path="/howibuild" element={<HowIBuild />} />
+        <Route path="/contacts" element={<Contacts />} />
+        {/* <Route path="/works" element={<Wo />} /> */}
+        <Route path="*" element={<FourOFour />} />
       </Routes>
     </Box>
   )

@@ -26,9 +26,9 @@ import {
 } from '../../design'
 
 const navItems = [
-    { label: 'Home', path: '/' },
+    { label: 'devOm', path: '/' },
     { label: 'What I build', path: '/whatibuild' },
-    { label: 'Works', path: '/works' },
+    { label: `What I've done`, path: '/works' },
     { label: 'How I build', path: '/howibuild' },
     { label: 'Contacts', path: '/contacts' },
 ]
