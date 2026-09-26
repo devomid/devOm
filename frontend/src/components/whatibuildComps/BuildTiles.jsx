@@ -7,11 +7,13 @@ const TILE_SIZE = 220
 const GRID_GAP = 24
 const GRID_PADDING = 48
 
+const TILE_DURATION = 1 / builds.length
+
 const BuildTiles = () => {
     const [progress, setProgress] = useState(0)
 
-    const directionRef = useRef(
-        Math.random() < 0.5 ? -1 : 1
+    const directionsRef = useRef(
+        builds.map(() => Math.random() < 0.5 ? -1 : 1)
     )
 
     useEffect(() => {
@@ -52,30 +54,46 @@ const BuildTiles = () => {
     const topY =
         GRID_PADDING
 
-    const destinationX =
-        topX +
-        directionRef.current * (TILE_SIZE + GRID_GAP)
+    const getTilePosition = (index) => {
+        const start = index * TILE_DURATION
+        const localProgress = Math.min(
+            Math.max(
+                (progress - start) / TILE_DURATION,
+                0
+            ),
+            1
+        )
 
-    const entranceProgress =
-        Math.min(progress / 0.2, 1)
+        const entranceProgress =
+            Math.min(localProgress / 0.2, 1)
 
-    const lateralProgress =
-        progress <= 0.2
-            ? 0
-            : Math.min(
-                (progress - 0.2) / 0.8,
-                1
-            )
+        const lateralProgress =
+            localProgress <= 0.2
+                ? 0
+                : Math.min(
+                    (localProgress - 0.2) / 0.8,
+                    1
+                )
 
-    const x =
-        progress <= 0.2
-            ? entranceX
-            : topX +
-            (destinationX - topX) * lateralProgress
+        const direction =
+            directionsRef.current[index]
 
-    const y =
-        entranceY +
-        (topY - entranceY) * entranceProgress
+        const destinationX =
+            topX +
+            direction * (TILE_SIZE + GRID_GAP)
+
+        const x =
+            localProgress <= 0
+                ? entranceX
+                : topX +
+                (destinationX - topX) * lateralProgress
+
+        const y =
+            entranceY +
+            (topY - entranceY) * entranceProgress
+
+        return { x, y }
+    }
 
     return (
         <Box
@@ -85,17 +103,19 @@ const BuildTiles = () => {
                 pointerEvents: 'none',
             }}
         >
-            {builds.map((build, index) => (
-                <BuildTile
-                    key={build.id}
-                    x={x}
-                    y={y}
-                    size={TILE_SIZE}
-                    build={build}
-                    index={index}
-                />
-            ))}
+            {builds.map((build, index) => {
+                const { x, y } = getTilePosition(index)
 
+                return (
+                    <BuildTile
+                        key={build.id}
+                        x={x}
+                        y={y}
+                        size={TILE_SIZE}
+                        build={build}
+                    />
+                )
+            })}
         </Box>
     )
 }
