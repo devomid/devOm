@@ -624,13 +624,13 @@ const velocityFlowFragmentShader = `
                     float attachmentWave =
                         sin(
                             phase * 1.73 +
-                            uTime * 0.34
+                            uTime * 0.15
                         );
 
                     float attachmentWave2 =
                         sin(
                             phase * 3.91 -
-                            uTime * 0.19
+                            uTime * 0.09
                         );
 
                     float attachmentNoise =
@@ -639,8 +639,8 @@ const velocityFlowFragmentShader = `
 
                     float attachment =
                         smoothstep(
-                            -0.02,
-                            0.72,
+                            -0.45,
+                            0.1,
                             attachmentNoise
                         );
 
