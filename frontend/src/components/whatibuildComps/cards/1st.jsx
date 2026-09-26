@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box } from '@mui/material'
 
-const BuildTile = ({ x, y, size }) => {
+const firstTile = ({ x, y, size }) => {
     return (
         <Box
             sx={{
@@ -19,4 +19,4 @@ const BuildTile = ({ x, y, size }) => {
     )
 }
 
-export default BuildTile
+export default firstTile

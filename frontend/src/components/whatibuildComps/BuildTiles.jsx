@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Box } from '@mui/material'
-import BuildTile from './cards/1st'
+import firstTile from './cards/1st'
 
 const TILE_SIZE = 220
 const GRID_GAP = 24
@@ -8,6 +8,10 @@ const GRID_PADDING = 48
 
 const BuildTiles = () => {
     const [progress, setProgress] = useState(0)
+
+    const directionRef = useRef(
+        Math.random() < 0.5 ? -1 : 1
+    )
 
     useEffect(() => {
         const handleScroll = () => {
@@ -41,23 +45,36 @@ const BuildTiles = () => {
     const entranceY =
         window.innerHeight + 40
 
-    const gridX = GRID_PADDING
-    const gridY = GRID_PADDING
+    const topX =
+        window.innerWidth / 2 - TILE_SIZE / 2
 
-    const entranceProgress = Math.min(progress / 0.2, 1)
+    const topY =
+        GRID_PADDING
 
-    const movementProgress =
+    const destinationX =
+        topX +
+        directionRef.current * (TILE_SIZE + GRID_GAP)
+
+    const entranceProgress =
+        Math.min(progress / 0.2, 1)
+
+    const lateralProgress =
         progress <= 0.2
             ? 0
-            : (progress - 0.2) / 0.8
+            : Math.min(
+                (progress - 0.2) / 0.8,
+                1
+            )
 
     const x =
-        entranceX +
-        (gridX - entranceX) * movementProgress
+        progress <= 0.2
+            ? entranceX
+            : topX +
+            (destinationX - topX) * lateralProgress
 
     const y =
         entranceY +
-        (gridY - entranceY) * entranceProgress
+        (topY - entranceY) * entranceProgress
 
     return (
         <Box
@@ -67,7 +84,7 @@ const BuildTiles = () => {
                 pointerEvents: 'none',
             }}
         >
-            <BuildTile
+            <firstTile
                 x={x}
                 y={y}
                 size={TILE_SIZE}
