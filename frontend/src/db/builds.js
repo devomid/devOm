@@ -31,6 +31,30 @@ const builds = [
             'Software that crosses the boundary between interfaces, computers, networks, and physical hardware.',
         projects: ['infotainment'],
     },
+    {
+        id: 'connected-systems1',
+        title: 'Connected Systems',
+        type: 'Hardware + Software',
+        description:
+            'Software that crosses the boundary between interfaces, computers, networks, and physical hardware.',
+        projects: ['infotainment'],
+    },
+    {
+        id: 'connected-systems2',
+        title: 'Connected Systems',
+        type: 'Hardware + Software',
+        description:
+            'Software that crosses the boundary between interfaces, computers, networks, and physical hardware.',
+        projects: ['infotainment'],
+    },
+    {
+        id: 'connected-systems3',
+        title: 'Connected Systems',
+        type: 'Hardware + Software',
+        description:
+            'Software that crosses the boundary between interfaces, computers, networks, and physical hardware.',
+        projects: ['infotainment'],
+    },
 ]
 
 export default builds
