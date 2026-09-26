@@ -699,8 +699,8 @@ const velocityFlowFragmentShader = `
                         float formationWeight =
                             attachment *
                             (
-                                0.55 +
-                                distanceInfluence * 0.45
+                                0.58 +
+                                distanceInfluence * 0.42
                             );
 
                         /*
