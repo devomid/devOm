@@ -34,6 +34,8 @@ const shuffle = (array) => {
 }
 
 const BuildTiles = () => {
+    const scrollRef = useRef(null)
+
     const [progress, setProgress] = useState(0)
 
     const [viewport, setViewport] = useState({
@@ -52,10 +54,17 @@ const BuildTiles = () => {
     const gridOrderRef = useRef(null)
 
     useEffect(() => {
+        const scrollElement =
+            scrollRef.current
+
+        if (!scrollElement) {
+            return
+        }
+
         const handleScroll = () => {
             const scrollable =
-                document.documentElement.scrollHeight -
-                window.innerHeight
+                scrollElement.scrollHeight -
+                scrollElement.clientHeight
 
             if (scrollable <= 0) {
                 setProgress(0)
@@ -67,7 +76,7 @@ const BuildTiles = () => {
                     1,
                     Math.max(
                         0,
-                        window.scrollY /
+                        scrollElement.scrollTop /
                         scrollable
                     )
                 )
@@ -81,7 +90,7 @@ const BuildTiles = () => {
             })
         }
 
-        window.addEventListener(
+        scrollElement.addEventListener(
             'scroll',
             handleScroll,
             { passive: true }
@@ -95,7 +104,7 @@ const BuildTiles = () => {
         handleScroll()
 
         return () => {
-            window.removeEventListener(
+            scrollElement.removeEventListener(
                 'scroll',
                 handleScroll
             )
@@ -255,19 +264,10 @@ const BuildTiles = () => {
         return {
             positions,
             columns,
+            rows,
         }
     }, [viewport])
 
-    /*
-     * Every row has its own center staging point.
-     *
-     * Row 1 -> row 1 center
-     * Row 2 -> row 2 center
-     * Row 3 -> row 3 center
-     *
-     * The staging point is also the reserved
-     * center position for the last tile of that row.
-     */
     const getRowStagingPosition = (row) => {
         return {
             x:
@@ -285,9 +285,6 @@ const BuildTiles = () => {
         }
     }
 
-    /*
-     * Every tile enters from bottom-center.
-     */
     const entranceX =
         viewport.width / 2 -
         TILE_SIZE / 2
@@ -320,9 +317,6 @@ const BuildTiles = () => {
         const target =
             grid.positions[index]
 
-        /*
-         * Determine which row this tile belongs to.
-         */
         const row =
             Math.floor(
                 index /
@@ -334,13 +328,6 @@ const BuildTiles = () => {
                 row
             )
 
-        /*
-         * Phase 1:
-         *
-         * bottom-center
-         *      ↓
-         * this row's center
-         */
         const entranceProgress =
             Math.min(
                 localProgress /
@@ -359,7 +346,6 @@ const BuildTiles = () => {
         ) {
             return {
                 x: entranceX,
-
                 y:
                     entranceY +
                     (
@@ -370,13 +356,6 @@ const BuildTiles = () => {
             }
         }
 
-        /*
-         * Phase 2:
-         *
-         * row center
-         *      →
-         * final grid position
-         */
         const moveProgress =
             Math.min(
                 (
@@ -398,13 +377,6 @@ const BuildTiles = () => {
         const direction =
             directionsRef.current[index]
 
-        /*
-         * Much smaller curve.
-         *
-         * This keeps the random left/right
-         * character without making the tile
-         * look playful or swing around.
-         */
         const horizontalDistance =
             Math.abs(
                 target.x -
@@ -448,35 +420,76 @@ const BuildTiles = () => {
         }
     }
 
+    /*
+     * One viewport of scroll distance is
+     * reserved for each row.
+     *
+     * The extra viewport guarantees that
+     * even a single row has a finite scroll
+     * range and can complete its animation.
+     */
+    const scrollHeight =
+        (
+            grid.rows + 1
+        ) *
+        viewport.height
+
     return (
         <Box
+            ref={scrollRef}
             sx={{
                 position: 'absolute',
                 inset: 0,
-                pointerEvents: 'none',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                overscrollBehavior: 'contain',
+                scrollbarWidth: 'none',
+                
+                '&::-webkit-scrollbar': {
+                    display: 'none',
+                },
             }}
-        >
-            {builds.map(
-                (build, index) => {
-                    const {
-                        x,
-                        y,
-                    } =
-                        getTilePosition(
-                            index
-                        )
+            >
+            <Box
+                sx={{
+                    position: 'relative',
+                    width: '100%',
+                    height: `${scrollHeight}px`,
+                }}
+                >
+                <Box
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        width: '100%',
+                        height: '100vh',
+                        overflow: 'hidden',
+                        pointerEvents: 'none',
+                    }}
+                >
+                    {builds.map(
+                        (build, index) => {
+                            const {
+                                x,
+                                y,
+                            } =
+                                getTilePosition(
+                                    index
+                                )
 
-                    return (
-                        <BuildTile
-                            key={build.id}
-                            x={x}
-                            y={y}
-                            size={TILE_SIZE}
-                            build={build}
-                        />
-                    )
-                }
-            )}
+                            return (
+                                <BuildTile
+                                    key={build.id}
+                                    x={x}
+                                    y={y}
+                                    size={TILE_SIZE}
+                                    build={build}
+                                />
+                            )
+                        }
+                    )}
+                </Box>
+            </Box>
         </Box>
     )
 }
