@@ -14,15 +14,12 @@ import {
 
 const PARTICLE_COUNT = 262144
 const TEXTURE_SIZE = 512
-const TEXT_PARTICLE_COUNT = 12000
-
 const TEXTURE_CAPACITY =
-    TEXTURE_SIZE *
-    TEXTURE_SIZE
+    TEXTURE_SIZE * TEXTURE_SIZE
 
 /*
  * ============================================================
- * PARTICLE RENDER
+ * PARTICLE RENDER SHADERS
  * ============================================================
  */
 
@@ -36,8 +33,7 @@ const particleVertexShader = `
     varying float vIntensity;
 
     void main() {
-        vIntensity =
-            aIntensity;
+        vIntensity = aIntensity;
 
         vec3 particlePosition =
             texture2D(
@@ -60,10 +56,7 @@ const particleVertexShader = `
 
         gl_PointSize =
             aSize *
-            (
-                440.0 /
-                depth
-            );
+            (440.0 / depth);
 
         gl_Position =
             projectionMatrix *
@@ -74,9 +67,7 @@ const particleVertexShader = `
 const particleFragmentShader = `
     varying float vIntensity;
 
-    vec3 getColor(
-        float t
-    ) {
+    vec3 getColor(float t) {
         vec3 shadow =
             vec3(
                 0.24,
@@ -112,9 +103,7 @@ const particleFragmentShader = `
                 0.63
             );
 
-        if (
-            t < 0.20
-        ) {
+        if (t < 0.20) {
             return mix(
                 shadow,
                 stone,
@@ -126,9 +115,7 @@ const particleFragmentShader = `
             );
         }
 
-        if (
-            t < 0.52
-        ) {
+        if (t < 0.52) {
             return mix(
                 stone,
                 copper,
@@ -140,9 +127,7 @@ const particleFragmentShader = `
             );
         }
 
-        if (
-            t < 0.82
-        ) {
+        if (t < 0.82) {
             return mix(
                 copper,
                 warm,
@@ -170,32 +155,27 @@ const particleFragmentShader = `
             gl_PointCoord -
             0.5;
 
-        float distanceFromCenter =
-            length(
-                uv
-            );
+        float d =
+            length(uv);
 
-        if (
-            distanceFromCenter >
-            0.5
-        ) {
+        if (d > 0.5) {
             discard;
         }
 
         float edge =
             1.0 -
             smoothstep(
-                0.12,
+                0.16,
                 0.50,
-                distanceFromCenter
+                d
             );
 
         float core =
             1.0 -
             smoothstep(
                 0.0,
-                0.43,
-                distanceFromCenter
+                0.44,
+                d
             );
 
         vec3 color =
@@ -206,8 +186,8 @@ const particleFragmentShader = `
         float alpha =
             edge *
             (
-                0.42 +
-                core * 0.32
+                0.43 +
+                core * 0.30
             );
 
         gl_FragColor =
@@ -220,7 +200,7 @@ const particleFragmentShader = `
 
 /*
  * ============================================================
- * SIMULATION VERTEX
+ * GPU SIMULATION
  * ============================================================
  */
 
@@ -228,8 +208,7 @@ const simulationVertexShader = `
     varying vec2 vUv;
 
     void main() {
-        vUv =
-            uv;
+        vUv = uv;
 
         gl_Position =
             vec4(
@@ -239,12 +218,6 @@ const simulationVertexShader = `
             );
     }
 `
-
-/*
- * ============================================================
- * VELOCITY / GAS FIELD
- * ============================================================
- */
 
 const velocityFlowFragmentShader = `
     precision highp float;
@@ -286,19 +259,6 @@ const velocityFlowFragmentShader = `
         float particleSpeed =
             metadata.y;
 
-        float textParticle =
-            1.0 -
-            step(
-                0.5,
-                metadata.z
-            );
-
-        float freeParticle =
-            step(
-                0.5,
-                metadata.z
-            );
-
         float x =
             position.x;
 
@@ -309,535 +269,329 @@ const velocityFlowFragmentShader = `
             position.z;
 
         /*
-         * ====================================================
-         * LARGE SCALE INTERSTELLAR MOTION
-         * ====================================================
-         *
-         * Several slowly changing fields overlap.
-         * They do not describe a fixed shape.
-         *
-         * The result is continuously changing pressure-like
-         * movement through the cloud.
+         * ------------------------------------------------
+         * LARGE-SCALE CLOUD FLOW
+         * ------------------------------------------------
          */
 
-        float largeA =
+        float largeX =
             sin(
-                y * 0.25 +
-                z * 0.61 +
-                uTime * 0.055 +
+                y * 0.29 +
+                z * 0.63 +
+                uTime * 0.075 +
                 phase
             );
 
-        float largeB =
+        float largeY =
             cos(
-                x * 0.28 -
-                z * 0.47 -
-                uTime * 0.062 +
-                phase * 1.31
+                x * 0.25 -
+                z * 0.57 -
+                uTime * 0.068 +
+                phase * 1.37
             );
 
-        float largeC =
-            sin(
-                x * 0.22 +
-                y * 0.31 +
-                z * 0.17 +
-                uTime * 0.047 +
-                phase * 0.73
-            );
-
-        float largeD =
-            cos(
-                x * 0.37 -
-                y * 0.21 +
-                z * 0.51 -
-                uTime * 0.071 +
-                phase * 1.61
-            );
-
-        /*
-         * ====================================================
-         * MEDIUM SCALE TURBULENCE
-         * ====================================================
-         */
-
-        float mediumA =
-            sin(
-                y * 0.72 +
-                z * 1.08 +
-                uTime * 0.13 +
-                phase * 1.17
-            );
-
-        float mediumB =
-            cos(
-                x * 0.81 -
-                z * 0.93 -
-                uTime * 0.16 +
-                phase * 0.83
-            );
-
-        float mediumC =
-            sin(
-                x * 0.67 -
-                y * 0.74 +
-                uTime * 0.11 +
-                phase * 1.73
-            );
-
-        /*
-         * ====================================================
-         * SMALL SCALE GAS
-         * ====================================================
-         */
-
-        float smallA =
-            sin(
-                y * 1.58 +
-                z * 1.21 +
-                uTime * 0.23 +
-                phase
-            );
-
-        float smallB =
-            cos(
-                x * 1.46 -
-                z * 1.31 -
-                uTime * 0.19 +
-                phase * 1.2
-            );
-
-        float smallC =
-            sin(
-                x * 1.31 +
-                y * 1.19 +
-                uTime * 0.21 +
-                phase * 0.61
-            );
-
-        /*
-         * ====================================================
-         * CURL / SWIRL
-         * ====================================================
-         */
-
-        float curlX =
-            sin(
-                y * 0.43 +
-                z * 0.76 +
-                uTime * 0.083 +
-                phase
-            ) -
-            cos(
-                z * 0.31 -
-                uTime * 0.067 +
-                phase * 1.43
-            );
-
-        float curlY =
-            cos(
-                x * 0.41 -
-                z * 0.63 -
-                uTime * 0.076 +
-                phase
-            ) -
-            sin(
-                z * 0.29 +
-                uTime * 0.061 +
-                phase * 0.81
-            );
-
-        float curlZ =
-            sin(
-                x * 0.36 +
-                y * 0.48 +
-                uTime * 0.071 +
-                phase * 1.11
-            ) -
-            cos(
-                y * 0.32 -
-                uTime * 0.052 +
-                phase
-            );
-
-        /*
-         * ====================================================
-         * MOVING CLOUD CENTERS
-         * ====================================================
-         *
-         * These are temporary moving concentrations.
-         *
-         * They create the feeling of matter gathering,
-         * twisting and collapsing.
-         *
-         * They are deliberately NOT a fixed orbital system.
-         */
-
-        vec3 centerA =
-            vec3(
-                sin(
-                    uTime * 0.19
-                ) * 4.6,
-                cos(
-                    uTime * 0.13
-                ) * 2.4,
-                sin(
-                    uTime * 0.11
-                ) * 1.15
-            );
-
-        vec3 centerB =
-            vec3(
-                cos(
-                    uTime * 0.16 +
-                    2.1
-                ) * 5.2,
-                sin(
-                    uTime * 0.21 +
-                    1.7
-                ) * 2.7,
-                cos(
-                    uTime * 0.14
-                ) * 1.25
-            );
-
-        vec3 centerC =
-            vec3(
-                sin(
-                    uTime * 0.11 +
-                    4.4
-                ) * 3.9,
-                cos(
-                    uTime * 0.17 +
-                    3.2
-                ) * 3.0,
-                sin(
-                    uTime * 0.18
-                ) * 1.35
-            );
-
-        vec3 offsetA =
-            centerA -
-            position;
-
-        vec3 offsetB =
-            centerB -
-            position;
-
-        vec3 offsetC =
-            centerC -
-            position;
-
-        float distanceA =
-            length(
-                offsetA
-            );
-
-        float distanceB =
-            length(
-                offsetB
-            );
-
-        float distanceC =
-            length(
-                offsetC
-            );
-
-        float influenceA =
-            exp(
-                -distanceA *
-                distanceA *
-                0.060
-            );
-
-        float influenceB =
-            exp(
-                -distanceB *
-                distanceB *
-                0.052
-            );
-
-        float influenceC =
-            exp(
-                -distanceC *
-                distanceC *
-                0.071
-            );
-
-        /*
-         * ====================================================
-         * TEMPORARY GRAVITATIONAL GATHERING
-         * ====================================================
-         */
-
-        vec3 gathering =
-            offsetA *
-            influenceA *
-            0.019;
-
-        gathering +=
-            offsetB *
-            influenceB *
-            0.016;
-
-        gathering +=
-            offsetC *
-            influenceC *
-            0.013;
-
-        /*
-         * ====================================================
-         * SWIRLING AROUND THE MOVING CONCENTRATIONS
-         * ====================================================
-         *
-         * This is what prevents the gathering from looking
-         * like particles simply flying toward three points.
-         */
-
-        vec3 swirlA =
-            vec3(
-                -offsetA.y,
-                offsetA.x,
-                offsetA.z *
-                0.42
-            );
-
-        vec3 swirlB =
-            vec3(
-                -offsetB.y,
-                offsetB.x,
-                -offsetB.z *
-                0.37
-            );
-
-        vec3 swirlC =
-            vec3(
-                -offsetC.y,
-                offsetC.x,
-                offsetC.z *
-                0.29
-            );
-
-        vec3 cloudSwirl =
-            swirlA *
-            influenceA *
-            0.0065;
-
-        cloudSwirl +=
-            swirlB *
-            influenceB *
-            0.0052;
-
-        cloudSwirl +=
-            swirlC *
-            influenceC *
-            0.0046;
-
-        /*
-         * ====================================================
-         * TEMPORARY COMPRESSION / BREAKUP
-         * ====================================================
-         *
-         * This makes structures appear and then collapse.
-         */
-
-        float compression =
+        float largeZ =
             sin(
                 x * 0.31 +
-                y * 0.27 +
-                z * 0.43 +
-                uTime * 0.17 +
-                phase
-            ) *
-            cos(
-                x * 0.47 -
-                y * 0.39 +
-                z * 0.33 -
-                uTime * 0.21 +
-                phase * 1.4
+                y * 0.28 +
+                uTime * 0.059 +
+                phase * 0.71
             );
 
-        float breakup =
+        /*
+         * ------------------------------------------------
+         * MEDIUM TURBULENCE
+         * ------------------------------------------------
+         */
+
+        float mediumX =
             sin(
-                x * 0.87 -
-                y * 0.71 +
-                z * 1.13 +
-                uTime * 0.29 +
-                phase * 1.7
-            ) *
+                y * 0.78 +
+                z * 1.17 +
+                uTime * 0.16 +
+                phase * 1.3
+            );
+
+        float mediumY =
             cos(
-                y * 0.79 +
-                z * 0.88 -
+                x * 0.83 -
+                z * 0.91 -
+                uTime * 0.14 +
+                phase * 0.8
+            );
+
+        float mediumZ =
+            sin(
+                x * 0.68 -
+                y * 0.74 +
+                uTime * 0.12 +
+                phase * 1.7
+            );
+
+        /*
+         * ------------------------------------------------
+         * SMALL TURBULENCE
+         * ------------------------------------------------
+         */
+
+        float smallX =
+            sin(
+                y * 1.65 +
+                z * 1.30 +
                 uTime * 0.24 +
                 phase
             );
 
-        vec3 compressionForce =
-            vec3(
-                compression *
-                sin(
-                    y * 0.61 +
-                    phase
-                ),
-                compression *
-                cos(
-                    x * 0.57 -
-                    phase
-                ),
-                compression *
-                sin(
-                    z * 0.73 +
-                    phase
-                )
-            ) *
-            0.0058;
-
-        vec3 breakupForce =
-            vec3(
-                breakup *
-                cos(
-                    y * 0.71 +
-                    phase
-                ),
-                breakup *
-                sin(
-                    x * 0.67 -
-                    phase
-                ),
-                breakup *
-                cos(
-                    z * 0.83 +
-                    phase
-                )
-            ) *
-            0.0034;
-
-        /*
-         * ====================================================
-         * FINAL GAS FORCE
-         * ====================================================
-         */
-
-        vec3 gasForce =
-            vec3(
-                largeA * 0.052 +
-                largeB * 0.038 +
-                largeC * 0.027 +
-                largeD * 0.021 +
-                mediumA * 0.026 +
-                mediumB * 0.021 +
-                mediumC * 0.018 +
-                smallA * 0.009 +
-                curlX * 0.038,
-
-                largeB * 0.048 +
-                largeC * 0.035 +
-                largeD * 0.024 +
-                largeA * 0.018 +
-                mediumB * 0.027 +
-                mediumC * 0.020 +
-                mediumA * 0.015 +
-                smallB * 0.009 +
-                curlY * 0.040,
-
-                largeC * 0.029 +
-                largeD * 0.021 +
-                largeA * 0.014 +
-                mediumC * 0.017 +
-                mediumA * 0.013 +
-                mediumB * 0.010 +
-                smallC * 0.008 +
-                curlZ * 0.030
+        float smallY =
+            cos(
+                x * 1.48 -
+                z * 1.16 -
+                uTime * 0.21 +
+                phase * 1.2
             );
 
-        gasForce +=
-            gathering;
-
-        gasForce +=
-            cloudSwirl;
-
-        gasForce +=
-            compressionForce;
-
-        gasForce +=
-            breakupForce;
+        float smallZ =
+            sin(
+                x * 1.34 +
+                y * 1.21 +
+                uTime * 0.19 +
+                phase * 0.6
+            );
 
         /*
-         * ====================================================
-         * INITIAL / CONTINUOUS GAS MOTION
-         * ====================================================
-         *
-         * This is intentionally applied from frame zero.
-         *
-         * This was missing from the previous file.
+         * ------------------------------------------------
+         * 3D CURL
+         * ------------------------------------------------
          */
 
-        velocity +=
-            gasForce *
+        float curlX =
+            sin(
+                y * 0.46 +
+                z * 0.82 +
+                uTime * 0.10 +
+                phase
+            ) -
+            cos(
+                z * 0.37 -
+                uTime * 0.08 +
+                phase * 1.4
+            );
+
+        float curlY =
+            cos(
+                x * 0.43 -
+                z * 0.69 -
+                uTime * 0.09 +
+                phase
+            ) -
+            sin(
+                z * 0.32 +
+                uTime * 0.07 +
+                phase * 0.8
+            );
+
+        float curlZ =
+            sin(
+                x * 0.39 +
+                y * 0.51 +
+                uTime * 0.08 +
+                phase * 1.1
+            ) -
+            cos(
+                y * 0.34 -
+                uTime * 0.06 +
+                phase
+            );
+
+        /*
+         * ------------------------------------------------
+         * TEMPORARY COHERENCE
+         * ------------------------------------------------
+         */
+
+        float coherenceA =
+            sin(
+                x * 0.34 +
+                y * 0.27 +
+                z * 0.61 +
+                uTime * 0.19 +
+                phase
+            );
+
+        float coherenceB =
+            cos(
+                x * 0.51 -
+                y * 0.37 +
+                z * 0.43 -
+                uTime * 0.23 +
+                phase * 1.4
+            );
+
+        float coherence =
+            coherenceA *
+            coherenceB;
+
+        /*
+         * ------------------------------------------------
+         * SHAPE FORMATION
+         * ------------------------------------------------
+         */
+
+        float shapeX =
+            coherence *
+            sin(
+                y * 0.59 +
+                z * 0.42 +
+                phase
+            ) *
+            0.13;
+
+        float shapeY =
+            coherence *
+            cos(
+                x * 0.53 -
+                z * 0.38 +
+                phase * 1.2
+            ) *
+            0.12;
+
+        float shapeZ =
+            coherence *
+            sin(
+                x * 0.47 +
+                y * 0.64 +
+                phase * 0.8
+            ) *
+            0.055;
+
+        /*
+         * ------------------------------------------------
+         * SHAPE BREAKER
+         * ------------------------------------------------
+         */
+
+        float breakup =
+            sin(
+                x * 0.91 -
+                y * 0.73 +
+                z * 1.17 +
+                uTime * 0.31 +
+                phase * 1.7
+            ) *
+            cos(
+                y * 0.82 +
+                z * 0.91 -
+                uTime * 0.27 +
+                phase
+            );
+
+        float breakupX =
+            breakup *
+            cos(
+                y * 0.71 +
+                phase
+            ) *
+            0.065;
+
+        float breakupY =
+            breakup *
+            sin(
+                x * 0.67 -
+                phase
+            ) *
+            0.060;
+
+        float breakupZ =
+            breakup *
+            cos(
+                z * 0.94 +
+                phase
+            ) *
+            0.035;
+
+        /*
+         * ------------------------------------------------
+         * COMBINE
+         * ------------------------------------------------
+         */
+
+        float flowX =
+            largeX * 0.19 +
+            largeY * 0.13 +
+            mediumX * 0.095 +
+            mediumY * 0.07 +
+            smallX * 0.035 +
+            curlX * 0.095 +
+            shapeX +
+            breakupX;
+
+        float flowY =
+            largeY * 0.17 +
+            largeZ * 0.13 +
+            mediumY * 0.095 +
+            mediumZ * 0.07 +
+            smallY * 0.035 +
+            curlY * 0.095 +
+            shapeY +
+            breakupY;
+
+        float flowZ =
+            largeZ * 0.075 +
+            largeX * 0.035 +
+            mediumZ * 0.045 +
+            smallZ * 0.025 +
+            curlZ * 0.075 +
+            shapeZ +
+            breakupZ;
+
+        /*
+         * ------------------------------------------------
+         * ORIGINAL NEBULA MOTION
+         * ------------------------------------------------
+         */
+
+        velocity.x +=
+            flowX *
             0.00105 *
             particleSpeed;
 
-        /*
-         * ====================================================
-         * GLOBAL VELOCITY DRAG
-         * ====================================================
+        velocity.y +=
+            flowY *
+            0.00105 *
+            particleSpeed;
+
+        velocity.z +=
+            flowZ *
+            0.00105 *
+            particleSpeed;
+
+        velocity.x *= 0.965;
+        velocity.y *= 0.965;
+        velocity.z *= 0.978;
+
+                /*
+         * ------------------------------------------------
+         * ORGANIC TARGET FORMATION
+         * ------------------------------------------------
          *
-         * Keeps the cloud from accelerating indefinitely while
-         * allowing enough inertia for flowing gas.
-         */
-
-        velocity *=
-            0.9945;
-
-        /*
-         * ====================================================
-         * FREE PARTICLES
-         * ====================================================
+         * Strong, dense formation.
          *
-         * Free particles remain completely gas-driven.
+         * Most particles stay attached to the target.
+         * Only a very small population occasionally
+         * peels away before returning naturally.
          */
 
-        if (
-            freeParticle >
-            0.5
-        ) {
-            float freePulse =
-                sin(
-                    phase * 1.71 +
-                    uTime * 0.31
-                ) *
-                0.5 +
-                0.5;
-
-            velocity *=
-                mix(
-                    0.991,
-                    0.998,
-                    freePulse
-                );
-        }
-
-        /*
-         * ====================================================
-         * TEXT FORMATION
-         * ====================================================
-         */
-
-        if (
-            uTextEnabled >
-            0.5 &&
-            textParticle >
-            0.5
-        ) {
+        if (uTextEnabled > 0.5) {
             vec4 targetSample =
                 texture2D(
                     uTextTargetTexture,
                     vUv
                 );
 
-            if (
-                targetSample.a >
-                0.001
-            ) {
+            float targetAvailable =
+                targetSample.a;
+
+            if (targetAvailable > 0.001) {
                 vec3 target =
                     targetSample.xyz;
 
@@ -852,77 +606,100 @@ const velocityFlowFragmentShader = `
 
                 if (
                     distanceToTarget >
-                    0.00001
+                    0.0001
                 ) {
                     vec3 direction =
                         toTarget /
                         distanceToTarget;
 
                     /*
-                     * Formation finishes quickly.
-                     */
-
-                    float formation =
-                        smoothstep(
-                            0.0,
-                            1.55,
-                            uTime
-                        );
-
-                    float formationRemaining =
-                        1.0 -
-                        formation;
-
-                    /*
-                     * Strong direct steering.
-
-                     * This is intentionally not the weak spring
-                     * from the previous version.
-                     */
-
-                    float steering =
-                        mix(
-                            0.115,
-                            0.018,
-                            formation
-                        );
-
-                    velocity +=
-                        direction *
-                        distanceToTarget *
-                        steering *
-                        uTextStrength;
-
-                    /*
-                     * Give the particles enough speed to cross
-                     * the field rapidly at the beginning.
-                     */
-
-                    velocity +=
-                        direction *
-                        formationRemaining *
-                        0.012 *
-                        uTextStrength;
-
-                    /*
-                     * Gas remains present during formation,
-                     * but becomes progressively less dominant
-                     * as the letters become recognizable.
-                     */
-
-                    velocity +=
-                        gasForce *
-                        mix(
-                            0.00065,
-                            0.00028,
-                            formation
-                        );
-
-                    /*
-                     * Remove only radial overshoot.
+                     * ------------------------------------
+                     * STRONG PARTICLE MEMBERSHIP
+                     * ------------------------------------
                      *
-                     * This prevents the duplicate/ghost text
-                     * problem without freezing the particles.
+                     * The majority of particles remain
+                     * part of the formation.
+                     */
+
+                    float attachmentWave =
+                        sin(
+                            phase * 1.73 +
+                            uTime * 0.34
+                        );
+
+                    float attachmentWave2 =
+                        sin(
+                            phase * 3.91 -
+                            uTime * 0.19
+                        );
+
+                    float attachmentNoise =
+                        attachmentWave * 0.82 +
+                        attachmentWave2 * 0.18;
+
+                    float attachment =
+                        smoothstep(
+                            -0.02,
+                            0.72,
+                            attachmentNoise
+                        );
+
+                    float personalVariation =
+                        0.93 +
+                        0.07 *
+                        sin(
+                            phase * 2.37 +
+                            1.7
+                        );
+
+                    attachment *=
+                        personalVariation;
+
+                    /*
+                     * ------------------------------------
+                     * DISTANCE PARTICIPATION
+                     * ------------------------------------
+                     */
+
+                    float distanceInfluence =
+                        1.0 -
+                        smoothstep(
+                            4.0,
+                            10.0,
+                            distanceToTarget
+                        );
+
+                    float formationWeight =
+                        attachment *
+                        (
+                            0.72 +
+                            distanceInfluence * 0.28
+                        );
+
+                    /*
+                     * ------------------------------------
+                     * STRONG FORMATION SPRING
+                     * ------------------------------------
+                     */
+
+                    float springAcceleration =
+                        clamp(
+                            distanceToTarget *
+                            0.00112,
+                            0.00020,
+                            0.0088
+                        );
+
+                    velocity +=
+                        direction *
+                        springAcceleration *
+                        uTextStrength *
+                        formationWeight;
+
+                    /*
+                     * ------------------------------------
+                     * RADIAL VELOCITY CONTROL
+                     * ------------------------------------
                      */
 
                     float radialVelocity =
@@ -931,185 +708,166 @@ const velocityFlowFragmentShader = `
                             direction
                         );
 
-                    float damping =
-                        mix(
-                            0.68,
-                            0.84,
-                            formation
+                    float desiredRadialVelocity =
+                        clamp(
+                            distanceToTarget *
+                            0.00058,
+                            -0.0010,
+                            0.0048
                         );
 
-                    velocity -=
+                    float radialCorrection =
+                        (
+                            desiredRadialVelocity -
+                            radialVelocity
+                        ) *
+                        0.073;
+
+                    velocity +=
                         direction *
-                        radialVelocity *
-                        damping;
+                        radialCorrection *
+                        uTextStrength *
+                        formationWeight;
 
                     /*
-                     * As particles get close, use a very small
-                     * tangential motion instead of freezing them.
+                     * ------------------------------------
+                     * ORGANIC INTERNAL MOTION
+                     * ------------------------------------
+                     *
+                     * Very subtle now. The structure should
+                     * breathe rather than visibly break apart.
                      */
 
-                    float nearTarget =
+                    vec3 swirl;
+
+                    swirl.x =
+                        sin(
+                            target.y * 0.85 +
+                            uTime * 0.62 +
+                            phase
+                        );
+
+                    swirl.y =
+                        cos(
+                            target.x * 0.78 -
+                            uTime * 0.55 +
+                            phase * 1.31
+                        );
+
+                    swirl.z =
+                        sin(
+                            target.x * 0.55 +
+                            target.y * 0.43 +
+                            uTime * 0.47 +
+                            phase * 0.71
+                        );
+
+                    velocity +=
+                        swirl *
+                        0.000030 *
+                        uTextStrength *
+                        formationWeight;
+
+                    /*
+                     * ------------------------------------
+                     * VERY RARE ESCAPE
+                     * ------------------------------------
+                     *
+                     * Only a tiny fraction of particles
+                     * occasionally escape.
+                     */
+
+                    float escapeWave =
+                        sin(
+                            phase * 2.91 +
+                            uTime * 0.43
+                        );
+
+                    float escapeAmount =
+                        smoothstep(
+                            0.93,
+                            0.995,
+                            escapeWave
+                        );
+
+                    /*
+                     * Escapes are strongest near the target
+                     * so they read as particles peeling off
+                     * the structure rather than the entire
+                     * formation exploding.
+                     */
+
+                    float escapeProximity =
                         1.0 -
                         smoothstep(
-                            0.025,
-                            0.65,
+                            0.35,
+                            2.20,
                             distanceToTarget
                         );
 
-                    vec3 tangent =
+                    escapeAmount *=
+                        escapeProximity;
+
+                    vec3 escapeDirection =
                         normalize(
                             vec3(
+                                direction.x +
                                 sin(
-                                    phase *
-                                    1.73 +
-                                    uTime *
-                                    0.27
-                                ),
+                                    phase +
+                                    uTime * 0.37
+                                ) *
+                                0.42,
+
+                                direction.y +
                                 cos(
-                                    phase *
-                                    1.41 -
-                                    uTime *
-                                    0.23
-                                ),
+                                    phase * 1.37 -
+                                    uTime * 0.29
+                                ) *
+                                0.42,
+
+                                direction.z +
                                 sin(
-                                    phase *
-                                    1.19 +
-                                    uTime *
-                                    0.19
-                                )
+                                    phase * 0.71 +
+                                    uTime * 0.25
+                                ) *
+                                0.18
                             )
                         );
 
                     velocity +=
-                        tangent *
-                        nearTarget *
-                        0.00012 *
-                        formation;
+                        escapeDirection *
+                        escapeAmount *
+                        formationWeight *
+                        0.000070;
 
                     /*
-                     * ====================================================
-                     * POST-FORMATION ESCAPE
-                     * ====================================================
+                     * ------------------------------------
+                     * CLOSE-RANGE STABILITY
+                     * ------------------------------------
+                     *
+                     * Prevent particles that have reached
+                     * the shape from immediately flying back
+                     * out.
                      */
-
-                    float personality =
-                        fract(
-                            sin(
-                                phase *
-                                12.9898 +
-                                78.233
-                            ) *
-                            43758.5453
-                        );
-
-                    float cycle =
-                        sin(
-                            uTime *
-                            0.72 +
-                            phase *
-                            0.37
-                        ) *
-                        0.5 +
-                        0.5;
-
-                    /*
-                     * Roughly 18% of text particles are eligible
-                     * to periodically leave the letters.
-                     */
-
-                    float escapeEligibility =
-                        smoothstep(
-                            0.68,
-                            0.78,
-                            personality
-                        );
-
-                    float escapePulse =
-                        smoothstep(
-                            0.73,
-                            0.91,
-                            cycle
-                        ) *
-                        (
-                            1.0 -
-                            smoothstep(
-                                0.91,
-                                0.98,
-                                cycle
-                            )
-                        );
-
-                    float escape =
-                        escapeEligibility *
-                        escapePulse *
-                        formation;
 
                     if (
-                        escape >
-                        0.001
+                        distanceToTarget <
+                        0.78
                     ) {
-                        vec3 escapeDirection =
-                            normalize(
-                                vec3(
-                                    sin(
-                                        phase *
-                                        2.41
-                                    ),
-                                    cos(
-                                        phase *
-                                        1.87
-                                    ),
-                                    sin(
-                                        phase *
-                                        1.43
-                                    )
-                                )
+                        float closeRadialVelocity =
+                            dot(
+                                velocity,
+                                direction
                             );
 
-                        velocity +=
-                            escapeDirection *
-                            escape *
-                            0.0038;
-
-                        /*
-                         * Once escaping, reduce the attraction
-                         * to the text.
-                         */
-
-                        velocity +=
-                            gasForce *
-                            escape *
-                            0.0015;
+                        velocity -=
+                            direction *
+                            closeRadialVelocity *
+                            0.060 *
+                            formationWeight;
                     }
                 }
             }
-        }
-
-        /*
-         * ====================================================
-         * VELOCITY LIMIT
-         * ====================================================
-         *
-         * Prevents rare combinations of gathering + turbulence
-         * from exploding the simulation.
-         */
-
-        float speed =
-            length(
-                velocity
-            );
-
-        float maxSpeed =
-            0.026;
-
-        if (
-            speed >
-            maxSpeed
-        ) {
-            velocity =
-                velocity /
-                speed *
-                maxSpeed;
         }
 
         gl_FragColor =
@@ -1119,12 +877,6 @@ const velocityFlowFragmentShader = `
             );
     }
 `
-
-/*
- * ============================================================
- * POSITION
- * ============================================================
- */
 
 const positionFragmentShader = `
     precision highp float;
@@ -1147,8 +899,7 @@ const positionFragmentShader = `
                 vUv
             ).xyz;
 
-        position +=
-            velocity;
+        position += velocity;
 
         gl_FragColor =
             vec4(
@@ -1157,12 +908,6 @@ const positionFragmentShader = `
             );
     }
 `
-
-/*
- * ============================================================
- * CONTAINMENT
- * ============================================================
- */
 
 const containmentFragmentShader = `
     precision highp float;
@@ -1186,69 +931,45 @@ const containmentFragmentShader = `
             ).xyz;
 
         float edgeX =
-            abs(
-                position.x
-            ) /
+            abs(position.x) /
             10.8;
 
         float edgeY =
-            abs(
-                position.y
-            ) /
+            abs(position.y) /
             5.95;
 
         float edgeZ =
-            abs(
-                position.z
-            ) /
+            abs(position.z) /
             2.05;
 
-        if (
-            edgeX >
-            0.80
-        ) {
+        if (edgeX > 0.82) {
             velocity.x +=
-                -sign(
-                    position.x
-                ) *
+                -sign(position.x) *
                 pow(
-                    edgeX -
-                    0.80,
+                    edgeX - 0.82,
                     2.0
                 ) *
-                0.00105;
+                0.00085;
         }
 
-        if (
-            edgeY >
-            0.80
-        ) {
+        if (edgeY > 0.82) {
             velocity.y +=
-                -sign(
-                    position.y
-                ) *
+                -sign(position.y) *
                 pow(
-                    edgeY -
-                    0.80,
+                    edgeY - 0.82,
                     2.0
                 ) *
-                0.00088;
+                0.00070;
         }
 
-        if (
-            edgeZ >
-            0.78
-        ) {
+        if (edgeZ > 0.80) {
             velocity.z +=
-                -sign(
-                    position.z
-                ) *
+                -sign(position.z) *
                 pow(
-                    edgeZ -
-                    0.78,
+                    edgeZ - 0.80,
                     2.0
                 ) *
-                0.00042;
+                0.00032;
         }
 
         gl_FragColor =
@@ -1258,12 +979,6 @@ const containmentFragmentShader = `
             );
     }
 `
-
-/*
- * ============================================================
- * INITIALIZATION
- * ============================================================
- */
 
 const initializeFragmentShader = `
     precision highp float;
@@ -1296,23 +1011,15 @@ const createSimulationQuad = (
     )
 }
 
-/*
- * ============================================================
- * INITIAL PARTICLE DATA
- * ============================================================
- */
-
 const createParticleData = () => {
     const positions =
         new Float32Array(
-            PARTICLE_COUNT *
-            3,
+            PARTICLE_COUNT * 3,
         )
 
     const velocities =
         new Float32Array(
-            PARTICLE_COUNT *
-            3,
+            PARTICLE_COUNT * 3,
         )
 
     const intensities =
@@ -1343,119 +1050,90 @@ const createParticleData = () => {
         const i3 =
             i * 3
 
-        /*
-         * Start with a broad gas cloud.
-         *
-         * It is deliberately uneven rather than a perfect
-         * rectangular/random screen-noise distribution.
-         */
-
-        const angle =
-            Math.random() *
-            Math.PI *
-            2.0
-
-        const radius =
-            Math.pow(
-                Math.random(),
-                0.72,
-            )
-
-        const cloudX =
-            Math.cos(
-                angle
-            ) *
-            radius
-
-        const cloudY =
-            Math.sin(
-                angle
-            ) *
-            radius
-
-        positions[i3] =
-            cloudX *
-            (
-                8.0 +
-                Math.random() *
-                2.8
-            )
-
-        positions[i3 + 1] =
-            cloudY *
-            (
-                4.0 +
-                Math.random() *
-                2.2
-            )
-
-        positions[i3 + 2] =
+        const x =
             (
                 Math.random() -
                 0.5
             ) *
-            3.7
+            21.0
 
-        /*
-         * Give the cloud some initial coherent inertia.
-         *
-         * This means structures are already moving on frame 1.
-         */
+        const y =
+            (
+                Math.random() -
+                0.5
+            ) *
+            11.5
+
+        const z =
+            (
+                Math.random() -
+                0.5
+            ) *
+            3.8
+
+        const spread =
+            0.84 +
+            Math.pow(
+                Math.random(),
+                2.2,
+            ) *
+            0.16
+
+        positions[i3] =
+            x * spread
+
+        positions[i3 + 1] =
+            y * spread
+
+        positions[i3 + 2] =
+            z
 
         velocities[i3] =
             (
-                -cloudY *
-                0.0018
-            ) +
-            (
                 Math.random() -
                 0.5
             ) *
-            0.00065
+            0.0015
 
         velocities[i3 + 1] =
             (
-                cloudX *
-                0.0018
-            ) +
-            (
                 Math.random() -
                 0.5
             ) *
-            0.00065
+            0.0015
 
         velocities[i3 + 2] =
             (
                 Math.random() -
                 0.5
             ) *
-            0.00075
+            0.00065
 
         phases[i] =
             Math.random() *
             Math.PI *
-            2.0
+            2.1
 
         speeds[i] =
             0.72 +
             Math.random() *
-            0.58
+            0.56
 
         intensities[i] =
             0.13 +
             Math.pow(
                 Math.random(),
-                1.75,
+                1.8,
             ) *
-            0.72
+            0.70
 
         sizes[i] =
-            0.035 +
+            0.040 +
             Math.pow(
                 Math.random(),
-                3.0,
+                3,
             ) *
-            0.060
+            0.068
     }
 
     return {
@@ -1467,12 +1145,6 @@ const createParticleData = () => {
         speeds,
     }
 }
-
-/*
- * ============================================================
- * FLOAT TEXTURE
- * ============================================================
- */
 
 const createFloatTexture = (
     data,
@@ -1507,31 +1179,22 @@ const createFloatTexture = (
     return texture
 }
 
-/*
- * ============================================================
- * INITIAL GPU TEXTURES
- * ============================================================
- */
-
 const createInitialTextures = (
     particles,
 ) => {
     const positionData =
         new Float32Array(
-            TEXTURE_CAPACITY *
-            4,
+            TEXTURE_CAPACITY * 4,
         )
 
     const velocityData =
         new Float32Array(
-            TEXTURE_CAPACITY *
-            4,
+            TEXTURE_CAPACITY * 4,
         )
 
     const metadataData =
         new Float32Array(
-            TEXTURE_CAPACITY *
-            4,
+            TEXTURE_CAPACITY * 4,
         )
 
     for (
@@ -1575,15 +1238,8 @@ const createInitialTextures = (
         metadataData[i4 + 1] =
             particles.speeds[i]
 
-        /*
-         * First 12,000 particles are the ONLY text particles.
-         */
-
         metadataData[i4 + 2] =
-            i <
-                TEXT_PARTICLE_COUNT
-                ? 0.0
-                : 1.0
+            1.0
 
         metadataData[i4 + 3] =
             1.0
@@ -1606,12 +1262,6 @@ const createInitialTextures = (
             ),
     }
 }
-
-/*
- * ============================================================
- * RENDER TARGET
- * ============================================================
- */
 
 const createStateTarget = () => {
     return new THREE.WebGLRenderTarget(
@@ -1648,12 +1298,6 @@ const createStateTarget = () => {
     )
 }
 
-/*
- * ============================================================
- * PARTICLE SYSTEM
- * ============================================================
- */
-
 const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
@@ -1682,112 +1326,89 @@ const NebulaParticles = ({
                 createInitialTextures(
                     particles,
                 ),
-            [
-                particles,
-            ],
+            [particles],
         )
-
-    /*
-     * --------------------------------------------------------
-     * Particle geometry
-     * --------------------------------------------------------
-     */
 
     const particleGeometry =
-        useMemo(
-            () => {
-                const geometry =
-                    new THREE.BufferGeometry()
+        useMemo(() => {
+            const geometry =
+                new THREE.BufferGeometry()
 
-                const uvs =
-                    new Float32Array(
-                        PARTICLE_COUNT *
-                        2,
+            const uvs =
+                new Float32Array(
+                    PARTICLE_COUNT * 2,
+                )
+
+            const dummyPositions =
+                new Float32Array(
+                    PARTICLE_COUNT * 3,
+                )
+
+            for (
+                let i = 0;
+                i < PARTICLE_COUNT;
+                i += 1
+            ) {
+                const x =
+                    i %
+                    TEXTURE_SIZE
+
+                const y =
+                    Math.floor(
+                        i /
+                        TEXTURE_SIZE,
                     )
 
-                const dummyPositions =
-                    new Float32Array(
-                        PARTICLE_COUNT *
-                        3,
-                    )
+                const i2 =
+                    i * 2
 
-                for (
-                    let i = 0;
-                    i < PARTICLE_COUNT;
-                    i += 1
-                ) {
-                    const x =
-                        i %
-                        TEXTURE_SIZE
+                uvs[i2] =
+                    (
+                        x + 0.5
+                    ) /
+                    TEXTURE_SIZE
 
-                    const y =
-                        Math.floor(
-                            i /
-                            TEXTURE_SIZE,
-                        )
+                uvs[i2 + 1] =
+                    (
+                        y + 0.5
+                    ) /
+                    TEXTURE_SIZE
+            }
 
-                    const i2 =
-                        i * 2
+            geometry.setAttribute(
+                'position',
+                new THREE.BufferAttribute(
+                    dummyPositions,
+                    3,
+                ),
+            )
 
-                    uvs[i2] =
-                        (
-                            x +
-                            0.5
-                        ) /
-                        TEXTURE_SIZE
+            geometry.setAttribute(
+                'aParticleUv',
+                new THREE.BufferAttribute(
+                    uvs,
+                    2,
+                ),
+            )
 
-                    uvs[i2 + 1] =
-                        (
-                            y +
-                            0.5
-                        ) /
-                        TEXTURE_SIZE
-                }
+            geometry.setAttribute(
+                'aIntensity',
+                new THREE.BufferAttribute(
+                    particles.intensities,
+                    1,
+                ),
+            )
 
-                geometry.setAttribute(
-                    'position',
-                    new THREE.BufferAttribute(
-                        dummyPositions,
-                        3,
-                    ),
-                )
+            geometry.setAttribute(
+                'aSize',
+                new THREE.BufferAttribute(
+                    particles.sizes,
+                    1,
+                ),
+            )
 
-                geometry.setAttribute(
-                    'aParticleUv',
-                    new THREE.BufferAttribute(
-                        uvs,
-                        2,
-                    ),
-                )
-
-                geometry.setAttribute(
-                    'aIntensity',
-                    new THREE.BufferAttribute(
-                        particles.intensities,
-                        1,
-                    ),
-                )
-
-                geometry.setAttribute(
-                    'aSize',
-                    new THREE.BufferAttribute(
-                        particles.sizes,
-                        1,
-                    ),
-                )
-
-                return geometry
-            },
-            [
-                particles,
-            ],
-        )
-
-    /*
-     * --------------------------------------------------------
-     * Particle material
-     * --------------------------------------------------------
-     */
+            return geometry
+        }, [particles])
 
     const particleMaterial =
         useMemo(
@@ -1801,8 +1422,7 @@ const NebulaParticles = ({
 
                     uniforms: {
                         uPositionTexture: {
-                            value:
-                                null,
+                            value: null,
                         },
                     },
 
@@ -1821,320 +1441,276 @@ const NebulaParticles = ({
             [],
         )
 
-    /*
-     * --------------------------------------------------------
-     * GPU simulation setup
-     * --------------------------------------------------------
-     */
+    useEffect(() => {
+        if (
+            !gl ||
+            !gl.capabilities.isWebGL2
+        ) {
+            console.error(
+                '[Nebula] WebGL2 is required for GPU simulation.',
+            )
 
-    useEffect(
-        () => {
-            if (
-                !gl ||
-                !gl.capabilities.isWebGL2
-            ) {
-                console.error(
-                    '[Nebula] WebGL2 is required for GPU simulation.',
-                )
+            return undefined
+        }
 
-                return undefined
-            }
+        const positionA =
+            createStateTarget()
 
-            const positionA =
-                createStateTarget()
+        const positionB =
+            createStateTarget()
 
-            const positionB =
-                createStateTarget()
+        const velocityA =
+            createStateTarget()
 
-            const velocityA =
-                createStateTarget()
+        const velocityB =
+            createStateTarget()
 
-            const velocityB =
-                createStateTarget()
+        const simulationScene =
+            new THREE.Scene()
 
-            const simulationScene =
-                new THREE.Scene()
+        const simulationCamera =
+            new THREE.OrthographicCamera(
+                -1,
+                1,
+                1,
+                -1,
+                0,
+                1,
+            )
 
-            const simulationCamera =
-                new THREE.OrthographicCamera(
-                    -1,
-                    1,
-                    1,
-                    -1,
-                    0,
-                    1,
-                )
+        const initializationMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
 
-            /*
-             * Initialization material
-             */
+                fragmentShader:
+                    initializeFragmentShader,
 
-            const initializationMaterial =
-                new THREE.ShaderMaterial({
-                    vertexShader:
-                        simulationVertexShader,
-
-                    fragmentShader:
-                        initializeFragmentShader,
-
-                    uniforms: {
-                        uInitialTexture: {
-                            value:
-                                null,
-                        },
+                uniforms: {
+                    uInitialTexture: {
+                        value: null,
                     },
+                },
 
-                    depthTest:
-                        false,
+                depthTest:
+                    false,
 
-                    depthWrite:
-                        false,
-                })
+                depthWrite:
+                    false,
+            })
 
-            const initializationQuad =
-                createSimulationQuad(
-                    initializationMaterial,
-                )
-
-            simulationScene.add(
-                initializationQuad,
+        const initializationQuad =
+            createSimulationQuad(
+                initializationMaterial,
             )
 
-            const initializeTarget =
-                (
-                    target,
-                    texture,
-                ) => {
-                    initializationMaterial
-                        .uniforms
-                        .uInitialTexture
-                        .value =
-                        texture
+        simulationScene.add(
+            initializationQuad,
+        )
 
-                    gl.setRenderTarget(
-                        target,
-                    )
-
-                    gl.clear()
-
-                    gl.render(
-                        simulationScene,
-                        simulationCamera,
-                    )
-                }
-
-            initializeTarget(
-                positionA,
-                initialTextures.position,
-            )
-
-            initializeTarget(
-                positionB,
-                initialTextures.position,
-            )
-
-            initializeTarget(
-                velocityA,
-                initialTextures.velocity,
-            )
-
-            initializeTarget(
-                velocityB,
-                initialTextures.velocity,
-            )
+        const initializeTarget = (
+            target,
+            texture,
+        ) => {
+            initializationMaterial
+                .uniforms
+                .uInitialTexture
+                .value =
+                texture
 
             gl.setRenderTarget(
-                null,
+                target,
             )
 
-            /*
-             * Velocity material
-             */
+            gl.clear()
 
-            const velocityMaterial =
-                new THREE.ShaderMaterial({
-                    vertexShader:
-                        simulationVertexShader,
-
-                    fragmentShader:
-                        velocityFlowFragmentShader,
-
-                    uniforms: {
-                        uPositionTexture: {
-                            value:
-                                null,
-                        },
-
-                        uVelocityTexture: {
-                            value:
-                                null,
-                        },
-
-                        uMetadataTexture: {
-                            value:
-                                initialTextures.metadata,
-                        },
-
-                        uTextTargetTexture: {
-                            value:
-                                initialTextures.position,
-                        },
-
-                        uTextEnabled: {
-                            value:
-                                0,
-                        },
-
-                        uTextStrength: {
-                            value:
-                                0.0,
-                        },
-
-                        uTime: {
-                            value:
-                                0,
-                        },
-                    },
-
-                    depthTest:
-                        false,
-
-                    depthWrite:
-                        false,
-                })
-
-            /*
-             * Position material
-             */
-
-            const positionMaterial =
-                new THREE.ShaderMaterial({
-                    vertexShader:
-                        simulationVertexShader,
-
-                    fragmentShader:
-                        positionFragmentShader,
-
-                    uniforms: {
-                        uPositionTexture: {
-                            value:
-                                null,
-                        },
-
-                        uVelocityTexture: {
-                            value:
-                                null,
-                        },
-                    },
-
-                    depthTest:
-                        false,
-
-                    depthWrite:
-                        false,
-                })
-
-            /*
-             * Containment material
-             */
-
-            const containmentMaterial =
-                new THREE.ShaderMaterial({
-                    vertexShader:
-                        simulationVertexShader,
-
-                    fragmentShader:
-                        containmentFragmentShader,
-
-                    uniforms: {
-                        uPositionTexture: {
-                            value:
-                                null,
-                        },
-
-                        uVelocityTexture: {
-                            value:
-                                null,
-                        },
-                    },
-
-                    depthTest:
-                        false,
-
-                    depthWrite:
-                        false,
-                })
-
-            const simulationQuad =
-                createSimulationQuad(
-                    velocityMaterial,
-                )
-
-            simulationScene.add(
-                simulationQuad,
-            )
-
-            simulationRef.current = {
-                positionA,
-                positionB,
-
-                velocityA,
-                velocityB,
-
-                velocityMaterial,
-                positionMaterial,
-                containmentMaterial,
-
+            gl.render(
                 simulationScene,
                 simulationCamera,
-                simulationQuad,
+            )
+        }
 
-                initialized:
-                    true,
-            }
+        initializeTarget(
+            positionA,
+            initialTextures.position,
+        )
 
-            particleMaterial
-                .uniforms
-                .uPositionTexture
-                .value =
-                positionA.texture
+        initializeTarget(
+            positionB,
+            initialTextures.position,
+        )
 
-            return () => {
-                simulationRef.current =
-                    null
+        initializeTarget(
+            velocityA,
+            initialTextures.velocity,
+        )
 
-                positionA.dispose()
-                positionB.dispose()
+        initializeTarget(
+            velocityB,
+            initialTextures.velocity,
+        )
 
-                velocityA.dispose()
-                velocityB.dispose()
+        gl.setRenderTarget(
+            null,
+        )
 
-                initializationMaterial.dispose()
-                velocityMaterial.dispose()
-                positionMaterial.dispose()
-                containmentMaterial.dispose()
+        const velocityMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
 
-                initializationQuad
-                    .geometry
-                    .dispose()
+                fragmentShader:
+                    velocityFlowFragmentShader,
 
-                simulationQuad
-                    .geometry
-                    .dispose()
-            }
-        },
-        [
-            gl,
-            initialTextures,
-            particleMaterial,
-        ],
-    )
+                uniforms: {
+                    uPositionTexture: {
+                        value: null,
+                    },
 
-    /*
-     * --------------------------------------------------------
-     * Simulation loop
-     * --------------------------------------------------------
-     */
+                    uVelocityTexture: {
+                        value: null,
+                    },
+
+                    uMetadataTexture: {
+                        value:
+                            initialTextures.metadata,
+                    },
+
+                    uTextTargetTexture: {
+                        value:
+                            initialTextures.position,
+                    },
+
+                    uTextEnabled: {
+                        value: 0,
+                    },
+
+                    uTextStrength: {
+                        value: 0.0,
+                    },
+
+                    uTime: {
+                        value: 0,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        const positionMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
+
+                fragmentShader:
+                    positionFragmentShader,
+
+                uniforms: {
+                    uPositionTexture: {
+                        value: null,
+                    },
+
+                    uVelocityTexture: {
+                        value: null,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        const containmentMaterial =
+            new THREE.ShaderMaterial({
+                vertexShader:
+                    simulationVertexShader,
+
+                fragmentShader:
+                    containmentFragmentShader,
+
+                uniforms: {
+                    uPositionTexture: {
+                        value: null,
+                    },
+
+                    uVelocityTexture: {
+                        value: null,
+                    },
+                },
+
+                depthTest:
+                    false,
+
+                depthWrite:
+                    false,
+            })
+
+        const simulationQuad =
+            createSimulationQuad(
+                velocityMaterial,
+            )
+
+        simulationScene.add(
+            simulationQuad,
+        )
+
+        simulationRef.current = {
+            positionA,
+            positionB,
+            velocityA,
+            velocityB,
+
+            velocityMaterial,
+            positionMaterial,
+            containmentMaterial,
+
+            simulationScene,
+            simulationCamera,
+            simulationQuad,
+
+            initialized: true,
+        }
+
+        particleMaterial
+            .uniforms
+            .uPositionTexture
+            .value =
+            positionA.texture
+
+        return () => {
+            simulationRef.current =
+                null
+
+            positionA.dispose()
+            positionB.dispose()
+
+            velocityA.dispose()
+            velocityB.dispose()
+
+            initializationMaterial.dispose()
+            velocityMaterial.dispose()
+            positionMaterial.dispose()
+            containmentMaterial.dispose()
+
+            initializationQuad
+                .geometry
+                .dispose()
+
+            simulationQuad
+                .geometry
+                .dispose()
+        }
+    }, [
+        gl,
+        initialTextures,
+        particleMaterial,
+    ])
 
     useFrame(
         (state) => {
@@ -2151,7 +1727,6 @@ const NebulaParticles = ({
             const {
                 positionA,
                 positionB,
-
                 velocityA,
                 velocityB,
 
@@ -2162,12 +1737,7 @@ const NebulaParticles = ({
                 simulationScene,
                 simulationCamera,
                 simulationQuad,
-            } =
-                simulation
-
-            /*
-             * Velocity pass
-             */
+            } = simulation
 
             velocityMaterial
                 .uniforms
@@ -2222,10 +1792,6 @@ const NebulaParticles = ({
                 simulationCamera,
             )
 
-            /*
-             * Position pass
-             */
-
             positionMaterial
                 .uniforms
                 .uPositionTexture
@@ -2251,10 +1817,6 @@ const NebulaParticles = ({
                 simulationScene,
                 simulationCamera,
             )
-
-            /*
-             * Containment pass
-             */
 
             containmentMaterial
                 .uniforms
@@ -2282,18 +1844,17 @@ const NebulaParticles = ({
                 simulationCamera,
             )
 
-            /*
-             * Ping-pong positions.
-             *
-             * velocityA receives the newly contained velocity,
-             * while velocityB remains the previous input.
-             */
-
             simulation.positionA =
                 positionB
 
             simulation.positionB =
                 positionA
+
+            simulation.velocityA =
+                velocityA
+
+            simulation.velocityB =
+                velocityB
 
             particleMaterial
                 .uniforms
@@ -2308,44 +1869,24 @@ const NebulaParticles = ({
         -1,
     )
 
-    /*
-     * --------------------------------------------------------
-     * Cleanup
-     * --------------------------------------------------------
-     */
+    useEffect(() => {
+        return () => {
+            particleGeometry.dispose()
+            particleMaterial.dispose()
 
-    useEffect(
-        () => {
-            return () => {
-                particleGeometry.dispose()
-
-                particleMaterial.dispose()
-
-                initialTextures
-                    .position
-                    .dispose()
-
-                initialTextures
-                    .velocity
-                    .dispose()
-
-                initialTextures
-                    .metadata
-                    .dispose()
-            }
-        },
-        [
-            particleGeometry,
-            particleMaterial,
-            initialTextures,
-        ],
-    )
+            initialTextures.position.dispose()
+            initialTextures.velocity.dispose()
+            initialTextures.metadata.dispose()
+        }
+    }, [
+        particleGeometry,
+        particleMaterial,
+        initialTextures,
+    ])
 
     return (
         <points
-            ref={
-                pointsRef
-            }
+            ref={pointsRef}
             geometry={
                 particleGeometry
             }
@@ -2359,12 +1900,6 @@ const NebulaParticles = ({
     )
 }
 
-/*
- * ============================================================
- * BACKGROUND
- * ============================================================
- */
-
 const NebulaBackground = ({
     textEnabled = false,
     textTargetTexture = null,
@@ -2372,9 +1907,7 @@ const NebulaBackground = ({
 }) => {
     return (
         <Canvas
-            orthographic={
-                false
-            }
+            orthographic={false}
             camera={{
                 position: [
                     0,
@@ -2382,20 +1915,15 @@ const NebulaBackground = ({
                     10,
                 ],
 
-                fov:
-                    60,
+                fov: 60,
             }}
             dpr={[
                 1,
                 1.5,
             ]}
             gl={{
-                antialias:
-                    true,
-
-                alpha:
-                    false,
-
+                antialias: true,
+                alpha: false,
                 powerPreference:
                     'high-performance',
             }}
@@ -2403,14 +1931,10 @@ const NebulaBackground = ({
                 position:
                     'absolute',
 
-                inset:
-                    0,
+                inset: 0,
 
-                width:
-                    '100%',
-
-                height:
-                    '100%',
+                width: '100%',
+                height: '100%',
 
                 pointerEvents:
                     'none',
@@ -2423,11 +1947,9 @@ const NebulaBackground = ({
                 textEnabled={
                     textEnabled
                 }
-
                 textTargetTexture={
                     textTargetTexture
                 }
-
                 textStrength={
                     textStrength
                 }

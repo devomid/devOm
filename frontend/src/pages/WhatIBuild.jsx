@@ -8,14 +8,18 @@ import * as THREE from 'three'
 import NebulaBackground from '../components/nebula/nebula'
 
 const TEXTURE_SIZE = 512
-
-const TEXT_PARTICLE_COUNT = 12000
-
-const PARTICLE_COUNT = 262144
+const TEXT_PARTICLE_COUNT = 65536
 
 const createTextTargetTexture = (
   text,
 ) => {
+  const data =
+    new Float32Array(
+      TEXTURE_SIZE *
+      TEXTURE_SIZE *
+      4,
+    )
+
   const canvas =
     document.createElement(
       'canvas',
@@ -43,39 +47,26 @@ const createTextTargetTexture = (
     TEXTURE_SIZE,
   )
 
-  const fontFamily =
-    'Arial, Helvetica, sans-serif'
-
-  const fontWeight =
-    600
-
-  let fontSize =
-    118
-
   context.textAlign =
     'center'
 
   context.textBaseline =
     'middle'
 
-  /*
-   * Find the largest font that fits
-   * comfortably inside the target texture.
-   */
+  let fontSize =
+    132
+
   while (
     fontSize > 20
   ) {
     context.font =
-      `${fontWeight} ${fontSize}px ${fontFamily}`
-
-    const measuredWidth =
-      context.measureText(
-        text,
-      ).width
+      `400 ${fontSize}px Arial, Helvetica, sans-serif`
 
     if (
-      measuredWidth <=
-      TEXTURE_SIZE * 0.90
+      context.measureText(
+        text,
+      ).width <=
+      TEXTURE_SIZE * 0.91
     ) {
       break
     }
@@ -84,7 +75,7 @@ const createTextTargetTexture = (
   }
 
   context.font =
-    `${fontWeight} ${fontSize}px ${fontFamily}`
+    `400 ${fontSize}px Arial, Helvetica, sans-serif`
 
   context.fillStyle =
     '#ffffff'
@@ -103,11 +94,14 @@ const createTextTargetTexture = (
       TEXTURE_SIZE,
     )
 
-  /*
-   * Collect the actual glyph pixels.
-   */
-  const glyphPoints = []
+  const candidates = []
 
+  /*
+   * Read the actual glyph.
+   *
+   * One candidate represents one visible
+   * raster point of the text.
+   */
   for (
     let y = 0;
     y < TEXTURE_SIZE;
@@ -148,121 +142,149 @@ const createTextTargetTexture = (
           TEXTURE_SIZE - 1
         )
 
-      glyphPoints.push({
+      candidates.push({
         x:
           (
             normalizedX -
             0.5
-          ) * 12.8,
+          ) * 13.6,
 
         y:
           (
             0.5 -
             normalizedY
-          ) * 6.0,
+          ) * 6.35,
 
-        z: 0,
+        z:
+          Math.sin(
+            x * 0.071 +
+            y * 0.047,
+          ) * 0.035,
       })
     }
   }
 
   if (
-    glyphPoints.length === 0
+    candidates.length === 0
   ) {
     return null
   }
 
   /*
-   * We deliberately keep the number of target points
-   * lower than the old 24,000.
+   * Keep the target particles in the first
+   * contiguous part of the simulation texture.
    *
-   * This makes the formed typography look like particles,
-   * rather than a solid duplicated raster image.
+   * This is intentional.
+   *
+   * The [16] physics already proved that this
+   * particle/UV relationship forms correctly.
    */
-  const targetPointCount =
+  const targetCount =
     Math.min(
+      candidates.length,
       TEXT_PARTICLE_COUNT,
-      glyphPoints.length,
     )
 
-  const textPoints = []
-
-  /*
-   * Evenly sample the complete glyph.
-   *
-   * Every selected particle gets one unique target.
-   */
-  const step =
-    glyphPoints.length /
-    targetPointCount
-
   for (
-    let i = 0;
-    i < targetPointCount;
-    i += 1
+    let particleIndex = 0;
+    particleIndex < targetCount;
+    particleIndex += 1
   ) {
-    const sourceIndex =
-      Math.min(
-        glyphPoints.length - 1,
-        Math.floor(
-          (
-            i +
-            0.5
-          ) *
-          step,
-        ),
+    /*
+     * Distribute the available particles
+     * across the complete glyph rather than
+     * repeatedly copying the same beginning
+     * of the glyph.
+     */
+    const candidateIndex =
+      Math.floor(
+        (
+          particleIndex /
+          targetCount
+        ) *
+        candidates.length,
       )
 
-    textPoints.push(
-      glyphPoints[
-      sourceIndex
-      ],
-    )
-  }
+    const candidate =
+      candidates[
+      Math.min(
+        candidateIndex,
+        candidates.length - 1,
+      )
+      ]
 
-  /*
-   * One simulation texel corresponds to one particle.
-   *
-   * Only particles 0 ... TEXT_PARTICLE_COUNT - 1
-   * are text particles.
-   */
-  const data =
-    new Float32Array(
-      TEXTURE_SIZE *
-      TEXTURE_SIZE *
-      4,
-    )
-
-  for (
-    let i = 0;
-    i < targetPointCount;
-    i += 1
-  ) {
     const textureIndex =
-      i * 4
+      particleIndex * 4
 
-    const point =
-      textPoints[i]
+    const phase =
+      particleIndex *
+      0.0137
 
     data[
       textureIndex
     ] =
-      point.x
+      candidate.x +
+      Math.sin(
+        phase * 1.71,
+      ) * 0.006
 
     data[
       textureIndex + 1
     ] =
-      point.y
+      candidate.y +
+      Math.cos(
+        phase * 1.43,
+      ) * 0.006
 
     data[
       textureIndex + 2
     ] =
-      point.z
+      candidate.z +
+      Math.sin(
+        phase * 0.91,
+      ) * 0.018
 
     data[
       textureIndex + 3
     ] =
       1.0
+  }
+
+  /*
+   * All remaining particles have no target.
+   *
+   * They remain part of the surrounding nebula
+   * instead of becoming another copy of the text.
+   */
+  for (
+    let particleIndex = targetCount;
+    particleIndex <
+    TEXTURE_SIZE *
+    TEXTURE_SIZE;
+    particleIndex += 1
+  ) {
+    const textureIndex =
+      particleIndex * 4
+
+    data[
+      textureIndex
+    ] =
+      0.0
+
+    data[
+      textureIndex + 1
+    ] =
+      0.0
+
+    data[
+      textureIndex + 2
+    ] =
+      0.0
+
+    data[
+      textureIndex + 3
+    ] =
+      0.0
   }
 
   const texture =
@@ -341,11 +363,9 @@ const WhatIBuild = () => {
             textTargetTexture,
           )
         }
-
         textTargetTexture={
           textTargetTexture
         }
-
         textStrength={
           1.0
         }
