@@ -334,11 +334,12 @@ const createTextTargetTexture = (
  *
  * 95% of the ENTIRE particle population is recruited.
  *
- * The target is a TRUE RECTANGLE.
+ * TRUE FLAT RECTANGLE.
  *
  * No ellipse.
- * No vortex.
+ * No depth.
  * No rotation.
+ * No vortex.
  * No radial force.
  * No tangential force.
  * No time-based deformation.
@@ -408,9 +409,6 @@ const createRectangleTargetTexture = () => {
 
         /*
          * Fixed rectangular position.
-         *
-         * Every particle gets a stable position.
-         * Nothing moves unless scroll changes.
          */
         const x =
             (
@@ -433,21 +431,12 @@ const createRectangleTargetTexture = () => {
             RECTANGLE_HEIGHT
 
         /*
-         * Very shallow depth.
+         * FLAT.
          *
-         * This keeps the rectangle visually
-         * dimensional without turning it into
-         * a sphere/ball.
+         * Every rectangle particle is on
+         * exactly the same Z plane.
          */
-        const z =
-            (
-                randomFor(
-                    particleIndex,
-                    211,
-                ) -
-                0.5
-            ) *
-            0.12
+        const z = 0
 
         data[index] =
             x
@@ -499,19 +488,21 @@ const WorkNebulaText = () => {
     ] = useState(null)
 
     const [
-        rectangleAmount,
-        setRectangleAmount,
-    ] = useState(0)
-
-    const [
         rectangleTargetTexture,
         setRectangleTargetTexture,
     ] = useState(null)
 
     const progressRef =
         useRef(0)
-    
-    const rectangleStrengthRef = useRef(0)
+
+    /*
+     * This is deliberately a ref.
+     *
+     * It updates every animation frame without
+     * causing React to rerender.
+     */
+    const rectangleStrengthRef =
+        useRef(0)
 
     /*
      * ------------------------------------------
@@ -567,7 +558,6 @@ const WorkNebulaText = () => {
 
         return () => {
             textTexture.dispose()
-
             rectangleTexture.dispose()
         }
     }, [])
@@ -614,23 +604,17 @@ const WorkNebulaText = () => {
 
     /*
      * ------------------------------------------
-     * TEXT <-> RECTANGLE
+     * SCROLL-DRIVEN TEXT <-> RECTANGLE
      * ------------------------------------------
      *
-     * 0%
-     * TEXT
+     * 0%   = WHAT I'VE DONE
      *
-     * 50%
-     * FULL RECTANGLE
+     * 50%  = FULL RECTANGLE
      *
-     * 100%
-     * TEXT
+     * 100% = WHAT I'VE DONE
      *
-     * There is deliberately NO time-based
-     * movement here.
-     *
-     * Scroll is the only thing controlling
-     * the transformation.
+     * The transformation is driven directly
+     * by scroll progress.
      * ------------------------------------------
      */
 
@@ -643,7 +627,9 @@ const WorkNebulaText = () => {
         }
 
         /*
-         * Immutable original text.
+         * Original text positions.
+         *
+         * This NEVER changes.
          */
         const baseTextData =
             new Float32Array(
@@ -651,14 +637,13 @@ const WorkNebulaText = () => {
             )
 
         /*
-         * Mutable texture consumed by
-         * NebulaBackground.
+         * This is the live target texture.
          */
         const dynamicData =
             textTargetTexture.image.data
 
         /*
-         * Fixed rectangle target.
+         * Fixed rectangle positions.
          */
         const rectangleData =
             rectangleTargetTexture.image.data
@@ -667,26 +652,21 @@ const WorkNebulaText = () => {
             null
 
         const frame = () => {
+            /*
+             * READ CURRENT SCROLL POSITION.
+             */
             const progress =
                 progressRef.current
 
+            let rectangleAmount
+
             /*
              * --------------------------------------
-             * RECTANGLE AMOUNT
+             * 0 -> 50%
+             *
+             * TEXT -> RECTANGLE
              * --------------------------------------
-             *
-             * 0.00 = text
-             * 0.50 = rectangle
-             * 1.00 = text
-             *
-             * The first half transforms into
-             * the rectangle.
-             *
-             * The second half transforms back
-             * into the text.
              */
-
-            let rectangleAmount
 
             if (
                 progress <= 0.5
@@ -698,6 +678,14 @@ const WorkNebulaText = () => {
                         progress,
                     )
             } else {
+                /*
+                 * ----------------------------------
+                 * 50 -> 100%
+                 *
+                 * RECTANGLE -> TEXT
+                 * ----------------------------------
+                 */
+
                 rectangleAmount =
                     1 -
                     smoothstep(
@@ -707,11 +695,16 @@ const WorkNebulaText = () => {
                     )
             }
 
-            rectangleStrengthRef.current = rectangleAmount
+            /*
+             * SEND THE CURRENT SCROLL-DERIVED
+             * RECTANGLE STRENGTH TO THE GPU.
+             */
+            rectangleStrengthRef.current =
+                rectangleAmount
 
             /*
              * --------------------------------------
-             * PARTICLES
+             * MORPH EVERY PARTICLE
              * --------------------------------------
              */
 
@@ -735,20 +728,10 @@ const WorkNebulaText = () => {
                     ]
 
                 /*
-                 * ----------------------------------
-                 * PARTICLE NOT IN RECTANGLE
-                 * ----------------------------------
-                 *
-                 * These particles exist only in
-                 * the original text population.
-                 *
-                 * They stay at their text position.
-                 *
-                 * This prevents extra particles
-                 * from appearing/disappearing
-                 * randomly.
+                 * Particles outside the rectangle's
+                 * 95% population remain exactly as
+                 * their original text target.
                  */
-
                 if (
                     rectangleAlive === 0
                 ) {
@@ -782,11 +765,8 @@ const WorkNebulaText = () => {
                 }
 
                 /*
-                 * ----------------------------------
-                 * TEXT POSITION
-                 * ----------------------------------
+                 * Original text position.
                  */
-
                 const tx =
                     textAlive > 0
                         ? baseTextData[
@@ -809,11 +789,8 @@ const WorkNebulaText = () => {
                         : 0
 
                 /*
-                 * ----------------------------------
-                 * RECTANGLE POSITION
-                 * ----------------------------------
+                 * Rectangle position.
                  */
-
                 const rx =
                     rectangleData[
                     index
@@ -831,17 +808,12 @@ const WorkNebulaText = () => {
 
                 /*
                  * ----------------------------------
-                 * DIRECT MORPH
+                 * DIRECT SCROLL MORPH
                  * ----------------------------------
                  *
-                 * No physics.
-                 * No rotation.
-                 * No vortex.
-                 * No waves.
-                 *
-                 * Just a clean spatial morph.
+                 * rectangleAmount comes directly
+                 * from scroll progress.
                  */
-
                 dynamicData[
                     index
                 ] =
@@ -888,23 +860,10 @@ const WorkNebulaText = () => {
                     )
 
                 /*
-                 * ----------------------------------
-                 * PARTICLE VISIBILITY
-                 * ----------------------------------
-                 *
-                 * As soon as the transformation
-                 * begins, the rectangle recruits
-                 * the 95% population.
-                 *
-                 * At 0% we keep the original text.
-                 *
-                 * At 50% all rectangle particles
-                 * are visible.
-                 *
-                 * After 50% they remain visible
-                 * while returning to the text.
+                 * As soon as the user starts scrolling
+                 * toward the rectangle, recruit the 95%
+                 * rectangle population.
                  */
-
                 if (
                     rectangleAmount > 0.001
                 ) {
@@ -921,18 +880,23 @@ const WorkNebulaText = () => {
             }
 
             /*
-             * Tell Three.js that the position
-             * texture has changed.
+             * GPU texture changed.
              */
             textTargetTexture.needsUpdate =
                 true
 
+            /*
+             * Continue checking scroll.
+             */
             animationFrame =
                 window.requestAnimationFrame(
                     frame,
                 )
         }
 
+        /*
+         * START THE LOOP.
+         */
         animationFrame =
             window.requestAnimationFrame(
                 frame,
@@ -946,6 +910,9 @@ const WorkNebulaText = () => {
                     animationFrame,
                 )
             }
+
+            rectangleStrengthRef.current =
+                0
         }
     }, [
         textTargetTexture,
@@ -954,7 +921,7 @@ const WorkNebulaText = () => {
 
     /*
      * ------------------------------------------
-     * FIXED NEBULA
+     * PAGE
      * ------------------------------------------
      */
 
@@ -1010,8 +977,8 @@ const WorkNebulaText = () => {
                         1.0
                     }
 
-                    rectangleStrength={
-                        rectangleAmount
+                    rectangleStrengthRef={
+                        rectangleStrengthRef
                     }
                 />
             </div>
