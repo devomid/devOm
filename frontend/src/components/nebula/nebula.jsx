@@ -235,6 +235,7 @@ const velocityFlowFragmentShader = `
     uniform float uTime;
     uniform float uTextEnabled;
     uniform float uTextStrength;
+    uniform float uRectangleStrength;
 
     uniform vec2 uWipeCenter;
     uniform vec2 uWipeHalfSize;
@@ -559,24 +560,48 @@ const velocityFlowFragmentShader = `
          * ------------------------------------------------
          */
 
-        velocity.x +=
-            flowX *
-            0.00105 *
-            particleSpeed;
+        float organicMotion =
+    1.0 -
+    uRectangleStrength;
 
-        velocity.y +=
-            flowY *
-            0.00105 *
-            particleSpeed;
+velocity.x +=
+    flowX *
+    0.00105 *
+    particleSpeed *
+    organicMotion;
 
-        velocity.z +=
-            flowZ *
-            0.00105 *
-            particleSpeed;
+velocity.y +=
+    flowY *
+    0.00105 *
+    particleSpeed *
+    organicMotion;
 
-        velocity.x *= 0.965;
-        velocity.y *= 0.965;
-        velocity.z *= 0.978;
+velocity.z +=
+    flowZ *
+    0.00105 *
+    particleSpeed *
+    organicMotion;
+
+velocity.x *=
+    mix(
+        0.965,
+        0.72,
+        uRectangleStrength
+    );
+
+velocity.y *=
+    mix(
+        0.965,
+        0.72,
+        uRectangleStrength
+    );
+
+velocity.z *=
+    mix(
+        0.978,
+        0.72,
+        uRectangleStrength
+    );
 
         /*
          * ------------------------------------------------
@@ -833,6 +858,10 @@ velocity.xy +=
                     target -
                     position;
 
+                    float rectangleLock =
+    uRectangleStrength *
+    targetAvailable;
+
                 float distanceToTarget =
                     length(
                         toTarget
@@ -845,6 +874,77 @@ velocity.xy +=
                     vec3 direction =
                         toTarget /
                         distanceToTarget;
+
+
+                        /*
+ * ------------------------------------------------
+ * RECTANGLE LOCK
+ * ------------------------------------------------
+ *
+ * Only active while the Work page is forming the
+ * rectangle. This does not participate in normal
+ * text formation or the wipe system.
+ */
+
+if (
+    rectangleLock >
+    0.001
+) {
+    vec3 rectangleDelta =
+        target -
+        position;
+
+    float rectangleDistance =
+        length(
+            rectangleDelta
+        );
+
+    if (
+        rectangleDistance >
+        0.00001
+    ) {
+        vec3 rectangleDirection =
+            rectangleDelta /
+            rectangleDistance;
+
+        /*
+         * Strong positional correction.
+         * This is intentionally much stronger than
+         * the normal organic text spring.
+         */
+
+        float rectangleSpring =
+            clamp(
+                rectangleDistance *
+                0.012,
+                0.0015,
+                0.022
+            );
+
+        velocity +=
+            rectangleDirection *
+            rectangleSpring *
+            rectangleLock;
+
+        /*
+         * Kill sideways velocity so particles don't
+         * slide away from the straight rectangle edges.
+         */
+
+        vec3 sidewaysVelocity =
+            velocity -
+            rectangleDirection *
+            dot(
+                velocity,
+                rectangleDirection
+            );
+
+        velocity -=
+            sidewaysVelocity *
+            0.28 *
+            rectangleLock;
+    }
+}
 
                     /*
                      * ------------------------------------
@@ -1536,6 +1636,7 @@ const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
     textStrength = 0.0,
+    rectangleStrength = 0.0,
 }) => {
     const pointsRef =
         useRef(null)
@@ -1828,6 +1929,10 @@ const NebulaParticles = ({
                         value: 0.0,
                     },
 
+                    uRectangleStrength: {
+                        value: 0.0,
+                    },
+
                     uWipeCenter: {
                         value:
                             new THREE.Vector2(
@@ -2044,6 +2149,12 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
+            
+            velocityMaterial
+                .uniforms
+                .uRectangleStrength
+                .value =
+                rectangleStrength
 
             /*
              * ------------------------------------------------
@@ -2412,6 +2523,7 @@ const NebulaBackground = ({
     textEnabled = false,
     textTargetTexture = null,
     textStrength = 0.0,
+    rectangleStrength = 0.0,
 }) => {
     return (
         <Canvas
@@ -2455,11 +2567,17 @@ const NebulaBackground = ({
                 textEnabled={
                     textEnabled
                 }
+
                 textTargetTexture={
                     textTargetTexture
                 }
+
                 textStrength={
                     textStrength
+                }
+
+                rectangleStrength={
+                    rectangleStrength
                 }
             />
         </Canvas>
