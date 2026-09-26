@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import React from 'react'
-import NebulaText from '../components/whatibuildComps/nebulaText'
-import BuildTiles from '../components/whatibuildComps/BuildTiles'
+import NebulaText from '../components/whatibuildComps/BuildNebulaText'
+import TilesContainer from '../components/whatibuildComps/TilesContainer';
 
 const WhatIBuild = () => {
   return (
@@ -22,7 +22,7 @@ const WhatIBuild = () => {
         }}
       >
         <NebulaText />
-        <BuildTiles />
+        <TilesContainer />
       </Box>
     </Box>
   )

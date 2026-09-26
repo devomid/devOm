@@ -14,9 +14,7 @@ const PARTICLE_COUNT =
 
 const TEXT_PARTICLE_RATIO = 0.58
 
-const createTextTargetTexture = (
-    text,
-) => {
+const createTextTargetTexture = (text) => {
     const data =
         new Float32Array(
             PARTICLE_COUNT * 4,
@@ -347,7 +345,7 @@ const NebulaText = () => {
     useEffect(() => {
         const texture =
             createTextTargetTexture(
-                'WHAT I BUILD',
+                `WHAT I've DONE`,
             )
 
         setTextTargetTexture(

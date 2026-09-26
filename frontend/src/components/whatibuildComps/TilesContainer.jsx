@@ -34,7 +34,7 @@ const shuffle = (array) => {
     return result
 }
 
-const BuildTiles = () => {
+const TilesContainer = () => {
     const scrollRef = useRef(null)
 
     const [progress, setProgress] = useState(0)
@@ -578,4 +578,4 @@ const BuildTiles = () => {
     )
 }
 
-export default BuildTiles
+export default TilesContainer
