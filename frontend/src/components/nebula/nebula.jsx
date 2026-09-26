@@ -764,7 +764,7 @@ const velocityFlowFragmentShader = `
 
                     velocity +=
                         swirl *
-                        0.000030 *
+                        0.000021 *
                         uTextStrength *
                         formationWeight;
 
