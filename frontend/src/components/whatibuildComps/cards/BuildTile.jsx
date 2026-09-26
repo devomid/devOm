@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box } from '@mui/material'
 
-const SecondTile = ({ x, y, size }) => {
+const BuildTile = ({ x, y, size, build }) => {
     return (
         <Box
             sx={{
@@ -16,9 +16,9 @@ const SecondTile = ({ x, y, size }) => {
                 transform: `translate(${x}px, ${y}px)`,
             }}
         >
-            First
+            {build.title}
         </Box>
     )
 }
 
-export default SecondTile
+export default BuildTile

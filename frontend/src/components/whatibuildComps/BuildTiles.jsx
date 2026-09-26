@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Box } from '@mui/material'
-import FirstTile from './cards/1st'
-import SecondTile from './cards/2nd'
+import BuildTile from './cards/BuildTile'
+import builds from '../../db/builds'
 
 const TILE_SIZE = 220
 const GRID_GAP = 24
@@ -85,16 +85,17 @@ const BuildTiles = () => {
                 pointerEvents: 'none',
             }}
         >
-            <FirstTile
-                x={x}
-                y={y}
-                size={TILE_SIZE}
-            />
-            <SecondTile
-                x={x}
-                y={y}
-                size={TILE_SIZE}
-            />
+            {builds.map((build, index) => (
+                <BuildTile
+                    key={build.id}
+                    x={x}
+                    y={y}
+                    size={TILE_SIZE}
+                    build={build}
+                    index={index}
+                />
+            ))}
+
         </Box>
     )
 }
