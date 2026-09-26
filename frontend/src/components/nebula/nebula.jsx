@@ -12,6 +12,10 @@ import {
     useThree,
 } from '@react-three/fiber'
 
+import {
+    nebulaWipeState,
+} from '../whatibuildComps/nebulaWipe'
+
 const PARTICLE_COUNT = 262144
 const TEXTURE_SIZE = 512
 const TEXTURE_CAPACITY =
@@ -231,6 +235,11 @@ const velocityFlowFragmentShader = `
     uniform float uTime;
     uniform float uTextEnabled;
     uniform float uTextStrength;
+
+    uniform vec2 uWipeCenter;
+    uniform vec2 uWipeHalfSize;
+    uniform vec2 uWipeDirection;
+    uniform float uWipeStrength;
 
     varying vec2 vUv;
 
@@ -569,7 +578,232 @@ const velocityFlowFragmentShader = `
         velocity.y *= 0.965;
         velocity.z *= 0.978;
 
+        /*
+         * ------------------------------------------------
+         * BUILD TILE / TEXT DISTURBANCE
+         * ------------------------------------------------
+         *
+         * The tile is represented as a soft force field.
+         *
+         * This deliberately does NOT hide or delete
+         * particles. It adds velocity to the particles
+         * that belong to the text target.
+         *
+         * The existing text spring below remains active,
+         * which is what makes the text reform naturally
+         * after the tile has passed.
+         */
+
+        if (
+            uWipeStrength > 0.001 &&
+            uTextEnabled > 0.5
+        ) {
+            vec4 wipeTarget =
+                texture2D(
+                    uTextTargetTexture,
+                    vUv
+                );
+
+            if (
+                wipeTarget.a >
+                0.001
+            ) {
+                vec2 halfSize =
+                    max(
+                        uWipeHalfSize,
+                        vec2(
+                            0.001
+                        )
+                    );
+
+                vec2 delta =
+                    position.xy -
+                    uWipeCenter;
+
                 /*
+                 * Normalized distance from the tile
+                 * rectangle.
+                 *
+                 * Values below 1 are inside the tile.
+                 * Values above 1 are outside it.
+                 */
+
+                vec2 normalizedDelta =
+                    abs(delta) /
+                    halfSize;
+
+                float boxDistance =
+                    max(
+                        normalizedDelta.x,
+                        normalizedDelta.y
+                    );
+
+                /*
+                 * Wide soft influence around the glass
+                 * tile rather than a hard collision edge.
+                 */
+
+                float influence =
+                    1.0 -
+                    smoothstep(
+                        0.72,
+                        1.72,
+                        boxDistance
+                    );
+
+                /*
+                 * Stronger response inside the tile and
+                 * immediately around its surface.
+                 */
+
+                float core =
+                    1.0 -
+                    smoothstep(
+                        0.45,
+                        1.05,
+                        boxDistance
+                    );
+
+                /*
+                 * Elliptical radial direction.
+                 *
+                 * The small phase contribution prevents
+                 * a mathematically undefined direction
+                 * when a particle is exactly at the tile
+                 * center.
+                 */
+
+                vec2 radialVector =
+                    vec2(
+                        delta.x /
+                        (
+                            halfSize.x *
+                            halfSize.x
+                        ),
+
+                        delta.y /
+                        (
+                            halfSize.y *
+                            halfSize.y
+                        )
+                    );
+
+                radialVector +=
+                    vec2(
+                        cos(phase),
+                        sin(phase)
+                    ) *
+                    0.025;
+
+                radialVector =
+                    normalize(
+                        radialVector
+                    );
+
+                /*
+                 * Tangential component gives the disturbance
+                 * a slight fluid wake instead of making the
+                 * text simply explode radially.
+                 */
+
+                vec2 tangent =
+                    vec2(
+                        -radialVector.y,
+                        radialVector.x
+                    );
+
+                /*
+                 * Tile movement direction.
+                 */
+
+                vec2 wipeDirection =
+                    normalize(
+                        uWipeDirection +
+                        vec2(
+                            0.00001
+                        )
+                    );
+
+                /*
+                 * Combine:
+                 *
+                 *  - radial displacement
+                 *  - forward tile wake
+                 *  - tangential swirl
+                 */
+
+                vec2 disturbance =
+                    radialVector *
+                    (
+                        0.72 +
+                        core * 0.58
+                    );
+
+                disturbance +=
+                    wipeDirection *
+                    (
+                        0.30 +
+                        core * 0.28
+                    );
+
+                disturbance +=
+                    tangent *
+                    (
+                        sin(
+                            phase * 1.71 +
+                            uTime * 0.85
+                        ) *
+                        0.14
+                    );
+
+                /*
+                 * The disturbance is strongest around the
+                 * actual text-bearing particles and fades
+                 * smoothly outward.
+                 */
+
+                float disturbanceStrength =
+                    uWipeStrength *
+                    influence *
+                    (
+                        0.72 +
+                        core * 0.48
+                    );
+
+                velocity.xy +=
+                    disturbance *
+                    disturbanceStrength *
+                    0.00165;
+
+                /*
+                 * A small depth impulse makes the particles
+                 * feel volumetric instead of remaining locked
+                 * to a perfectly flat plane.
+                 */
+
+                float depthImpulse =
+                    (
+                        0.16 +
+                        0.10 *
+                        sin(
+                            phase +
+                            uTime * 0.71
+                        )
+                    ) *
+                    disturbanceStrength;
+
+                velocity.z +=
+                    depthImpulse *
+                    0.00042 *
+                    (
+                        position.z >= 0.0
+                            ? 1.0
+                            : -1.0
+                    );
+            }
+        }
+
+        /*
          * ------------------------------------------------
          * ORGANIC TARGET FORMATION
          * ------------------------------------------------
@@ -1309,8 +1543,13 @@ const NebulaParticles = ({
     const simulationRef =
         useRef(null)
 
+    const previousWipeRef =
+        useRef(null)
+
     const {
         gl,
+        size,
+        camera,
     } = useThree()
 
     const particles =
@@ -1589,6 +1828,34 @@ const NebulaParticles = ({
                         value: 0.0,
                     },
 
+                    uWipeCenter: {
+                        value:
+                            new THREE.Vector2(
+                                0,
+                                0,
+                            ),
+                    },
+
+                    uWipeHalfSize: {
+                        value:
+                            new THREE.Vector2(
+                                0,
+                                0,
+                            ),
+                    },
+
+                    uWipeDirection: {
+                        value:
+                            new THREE.Vector2(
+                                0,
+                                0,
+                            ),
+                    },
+
+                    uWipeStrength: {
+                        value: 0.0,
+                    },
+
                     uTime: {
                         value: 0,
                     },
@@ -1777,6 +2044,247 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
+
+            /*
+             * ------------------------------------------------
+             * BUILD TILE -> WORLD SPACE
+             * ------------------------------------------------
+             *
+             * BuildTiles reports CSS-pixel coordinates.
+             *
+             * The Nebula uses a perspective camera at z=10.
+             * Convert the tile rectangle into the actual
+             * Three.js world space occupied by the camera.
+             */
+
+            const wipe =
+                nebulaWipeState.current
+
+            const wipeUniforms =
+                velocityMaterial.uniforms
+
+            if (
+                wipe
+            ) {
+                const viewportHeight =
+                    size.height
+
+                const viewportWidth =
+                    size.width
+
+                const cameraDistance =
+                    Math.abs(
+                        camera.position.z
+                    )
+
+                const fovRadians =
+                    THREE.MathUtils.degToRad(
+                        camera.fov
+                    )
+
+                const worldHeight =
+                    2 *
+                    cameraDistance *
+                    Math.tan(
+                        fovRadians /
+                        2
+                    )
+
+                const worldWidth =
+                    worldHeight *
+                    (
+                        viewportWidth /
+                        viewportHeight
+                    )
+
+                const centerX =
+                    wipe.x +
+                    wipe.width /
+                    2
+
+                const centerY =
+                    wipe.y +
+                    wipe.height /
+                    2
+
+                const worldCenterX =
+                    (
+                        centerX /
+                        viewportWidth -
+                        0.5
+                    ) *
+                    worldWidth
+
+                const worldCenterY =
+                    (
+                        0.5 -
+                        centerY /
+                        viewportHeight
+                    ) *
+                    worldHeight
+
+                const worldHalfWidth =
+                    (
+                        wipe.width /
+                        viewportWidth
+                    ) *
+                    worldWidth *
+                    0.5
+
+                const worldHalfHeight =
+                    (
+                        wipe.height /
+                        viewportHeight
+                    ) *
+                    worldHeight *
+                    0.5
+
+                wipeUniforms
+                    .uWipeCenter
+                    .value.set(
+                        worldCenterX,
+                        worldCenterY,
+                    )
+
+                wipeUniforms
+                    .uWipeHalfSize
+                    .value.set(
+                        worldHalfWidth,
+                        worldHalfHeight,
+                    )
+
+                /*
+                 * Calculate the direction the active tile
+                 * is moving in world space.
+                 *
+                 * A newly activated tile starts with no
+                 * velocity so a tile-to-tile handoff cannot
+                 * create a giant artificial impulse.
+                 */
+
+                const previousWipe =
+                    previousWipeRef.current
+
+                if (
+                    previousWipe &&
+                    previousWipe.index ===
+                    wipe.index
+                ) {
+                    const previousCenterX =
+                        previousWipe.x +
+                        previousWipe.width /
+                        2
+
+                    const previousCenterY =
+                        previousWipe.y +
+                        previousWipe.height /
+                        2
+
+                    const previousWorldX =
+                        (
+                            previousCenterX /
+                            viewportWidth -
+                            0.5
+                        ) *
+                        worldWidth
+
+                    const previousWorldY =
+                        (
+                            0.5 -
+                            previousCenterY /
+                            viewportHeight
+                        ) *
+                        worldHeight
+
+                    const movementX =
+                        worldCenterX -
+                        previousWorldX
+
+                    const movementY =
+                        worldCenterY -
+                        previousWorldY
+
+                    const movementLength =
+                        Math.sqrt(
+                            movementX *
+                            movementX +
+                            movementY *
+                            movementY
+                        )
+
+                    if (
+                        movementLength >
+                        0.00001
+                    ) {
+                        wipeUniforms
+                            .uWipeDirection
+                            .value.set(
+                                movementX /
+                                movementLength,
+
+                                movementY /
+                                movementLength
+                            )
+                    } else {
+                        wipeUniforms
+                            .uWipeDirection
+                            .value.set(
+                                0,
+                                0
+                            )
+                    }
+                } else {
+                    wipeUniforms
+                        .uWipeDirection
+                        .value.set(
+                            0,
+                            0
+                        )
+                }
+
+                /*
+                 * The disturbance has a gentle ramp-in.
+                 *
+                 * It does not alter the tile animation itself.
+                 */
+
+                wipeUniforms
+                    .uWipeStrength
+                    .value =
+                    1.0
+
+                previousWipeRef.current = {
+                    index:
+                        wipe.index,
+
+                    x:
+                        wipe.x,
+
+                    y:
+                        wipe.y,
+
+                    width:
+                        wipe.width,
+
+                    height:
+                        wipe.height,
+                }
+            } else {
+                wipeUniforms
+                    .uWipeStrength
+                    .value =
+                    0.0
+
+                wipeUniforms
+                    .uWipeDirection
+                    .value.set(
+                        0,
+                        0
+                    )
+
+                previousWipeRef.current =
+                    null
+            }
 
             simulationQuad.material =
                 velocityMaterial

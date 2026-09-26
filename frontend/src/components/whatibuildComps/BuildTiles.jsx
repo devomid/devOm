@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box } from '@mui/material'
 import BuildTile from './cards/BuildTile'
 import builds from '../../db/builds'
+import { nebulaWipeState } from './nebulaWipe'
 
 const TILE_SIZE = 220
 const GRID_GAP = 24
@@ -113,6 +114,9 @@ const BuildTiles = () => {
                 'resize',
                 handleResize
             )
+
+            nebulaWipeState.current =
+                null
         }
     }, [])
 
@@ -421,6 +425,61 @@ const BuildTiles = () => {
     }
 
     /*
+     * ------------------------------------------------
+     * NEBULA WIPE STATE
+     * ------------------------------------------------
+     *
+     * Only the tile currently travelling through its
+     * entrance/movement phase is allowed to disturb
+     * the text.
+     *
+     * This is deliberately a mutable shared object
+     * rather than React state so scrolling does not
+     * cause another component tree render.
+     */
+
+    const activeTileIndex =
+        progress < 1
+            ? Math.min(
+                builds.length - 1,
+                Math.floor(
+                    progress *
+                    builds.length
+                )
+            )
+            : -1
+
+    if (
+        activeTileIndex >= 0 &&
+        builds.length > 0
+    ) {
+        const activeTile =
+            getTilePosition(
+                activeTileIndex
+            )
+
+        nebulaWipeState.current = {
+            index:
+                activeTileIndex,
+
+            x:
+                activeTile.x,
+
+            y:
+                activeTile.y,
+
+            width:
+                TILE_SIZE,
+
+            height:
+                TILE_SIZE,
+        }
+    } else {
+        nebulaWipeState.current =
+            null
+    }
+
+    /*
      * One viewport of scroll distance is
      * reserved for each row.
      *
@@ -444,19 +503,19 @@ const BuildTiles = () => {
                 overflowX: 'hidden',
                 overscrollBehavior: 'contain',
                 scrollbarWidth: 'none',
-                
+
                 '&::-webkit-scrollbar': {
                     display: 'none',
                 },
             }}
-            >
+        >
             <Box
                 sx={{
                     position: 'relative',
                     width: '100%',
                     height: `${scrollHeight}px`,
                 }}
-                >
+            >
                 <Box
                     sx={{
                         position: 'sticky',
