@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { Box } from '@mui/material'
 import BuildTile from './cards/1st'
 
+const TILE_SIZE = 220
+const GRID_GAP = 24
+const GRID_PADDING = 48
+
 const BuildTiles = () => {
     const [progress, setProgress] = useState(0)
 
@@ -31,13 +35,14 @@ const BuildTiles = () => {
         }
     }, [])
 
-    const startX = window.innerWidth / 2 - 90
-    const startY = window.innerHeight - window.innerHeight * 0.08 - 180
+    const entranceX =
+        window.innerWidth / 2 - TILE_SIZE / 2
 
-    const entranceY = window.innerHeight + 40
+    const entranceY =
+        window.innerHeight + 40
 
-    const endX = window.innerWidth * 0.08
-    const endY = window.innerHeight * 0.08
+    const gridX = GRID_PADDING
+    const gridY = GRID_PADDING
 
     const entranceProgress = Math.min(progress / 0.2, 1)
 
@@ -46,21 +51,13 @@ const BuildTiles = () => {
             ? 0
             : (progress - 0.2) / 0.8
 
-    const currentX =
-        startX + (endX - startX) * movementProgress
-
-    const currentY =
-        entranceY + (startY - entranceY) * entranceProgress
-
     const x =
-        progress <= 0.2
-            ? startX
-            : currentX
+        entranceX +
+        (gridX - entranceX) * movementProgress
 
     const y =
-        progress <= 0.2
-            ? currentY
-            : startY + (endY - startY) * movementProgress
+        entranceY +
+        (gridY - entranceY) * entranceProgress
 
     return (
         <Box
@@ -70,7 +67,11 @@ const BuildTiles = () => {
                 pointerEvents: 'none',
             }}
         >
-            <BuildTile x={x} y={y} />
+            <BuildTile
+                x={x}
+                y={y}
+                size={TILE_SIZE}
+            />
         </Box>
     )
 }

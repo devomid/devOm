@@ -1,15 +1,15 @@
 import React from 'react'
 import { Box } from '@mui/material'
 
-const BuildTile = ({ x, y }) => {
+const BuildTile = ({ x, y, size }) => {
     return (
         <Box
             sx={{
                 position: 'absolute',
                 left: 0,
                 top: 0,
-                width: '180px',
-                height: '180px',
+                width: `${size}px`,
+                height: `${size}px`,
                 borderRadius: '28px',
                 background: '#F4B400',
                 pointerEvents: 'auto',
