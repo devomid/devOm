@@ -4,7 +4,7 @@ import BuildTile from './cards/BuildTile'
 import builds from '../../db/builds'
 import { nebulaWipeState } from './nebulaWipe'
 
-const TILE_SIZE = 250
+const TILE_SIZE = 264
 const GRID_GAP = 26
 
 const GRID_MARGIN_LEFT = 50
