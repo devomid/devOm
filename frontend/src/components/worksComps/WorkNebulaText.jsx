@@ -1,11 +1,37 @@
-import React, {
+import {
     useEffect,
     useRef,
+    useState,
 } from 'react'
 
-import {
-    Box,
-} from '@mui/material'
+import * as THREE from 'three'
+
+import NebulaBackground from '../nebula/nebula'
+
+const TEXTURE_SIZE = 512
+
+const PARTICLE_COUNT =
+    TEXTURE_SIZE *
+    TEXTURE_SIZE
+
+/*
+ * This controls how many particles
+ * form the actual text.
+ *
+ * Keep this lower than the vortex
+ * participation.
+ */
+const TEXT_PARTICLE_RATIO = 0.58
+
+/*
+ * Percentage of the COMPLETE particle
+ * population that participates in the
+ * tornado.
+ */
+const VORTEX_PARTICLE_RATIO = 0.94
+
+const WORLD_WIDTH = 8.9
+const WORLD_HEIGHT = 2.45
 
 const clamp = (
     value,
@@ -21,10 +47,21 @@ const clamp = (
     )
 
 const smoothstep = (
+    edge0,
+    edge1,
     value,
 ) => {
     const t =
-        clamp(value)
+        clamp(
+            (
+                value -
+                edge0
+            ) /
+            (
+                edge1 -
+                edge0
+            ),
+        )
 
     return (
         t *
@@ -36,27 +73,27 @@ const smoothstep = (
     )
 }
 
-const createParticles = (
+const createTextTargetTexture = (
     text,
 ) => {
+    const data =
+        new Float32Array(
+            PARTICLE_COUNT * 4,
+        )
+
     const canvas =
         document.createElement(
             'canvas',
         )
 
-    canvas.width =
-        1600
-
-    canvas.height =
-        420
+    canvas.width = 1600
+    canvas.height = 420
 
     const context =
-        canvas.getContext(
-            '2d',
-        )
+        canvas.getContext('2d')
 
     if (!context) {
-        return []
+        return null
     }
 
     context.clearRect(
@@ -94,27 +131,27 @@ const createParticles = (
 
     const candidates = []
 
-    const sampleStep = 3
-
     for (
         let y = 0;
         y < canvas.height;
-        y += sampleStep
+        y += 1
     ) {
         for (
             let x = 0;
             x < canvas.width;
-            x += sampleStep
+            x += 1
         ) {
-            const alpha =
-                image.data[
+            const pixelIndex =
                 (
                     y *
                     canvas.width +
                     x
                 ) *
-                4 +
-                3
+                4
+
+            const alpha =
+                image.data[
+                    pixelIndex + 3
                 ]
 
             if (
@@ -129,19 +166,10 @@ const createParticles = (
     }
 
     if (
-        candidates.length ===
-        0
+        candidates.length === 0
     ) {
-        return []
+        return null
     }
-
-    const particles = []
-
-    const particleCount =
-        Math.min(
-            16000,
-            candidates.length,
-        )
 
     const centerX =
         canvas.width / 2
@@ -150,715 +178,1149 @@ const createParticles = (
         canvas.height / 2
 
     for (
-        let i = 0;
-        i < particleCount;
-        i += 1
+        let particleIndex = 0;
+        particleIndex <
+        PARTICLE_COUNT;
+        particleIndex += 1
     ) {
-        const candidate =
-            candidates[
-            (
-                i *
-                7919
-            ) %
-            candidates.length
-            ]
-
         const hash =
             (
-                i *
+                particleIndex *
                 1664525 +
                 1013904223
             ) >>> 0
 
-        const random =
+        const normalizedHash =
             hash /
             4294967295
 
-        const random2 =
+        const textureIndex =
+            particleIndex * 4
+
+        /*
+         * Only 58% form the text.
+         * The rest remain normal nebula
+         * particles until the vortex
+         * recruits them.
+         */
+        if (
+            normalizedHash >
+            TEXT_PARTICLE_RATIO
+        ) {
+            data[
+                textureIndex + 3
+            ] = 0.0
+
+            continue
+        }
+
+        const candidateIndex =
             (
                 (
-                    hash *
-                    16807
-                ) %
-                100000
-            ) /
-            100000
+                    particleIndex *
+                    15731
+                ) +
+                789221
+            ) %
+            candidates.length
 
-        const random3 =
+        const candidate =
+            candidates[
+                candidateIndex
+            ]
+
+        const variation =
+            particleIndex *
+            0.0137
+
+        const localX =
+            candidate.x -
+            centerX
+
+        const localY =
+            candidate.y -
+            centerY
+
+        const worldX =
             (
+                localX /
                 (
-                    hash *
-                    48271
-                ) %
-                100000
-            ) /
-            100000
+                    canvas.width / 2
+                )
+            ) *
+            WORLD_WIDTH
 
-        const x =
-            (
-                candidate.x -
-                centerX
-            ) /
-            (
-                canvas.width / 2
-            )
-
-        const y =
+        const worldY =
             -(
-                candidate.y -
-                centerY
-            ) /
-            (
-                canvas.height / 2
-            )
+                localY /
+                (
+                    canvas.height / 2
+                )
+            ) *
+            WORLD_HEIGHT
 
-        particles.push({
-            x,
-            y,
+        const jitterX =
+            Math.sin(
+                variation *
+                1.71,
+            ) *
+            0.008
 
-            random,
-            random2,
-            random3,
+        const jitterY =
+            Math.cos(
+                variation *
+                1.43,
+            ) *
+            0.008
 
-            seed:
-                random *
-                Math.PI *
-                2,
+        const jitterZ =
+            Math.sin(
+                variation *
+                0.91,
+            ) *
+            0.025
 
-            layer:
-                i % 4 === 0
-                    ? 1
-                    : 0,
-        })
+        data[
+            textureIndex
+        ] =
+            worldX +
+            jitterX
+
+        data[
+            textureIndex + 1
+        ] =
+            worldY +
+            jitterY
+
+        data[
+            textureIndex + 2
+        ] =
+            jitterZ
+
+        data[
+            textureIndex + 3
+        ] =
+            1.0
     }
 
-    return particles
-}
-
-const WorkNebulaText = ({
-    scrollProgress = 0,
-}) => {
-    const backgroundCanvasRef =
-        useRef(null)
-
-    const foregroundCanvasRef =
-        useRef(null)
-
-    const progressRef =
-        useRef(
-            scrollProgress,
+    const texture =
+        new THREE.DataTexture(
+            data,
+            TEXTURE_SIZE,
+            TEXTURE_SIZE,
+            THREE.RGBAFormat,
+            THREE.FloatType,
         )
 
-    useEffect(() => {
-        progressRef.current =
-            scrollProgress
-    }, [
-        scrollProgress,
-    ])
+    texture.minFilter =
+        THREE.NearestFilter
 
-    useEffect(() => {
-        const backgroundCanvas =
-            backgroundCanvasRef.current
+    texture.magFilter =
+        THREE.NearestFilter
 
-        const foregroundCanvas =
-            foregroundCanvasRef.current
+    texture.wrapS =
+        THREE.ClampToEdgeWrapping
 
-        if (
-            !backgroundCanvas ||
-            !foregroundCanvas
-        ) {
-            return undefined
+    texture.wrapT =
+        THREE.ClampToEdgeWrapping
+
+    texture.generateMipmaps =
+        false
+
+    texture.needsUpdate =
+        true
+
+    return texture
+}
+
+const createVortexTargetTexture = (
+    textTexture,
+) => {
+    if (!textTexture) {
+        return null
+    }
+
+    const textData =
+        textTexture.image.data
+
+    const data =
+        new Float32Array(
+            PARTICLE_COUNT * 4,
+        )
+
+    const randomFor =
+        (particleIndex, offset = 0) => {
+            const value =
+                (
+                    (
+                        particleIndex +
+                        offset
+                    ) *
+                    1103515245 +
+                    12345
+                ) >>> 0
+
+            return (
+                value /
+                4294967295
+            )
         }
 
-        const backgroundContext =
-            backgroundCanvas.getContext(
-                '2d',
-            )
+    for (
+        let particleIndex = 0;
+        particleIndex <
+        PARTICLE_COUNT;
+        particleIndex += 1
+    ) {
+        const index =
+            particleIndex * 4
 
-        const foregroundContext =
-            foregroundCanvas.getContext(
-                '2d',
-            )
-
+        /*
+         * Approximately 94% of the COMPLETE
+         * nebula participates in the vortex.
+         */
         if (
-            !backgroundContext ||
-            !foregroundContext
+            randomFor(
+                particleIndex,
+                991,
+            ) >
+            VORTEX_PARTICLE_RATIO
         ) {
-            return undefined
+            data[
+                index + 3
+            ] = 0.0
+
+            continue
         }
 
-        const particles =
-            createParticles(
+        const textAlive =
+            textData[
+                index + 3
+            ]
+
+        /*
+         * Some particles originate from the
+         * text, while the recruited particles
+         * originate from the surrounding field.
+         */
+        let sourceX = 0
+        let sourceY = 0
+        let sourceZ = 0
+
+        if (
+            textAlive > 0
+        ) {
+            sourceX =
+                textData[
+                    index
+                ]
+
+            sourceY =
+                textData[
+                    index + 1
+                ]
+
+            sourceZ =
+                textData[
+                    index + 2
+                ]
+        } else {
+            sourceX =
+                (
+                    randomFor(
+                        particleIndex,
+                        17,
+                    ) -
+                    0.5
+                ) *
+                10
+
+            sourceY =
+                (
+                    randomFor(
+                        particleIndex,
+                        31,
+                    ) -
+                    0.5
+                ) *
+                6
+
+            sourceZ =
+                (
+                    randomFor(
+                        particleIndex,
+                        47,
+                    ) -
+                    0.5
+                ) *
+                2
+        }
+
+        /*
+         * ------------------------------------------------
+         * VORTEX GEOMETRY
+         * ------------------------------------------------
+         *
+         * Instead of distributing particles on a
+         * circle, distribute them across a VERY WIDE
+         * rectangular/elliptical sheet.
+         */
+
+        const u =
+            randomFor(
+                particleIndex,
+                101,
+            )
+
+        const v =
+            randomFor(
+                particleIndex,
+                151,
+            )
+
+        const depth =
+            randomFor(
+                particleIndex,
+                211,
+            )
+
+        /*
+         * Horizontal distribution.
+         *
+         * Almost the full width of the viewport.
+         */
+        const baseX =
+            (
+                u -
+                0.5
+            ) *
+            9.6
+
+        /*
+         * Vertical distribution.
+         *
+         * Much shorter than width.
+         *
+         * This is what makes the vortex
+         * rectangular rather than spherical.
+         */
+        const baseY =
+            (
+                v -
+                0.5
+            ) *
+            3.1
+
+        /*
+         * Give the center more density.
+         */
+        const centerBias =
+            Math.pow(
+                randomFor(
+                    particleIndex,
+                    271,
+                ),
+                1.8,
+            )
+
+        const compressedY =
+            baseY *
+            (
+                0.45 +
+                centerBias *
+                0.55
+            )
+
+        /*
+         * Strong horizontal bands.
+         *
+         * These create the torn layers
+         * inside the tornado.
+         */
+        const bandWave =
+            Math.sin(
+                (
+                    baseX *
+                    3.2
+                ) +
+                (
+                    baseY *
+                    7.5
+                ) +
+                particleIndex *
+                0.013,
+            )
+
+        /*
+         * Shear becomes stronger toward
+         * the outer edges.
+         */
+        const edge =
+            Math.abs(
+                baseX /
+                4.8,
+            )
+
+        const shear =
+            bandWave *
+            (
+                0.08 +
+                edge *
+                0.9
+            )
+
+        /*
+         * Vertical tearing.
+         */
+        const tear =
+            Math.sin(
+                (
+                    baseX *
+                    4.8
+                ) +
+                particleIndex *
+                0.027,
+            ) *
+            (
+                0.04 +
+                edge *
+                0.32
+            )
+
+        let vortexX =
+            baseX +
+            shear
+
+        let vortexY =
+            compressedY +
+            tear
+
+        /*
+         * Strong depth.
+         *
+         * This prevents the vortex from looking
+         * like a flat 2D blob.
+         */
+        const vortexZ =
+            (
+                depth -
+                0.5
+            ) *
+            (
+                1.6 +
+                edge *
+                1.5
+            )
+
+        /*
+         * ------------------------------------------------
+         * SPIRAL FIELD
+         * ------------------------------------------------
+         *
+         * Rotate the entire rectangular mass around
+         * its center, but also introduce differential
+         * rotation so it twists apart.
+         */
+
+        const radius =
+            Math.sqrt(
+                (
+                    vortexX *
+                    vortexX
+                ) +
+                (
+                    vortexY *
+                    vortexY
+                ),
+            )
+
+        const normalizedRadius =
+            clamp(
+                radius /
+                5.2,
+            )
+
+        const originalAngle =
+            Math.atan2(
+                vortexY,
+                vortexX,
+            )
+
+        /*
+         * Huge angular displacement.
+         *
+         * Outer particles rotate more.
+         */
+        const spiralAmount =
+            (
+                2.5 +
+                normalizedRadius *
+                9.5
+            )
+
+        const angle =
+            originalAngle +
+            spiralAmount
+
+        const cos =
+            Math.cos(
+                angle,
+            )
+
+        const sin =
+            Math.sin(
+                angle,
+            )
+
+        const rotatedX =
+            (
+                vortexX *
+                cos
+            ) -
+            (
+                vortexY *
+                sin
+            )
+
+        const rotatedY =
+            (
+                vortexX *
+                sin
+            ) +
+            (
+                vortexY *
+                cos
+            )
+
+        /*
+         * ------------------------------------------------
+         * ANGULAR AGITATION
+         * ------------------------------------------------
+         *
+         * These waves prevent the vortex from becoming
+         * a clean mathematical rectangle.
+         */
+
+        const turbulenceA =
+            Math.sin(
+                particleIndex *
+                0.043 +
+                radius *
+                8.0,
+            )
+
+        const turbulenceB =
+            Math.cos(
+                particleIndex *
+                0.031 +
+                radius *
+                13.0,
+            )
+
+        const turbulenceC =
+            Math.sin(
+                particleIndex *
+                0.019 +
+                radius *
+                21.0,
+            )
+
+        const violentX =
+            turbulenceA *
+            (
+                0.15 +
+                normalizedRadius *
+                0.8
+            )
+
+        const violentY =
+            turbulenceB *
+            (
+                0.12 +
+                normalizedRadius *
+                0.65
+            )
+
+        /*
+         * Tangential displacement.
+         *
+         * This creates the impression that the
+         * particles are being thrown around the
+         * vortex rather than simply occupying it.
+         */
+        const tangential =
+            turbulenceC *
+            (
+                0.1 +
+                normalizedRadius *
+                0.75
+            )
+
+        const tangentX =
+            -sin *
+            tangential
+
+        const tangentY =
+            cos *
+            tangential
+
+        data[
+            index
+        ] =
+            rotatedX +
+            violentX +
+            tangentX
+
+        data[
+            index + 1
+        ] =
+            rotatedY +
+            violentY +
+            tangentY
+
+        data[
+            index + 2
+        ] =
+            vortexZ +
+            sourceZ *
+            0.05
+
+        data[
+            index + 3
+        ] = 1.0
+
+        /*
+         * Keep references alive so the source
+         * population remains conceptually tied
+         * to the original nebula.
+         */
+        void sourceX
+        void sourceY
+    }
+
+    const texture =
+        new THREE.DataTexture(
+            data,
+            TEXTURE_SIZE,
+            TEXTURE_SIZE,
+            THREE.RGBAFormat,
+            THREE.FloatType,
+        )
+
+    texture.minFilter =
+        THREE.NearestFilter
+
+    texture.magFilter =
+        THREE.NearestFilter
+
+    texture.wrapS =
+        THREE.ClampToEdgeWrapping
+
+    texture.wrapT =
+        THREE.ClampToEdgeWrapping
+
+    texture.generateMipmaps =
+        false
+
+    texture.needsUpdate =
+        true
+
+    return texture
+}
+
+const WorkNebulaText = () => {
+    const [
+        textTargetTexture,
+        setTextTargetTexture,
+    ] = useState(null)
+
+    const [
+        vortexTargetTexture,
+        setVortexTargetTexture,
+    ] = useState(null)
+
+    const progressRef =
+        useRef(0)
+
+    const updateProgress =
+        () => {
+            const scrollY =
+                window.scrollY
+
+            const maxScroll =
+                Math.max(
+                    1,
+                    document.documentElement
+                        .scrollHeight -
+                    window.innerHeight,
+                )
+
+            progressRef.current =
+                clamp(
+                    scrollY /
+                    maxScroll,
+                )
+        }
+
+    useEffect(() => {
+        const textTexture =
+            createTextTargetTexture(
                 "WHAT I'VE DONE",
             )
 
-        let width = 1
-        let height = 1
+        if (!textTexture) {
+            return undefined
+        }
 
-        let animationFrame =
-            null
+        const vortexTexture =
+            createVortexTargetTexture(
+                textTexture,
+            )
 
-        const startTime =
-            performance.now()
+        setTextTargetTexture(
+            textTexture,
+        )
 
-        const resize =
+        setVortexTargetTexture(
+            vortexTexture,
+        )
+
+        return () => {
+            textTexture.dispose()
+            vortexTexture?.dispose()
+        }
+    }, [])
+
+    useEffect(() => {
+        updateProgress()
+
+        const handleScroll =
             () => {
-                const parent =
-                    backgroundCanvas.parentElement
-
-                if (!parent) {
-                    return
-                }
-
-                const rect =
-                    parent.getBoundingClientRect()
-
-                width =
-                    Math.max(
-                        1,
-                        Math.floor(
-                            rect.width,
-                        ),
-                    )
-
-                height =
-                    Math.max(
-                        1,
-                        Math.floor(
-                            rect.height,
-                        ),
-                    )
-
-                const dpr =
-                    Math.min(
-                        window.devicePixelRatio ||
-                        1,
-                        2,
-                    )
-
-                const canvases = [
-                    backgroundCanvas,
-                    foregroundCanvas,
-                ]
-
-                canvases.forEach(
-                    (
-                        canvas,
-                    ) => {
-                        canvas.width =
-                            Math.floor(
-                                width *
-                                dpr,
-                            )
-
-                        canvas.height =
-                            Math.floor(
-                                height *
-                                dpr,
-                            )
-
-                        canvas.style.width =
-                            `${width}px`
-
-                        canvas.style.height =
-                            `${height}px`
-
-                        const context =
-                            canvas.getContext(
-                                '2d',
-                            )
-
-                        context.setTransform(
-                            dpr,
-                            0,
-                            0,
-                            dpr,
-                            0,
-                            0,
-                        )
-                    },
-                )
+                updateProgress()
             }
 
-        const drawLayer =
-            (
-                context,
-                layer,
-                vortex,
-                intro,
-                time,
-            ) => {
-                context.clearRect(
-                    0,
-                    0,
-                    width,
-                    height,
-                )
+        window.addEventListener(
+            'scroll',
+            handleScroll,
+            {
+                passive: true,
+            },
+        )
 
-                const centerX =
-                    width / 2
+        window.addEventListener(
+            'resize',
+            updateProgress,
+        )
 
-                const centerY =
-                    height / 2
+        return () => {
+            window.removeEventListener(
+                'scroll',
+                handleScroll,
+            )
 
-                const textWidth =
-                    Math.min(
-                        width *
-                        0.88,
-                        1180,
-                    )
+            window.removeEventListener(
+                'resize',
+                updateProgress,
+            )
+        }
+    }, [])
 
-                const textHeight =
-                    textWidth *
-                    0.262
+    useEffect(() => {
+        if (
+            !textTargetTexture ||
+            !vortexTargetTexture
+        ) {
+            return undefined
+        }
 
-                const vortexRadiusX =
-                    width *
-                    0.44
+        const textData =
+            textTargetTexture.image.data
 
-                const vortexRadiusY =
-                    height *
-                    0.32
+        const vortexData =
+            vortexTargetTexture.image.data
 
-                for (
-                    let i = 0;
-                    i <
-                    particles.length;
-                    i += 1
-                ) {
-                    const particle =
-                        particles[i]
+        let animationFrame = null
 
-                    if (
-                        particle.layer !==
-                        layer
-                    ) {
-                        continue
-                    }
-
-                    /*
-                     * Original text position.
-                     */
-                    const textX =
-                        centerX +
-                        particle.x *
-                        textWidth
-
-                    const textY =
-                        centerY +
-                        particle.y *
-                        textHeight
-
-                    /*
-                     * Polar coordinates derived
-                     * from the actual text particle.
-                     *
-                     * This is important:
-                     * the vortex is created from
-                     * the text itself rather than
-                     * replacing it with random
-                     * particles.
-                     */
-                    const radius =
-                        Math.sqrt(
-                            particle.x *
-                            particle.x +
-                            particle.y *
-                            particle.y,
-                        )
-
-                    const normalizedRadius =
-                        clamp(
-                            radius /
-                            1.05,
-                        )
-
-                    const originalAngle =
-                        Math.atan2(
-                            particle.y,
-                            particle.x,
-                        )
-
-                    /*
-                     * Very aggressive rotation
-                     * around the 45% point.
-                     */
-                    const spin =
-                        vortex *
-                        (
-                            3.5 +
-                            normalizedRadius *
-                            8.0
-                        )
-
-                    const vortexAngle =
-                        originalAngle +
-                        spin +
-                        time *
-                        0.004 *
-                        vortex
-
-                    /*
-                     * Make the center of the
-                     * vortex slightly tighter.
-                     */
-                    const radialCompression =
-                        0.72 +
-                        normalizedRadius *
-                        0.48
-
-                    const vortexX =
-                        centerX +
-                        Math.cos(
-                            vortexAngle,
-                        ) *
-                        normalizedRadius *
-                        vortexRadiusX *
-                        radialCompression
-
-                    const vortexY =
-                        centerY +
-                        Math.sin(
-                            vortexAngle,
-                        ) *
-                        normalizedRadius *
-                        vortexRadiusY *
-                        radialCompression
-
-                    /*
-                     * Organic turbulence.
-                     */
-                    const wave =
-                        Math.sin(
-                            particle.seed +
-                            time *
-                            0.012 +
-                            normalizedRadius *
-                            18,
-                        )
-
-                    const wave2 =
-                        Math.cos(
-                            particle.seed *
-                            2.3 +
-                            time *
-                            0.009,
-                        )
-
-                    const turbulenceX =
-                        wave *
-                        vortex *
-                        (
-                            12 +
-                            normalizedRadius *
-                            42
-                        )
-
-                    const turbulenceY =
-                        wave2 *
-                        vortex *
-                        (
-                            8 +
-                            normalizedRadius *
-                            30
-                        )
-
-                    /*
-                     * Deep foreground movement.
-                     */
-                    const depth =
-                        Math.sin(
-                            vortexAngle *
-                            2 +
-                            normalizedRadius *
-                            10 +
-                            time *
-                            0.012,
-                        ) *
-                        vortex
-
-                    const targetX =
-                        vortexX +
-                        turbulenceX
-
-                    const targetY =
-                        vortexY +
-                        turbulenceY
-
-                    /*
-                     * Interpolate between the
-                     * original text and vortex.
-                     */
-                    let x =
-                        textX +
-                        (
-                            targetX -
-                            textX
-                        ) *
-                        vortex
-
-                    let y =
-                        textY +
-                        (
-                            targetY -
-                            textY
-                        ) *
-                        vortex
-
-                    /*
-                     * Additional violent local
-                     * movement.
-                     */
-                    x +=
-                        Math.sin(
-                            particle.seed *
-                            3 +
-                            time *
-                            0.018,
-                        ) *
-                        vortex *
-                        5
-
-                    y +=
-                        Math.cos(
-                            particle.seed *
-                            2 +
-                            time *
-                            0.015,
-                        ) *
-                        vortex *
-                        4
-
-                    /*
-                     * Simulated z-depth.
-                     */
-                    const z =
-                        depth *
-                        (
-                            45 +
-                            normalizedRadius *
-                            80
-                        )
-
-                    /*
-                     * Foreground particles become
-                     * visible as the vortex crosses
-                     * the cards.
-                     */
-                    const foreground =
-                        smoothstep(
-                            (
-                                vortex -
-                                0.18
-                            ) /
-                            0.55,
-                        )
-
-                    let alpha
-
-                    if (
-                        layer === 1
-                    ) {
-                        alpha =
-                            foreground
-                    } else {
-                        alpha =
-                            1 -
-                            foreground *
-                            0.95
-                    }
-
-                    alpha *=
-                        smoothstep(
-                            intro,
-                        )
-
-                    if (
-                        alpha <=
-                        0.01
-                    ) {
-                        continue
-                    }
-
-                    const particleSize =
-                        (
-                            0.55 +
-                            particle.random *
-                            0.85
-                        ) *
-                        (
-                            1 +
-                            vortex *
-                            1.15
-                        )
-
-                    const depthScale =
-                        1 +
-                        z *
-                        0.004
-
-                    context.globalAlpha =
-                        alpha *
-                        (
-                            0.38 +
-                            particle.random2 *
-                            0.5
-                        )
-
-                    context.fillStyle =
-                        '#c7b8a6'
-
-                    context.beginPath()
-
-                    context.arc(
-                        x,
-                        y - z,
-                        particleSize *
-                        depthScale,
-                        0,
-                        Math.PI *
-                        2,
-                    )
-
-                    context.fill()
-                }
-
-                context.globalAlpha =
-                    1
-            }
-
-        const render =
-            (
-                now,
-            ) => {
-                const elapsed =
-                    now -
-                    startTime
-
-                /*
-                 * Text forms naturally during
-                 * the first 1.8 seconds.
-                 */
-                const intro =
-                    clamp(
-                        elapsed /
-                        1800,
-                    )
-
+        const frame =
+            () => {
                 const progress =
                     progressRef.current
 
                 /*
-                 * Vortex starts around 30%
-                 * and reaches maximum force
-                 * at approximately 45%.
+                 * 0 -> 45%
+                 *
+                 * Build the vortex.
                  */
                 const vortexIn =
                     smoothstep(
-                        (
-                            progress -
-                            0.30
-                        ) /
-                        0.15,
+                        0,
+                        0.45,
+                        progress,
                     )
 
                 /*
-                 * It then slowly calms
-                 * between 45% and 80%.
+                 * 45 -> 85%
+                 *
+                 * Destroy the vortex and
+                 * reform the text.
                  */
                 const vortexOut =
                     smoothstep(
-                        (
-                            progress -
-                            0.45
-                        ) /
-                        0.35,
+                        0.45,
+                        0.85,
+                        progress,
                     )
 
-                const vortex =
-                    clamp(
-                        vortexIn *
-                        (
-                            1 -
-                            vortexOut
-                        ),
+                let vortexAmount
+
+                if (
+                    progress <= 0.45
+                ) {
+                    vortexAmount =
+                        vortexIn
+                } else if (
+                    progress < 0.85
+                ) {
+                    vortexAmount =
+                        1 -
+                        vortexOut
+                } else {
+                    vortexAmount =
+                        0
+                }
+
+                /*
+                 * Nothing changes after 85%.
+                 */
+                if (
+                    progress >= 0.85
+                ) {
+                    vortexAmount = 0
+                }
+
+                const time =
+                    performance.now() *
+                    0.001
+
+                /*
+                 * Very aggressive rotation.
+                 * The vortex is calm at the start,
+                 * then becomes increasingly angry.
+                 */
+                const anger =
+                    Math.pow(
+                        vortexAmount,
+                        1.35,
                     )
 
-                drawLayer(
-                    backgroundContext,
-                    0,
-                    vortex,
-                    intro,
-                    elapsed,
-                )
+                const rotation =
+                    time *
+                    (
+                        1.5 +
+                        anger *
+                        12.0
+                    )
 
-                drawLayer(
-                    foregroundContext,
-                    1,
-                    vortex,
-                    intro,
-                    elapsed,
-                )
+                const cos =
+                    Math.cos(
+                        rotation,
+                    )
+
+                const sin =
+                    Math.sin(
+                        rotation,
+                    )
+
+                for (
+                    let particleIndex = 0;
+                    particleIndex <
+                    PARTICLE_COUNT;
+                    particleIndex += 1
+                ) {
+                    const index =
+                        particleIndex * 4
+
+                    const textAlive =
+                        textData[
+                            index + 3
+                        ]
+
+                    const vortexAlive =
+                        vortexData[
+                            index + 3
+                        ]
+
+                    /*
+                     * Particle is not part of
+                     * the tornado.
+                     */
+                    if (
+                        vortexAlive === 0
+                    ) {
+                        continue
+                    }
+
+                    const tx =
+                        textAlive > 0
+                            ? textData[
+                                index
+                            ]
+                            : 0
+
+                    const ty =
+                        textAlive > 0
+                            ? textData[
+                                index + 1
+                            ]
+                            : 0
+
+                    const tz =
+                        textAlive > 0
+                            ? textData[
+                                index + 2
+                            ]
+                            : 0
+
+                    const vx =
+                        vortexData[
+                            index
+                        ]
+
+                    const vy =
+                        vortexData[
+                            index + 1
+                        ]
+
+                    const vz =
+                        vortexData[
+                            index + 2
+                        ]
+
+                    /*
+                     * Continuous rotation makes
+                     * the tornado feel alive.
+                     */
+                    const rx =
+                        (
+                            vx *
+                            cos
+                        ) -
+                        (
+                            vy *
+                            sin
+                        )
+
+                    const ry =
+                        (
+                            vx *
+                            sin
+                        ) +
+                        (
+                            vy *
+                            cos
+                        )
+
+                    /*
+                     * Individual particle agitation.
+                     */
+                    const particleAngle =
+                        (
+                            particleIndex *
+                            0.021
+                        ) +
+                        (
+                            time *
+                            (
+                                5 +
+                                anger * 18
+                            )
+                        )
+
+                    const wave =
+                        Math.sin(
+                            particleAngle,
+                        )
+
+                    const wave2 =
+                        Math.cos(
+                            (
+                                particleIndex *
+                                0.017
+                            ) +
+                            time *
+                            (
+                                7 +
+                                anger * 11
+                            ),
+                        )
+
+                    const agitation =
+                        anger *
+                        (
+                            0.12 +
+                            (
+                                Math.abs(
+                                    vx,
+                                ) +
+                                Math.abs(
+                                    vy,
+                                )
+                            ) *
+                            0.035
+                        )
+
+                    const aggressiveX =
+                        wave *
+                        agitation
+
+                    const aggressiveY =
+                        wave2 *
+                        agitation
+
+                    /*
+                     * During formation the vortex
+                     * dominates.
+                     *
+                     * During reform the text target
+                     * takes control again.
+                     */
+                    const targetX =
+                        (
+                            tx *
+                            (
+                                1 -
+                                vortexAmount
+                            )
+                        ) +
+                        (
+                            (
+                                rx +
+                                aggressiveX
+                            ) *
+                            vortexAmount
+                        )
+
+                    const targetY =
+                        (
+                            ty *
+                            (
+                                1 -
+                                vortexAmount
+                            )
+                        ) +
+                        (
+                            (
+                                ry +
+                                aggressiveY
+                            ) *
+                            vortexAmount
+                        )
+
+                    const targetZ =
+                        (
+                            tz *
+                            (
+                                1 -
+                                vortexAmount
+                            )
+                        ) +
+                        (
+                            vz *
+                            vortexAmount
+                        )
+
+                    /*
+                     * Write the dynamic target
+                     * back into the texture used
+                     * by the existing nebula engine.
+                     */
+                    textData[
+                        index
+                    ] =
+                        targetX
+
+                    textData[
+                        index + 1
+                    ] =
+                        targetY
+
+                    textData[
+                        index + 2
+                    ] =
+                        targetZ
+
+                    /*
+                     * During the vortex, every
+                     * recruited particle must
+                     * become active.
+                     *
+                     * Once the vortex disappears,
+                     * only the original text
+                     * particles remain active.
+                     */
+                    if (
+                        vortexAmount > 0.001
+                    ) {
+                        textData[
+                            index + 3
+                        ] =
+                            vortexAlive
+                    } else {
+                        textData[
+                            index + 3
+                        ] =
+                            textAlive
+                    }
+                }
+
+                textTargetTexture.needsUpdate =
+                    true
 
                 animationFrame =
                     window.requestAnimationFrame(
-                        render,
+                        frame,
                     )
             }
 
-        resize()
-
-        window.addEventListener(
-            'resize',
-            resize,
-        )
-
         animationFrame =
             window.requestAnimationFrame(
-                render,
+                frame,
             )
 
         return () => {
-            window.removeEventListener(
-                'resize',
-                resize,
-            )
-
             if (
-                animationFrame !==
-                null
+                animationFrame !== null
             ) {
                 window.cancelAnimationFrame(
                     animationFrame,
                 )
             }
         }
-    }, [])
+    }, [
+        textTargetTexture,
+        vortexTargetTexture,
+    ])
 
     return (
-        <Box
-            sx={{
+        <main
+            style={{
                 position:
-                    'absolute',
+                    'relative',
 
-                inset: 0,
+                width:
+                    '100%',
 
-                overflow:
-                    'hidden',
+                height:
+                    '300vh',
 
-                pointerEvents:
-                    'none',
-
-                zIndex: 1,
+                background:
+                    '#050403',
             }}
         >
-            <canvas
-                ref={
-                    backgroundCanvasRef
-                }
+            <div
                 style={{
                     position:
-                        'absolute',
+                        'fixed',
 
                     inset: 0,
 
@@ -866,38 +1328,32 @@ const WorkNebulaText = ({
                         '100%',
 
                     height:
-                        '100%',
+                        '100vh',
+
+                    overflow:
+                        'hidden',
 
                     pointerEvents:
                         'none',
-
-                    zIndex: 1,
                 }}
-            />
+            >
+                <NebulaBackground
+                    textEnabled={
+                        Boolean(
+                            textTargetTexture,
+                        )
+                    }
 
-            <canvas
-                ref={
-                    foregroundCanvasRef
-                }
-                style={{
-                    position:
-                        'absolute',
+                    textTargetTexture={
+                        textTargetTexture
+                    }
 
-                    inset: 0,
-
-                    width:
-                        '100%',
-
-                    height:
-                        '100%',
-
-                    pointerEvents:
-                        'none',
-
-                    zIndex: 20,
-                }}
-            />
-        </Box>
+                    textStrength={
+                        1.0
+                    }
+                />
+            </div>
+        </main>
     )
 }
 
