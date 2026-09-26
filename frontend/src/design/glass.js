@@ -21,9 +21,9 @@ export const glass = {
     },
 
     floating: {
-        background: "rgba(255, 255, 255, 0.68)",
-        backdropFilter: "blur(28px) saturate(170%)",
-        border: "1px solid rgba(255, 255, 255, 0.65)",
-        shadow: "0 20px 60px rgba(11, 11, 13, 0.14)",
+        background: "rgba(154, 105, 1, 0.07)",
+        backdropFilter: "blur(5px) saturate(150%)",
+        border: "0.5px solid rgba(254, 186, 0, 0.23)",
+        shadow: "0 20px 60px rgba(158, 109, 17, 0.12)",
     },
 };

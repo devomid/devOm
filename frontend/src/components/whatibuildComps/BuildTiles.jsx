@@ -147,6 +147,24 @@ const BuildTiles = () => {
             builds.length / columns
         )
 
+        const gridHeight =
+            rows * TILE_SIZE +
+            (rows - 1) * GRID_GAP
+
+        const availableHeight =
+            viewport.height -
+            NAVBAR_HEIGHT
+
+        const gridStartY =
+            NAVBAR_HEIGHT +
+            Math.max(
+                GRID_MARGIN_TOP,
+                (
+                    availableHeight -
+                    gridHeight
+                ) / 2
+            )
+
         if (
             !gridOrderRef.current ||
             gridOrderRef.current.columns !==
@@ -170,7 +188,9 @@ const BuildTiles = () => {
                     )
 
                 const centerColumn =
-                    Math.floor(count / 2)
+                    Math.floor(
+                        count / 2
+                    )
 
                 const randomColumns =
                     shuffle(
@@ -231,8 +251,7 @@ const BuildTiles = () => {
                 ) / 2
 
             const rowY =
-                NAVBAR_HEIGHT +
-                GRID_MARGIN_TOP +
+                gridStartY +
                 row *
                 (
                     TILE_SIZE +
@@ -263,6 +282,7 @@ const BuildTiles = () => {
                             TILE_SIZE +
                             GRID_GAP
                         ),
+
                     y: rowY,
                 }
             }
@@ -272,6 +292,7 @@ const BuildTiles = () => {
             positions,
             columns,
             rows,
+            gridStartY,
         }
     }, [viewport])
 
@@ -282,8 +303,7 @@ const BuildTiles = () => {
                 TILE_SIZE / 2,
 
             y:
-                NAVBAR_HEIGHT +
-                GRID_MARGIN_TOP +
+                grid.gridStartY +
                 row *
                 (
                     TILE_SIZE +
@@ -353,6 +373,7 @@ const BuildTiles = () => {
         ) {
             return {
                 x: entranceX,
+
                 y:
                     entranceY +
                     (
@@ -490,6 +511,7 @@ const BuildTiles = () => {
      * even a single row has a finite scroll
      * range and can complete its animation.
      */
+
     const scrollHeight =
         (
             grid.rows + 1

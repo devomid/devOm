@@ -3,6 +3,7 @@ const builds = [
         id: 'mobile-products',
         title: 'Mobile Products',
         type: 'React Native',
+        icon:'Smartphone',
         description:
             'Cross-platform mobile products combining polished interfaces, native capabilities, location, maps, persistent state, and real-world interaction.',
         focus: [
@@ -20,6 +21,7 @@ const builds = [
         id: 'web-applications',
         title: 'Web Applications',
         type: 'React',
+        icon: 'Globe',
         description:
             'Interactive web applications built around real products, responsive interfaces, meaningful state, APIs, and purposeful user experiences.',
         focus: [
@@ -37,6 +39,7 @@ const builds = [
         id: 'backend-apis',
         title: 'Backend & APIs',
         type: 'Node.js',
+        icon: 'Server',
         description:
             'Server-side systems handling authentication, data, business logic, validation, APIs, logging, and the infrastructure behind products.',
         focus: [
@@ -54,6 +57,7 @@ const builds = [
         id: 'interactive-interfaces',
         title: 'Interactive Interfaces',
         type: 'UI + Motion',
+        icon: 'SquareDashedMousePointer',
         description:
             'Interfaces where interaction, motion, spatial layout, state, and visual feedback are treated as part of the product itself.',
         focus: [
@@ -71,6 +75,7 @@ const builds = [
         id: 'location-data',
         title: 'Location & Data',
         type: 'Maps + Data',
+        icon: 'MapPinned',
         description:
             'Products connecting software to the physical world through location, maps, structured data, user-generated information, and context-aware experiences.',
         focus: [
@@ -88,6 +93,7 @@ const builds = [
         id: 'connected-systems',
         title: 'Connected Systems',
         type: 'Hardware + Software',
+        icon: 'Cpu',
         description:
             'Software that crosses the boundary between screens and physical systems, connecting computers, networks, embedded hardware, peripherals, and custom interfaces.',
         focus: [
