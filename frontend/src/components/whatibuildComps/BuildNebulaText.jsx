@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import NebulaBackground from '../nebula/nebula'
 
 const TEXTURE_SIZE = 512
+
 const PARTICLE_COUNT =
     TEXTURE_SIZE *
     TEXTURE_SIZE
@@ -80,9 +81,6 @@ const createTextTargetTexture = (
      * ------------------------------------------------
      * EXTRACT TEXT PARTICLES
      * ------------------------------------------------
-     *
-     * Sample the text mask at a controlled spacing.
-     * We deliberately do not use every opaque pixel.
      */
 
     const candidates = []
@@ -113,8 +111,7 @@ const createTextTargetTexture = (
                 ]
 
             if (
-                alpha >
-                100
+                alpha > 100
             ) {
                 candidates.push({
                     x,
@@ -134,9 +131,6 @@ const createTextTargetTexture = (
      * ------------------------------------------------
      * MAP TEXT INTO WORLD SPACE
      * ------------------------------------------------
-     *
-     * These values keep the text inside the same
-     * visual area occupied by the previous circle.
      */
 
     const worldWidth = 8.9
@@ -151,29 +145,20 @@ const createTextTargetTexture = (
     /*
      * ------------------------------------------------
      * DISTRIBUTE TARGET PARTICLES THROUGH THE
-     * ENTIRE 512 × 512 SIMULATION TEXTURE
+     * ENTIRE SIMULATION TEXTURE
      * ------------------------------------------------
-     *
-     * This is important.
-     *
-     * The particle geometry maps particle index
-     * directly to this texture. Therefore target
-     * particles must be distributed across the
-     * entire texture rather than occupying the first
-     * N texture pixels.
      */
 
     for (
         let particleIndex = 0;
-        particleIndex < PARTICLE_COUNT;
+        particleIndex <
+        PARTICLE_COUNT;
         particleIndex += 1
     ) {
         /*
-         * Deterministic hash.
-         *
-         * Approximately 30% of the nebula particles
-         * become text particles.
+         * Deterministic hash
          */
+
         const hash =
             (
                 particleIndex *
@@ -188,6 +173,10 @@ const createTextTargetTexture = (
         const textureIndex =
             particleIndex * 4
 
+        /*
+         * Non-text particles
+         */
+
         if (
             normalizedHash >
             TEXT_PARTICLE_RATIO
@@ -200,10 +189,9 @@ const createTextTargetTexture = (
         }
 
         /*
-         * Scramble the candidate selection so the
-         * text particles are not concentrated into
-         * one region of the text.
+         * Scramble candidate selection
          */
+
         const candidateIndex =
             (
                 (
@@ -220,17 +208,12 @@ const createTextTargetTexture = (
             ]
 
         /*
-         * Tiny deterministic positional variation.
-         *
-         * This prevents every repeated target from
-         * sitting on exactly the same mathematical
-         * point while preserving the letter shape.
+         * Small deterministic variation
          */
+
         const variation =
-            (
-                particleIndex *
-                0.0137
-            )
+            particleIndex *
+            0.0137
 
         const localX =
             candidate.x -
@@ -338,7 +321,7 @@ const createTextTargetTexture = (
     return texture
 }
 
-const NebulaText = () => {
+const WorkNebulaText = () => {
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -347,7 +330,7 @@ const NebulaText = () => {
     useEffect(() => {
         const texture =
             createTextTargetTexture(
-                'WHAT I BUILD',
+                "WHAT I BUILD",
             )
 
         setTextTargetTexture(
@@ -384,9 +367,11 @@ const NebulaText = () => {
                         textTargetTexture,
                     )
                 }
+
                 textTargetTexture={
                     textTargetTexture
                 }
+
                 textStrength={
                     1.0
                 }
@@ -395,4 +380,4 @@ const NebulaText = () => {
     )
 }
 
-export default NebulaText
+export default WorkNebulaText
