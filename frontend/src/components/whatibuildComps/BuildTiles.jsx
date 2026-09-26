@@ -153,11 +153,6 @@ const BuildTiles = () => {
                         rowStart
                     )
 
-                /*
-                 * Keep the center grid position
-                 * empty until the final tile
-                 * assigned to this row arrives.
-                 */
                 const centerColumn =
                     Math.floor(count / 2)
 
@@ -176,10 +171,6 @@ const BuildTiles = () => {
                         )
                     )
 
-                /*
-                 * The last tile of the row
-                 * always receives the center.
-                 */
                 const order = [
                     ...randomColumns,
                     centerColumn,
@@ -263,24 +254,44 @@ const BuildTiles = () => {
 
         return {
             positions,
+            columns,
         }
     }, [viewport])
 
     /*
-     * This is the temporary staging position.
-     * It is NOT a grid position.
+     * Every row has its own center staging point.
+     *
+     * Row 1 -> row 1 center
+     * Row 2 -> row 2 center
+     * Row 3 -> row 3 center
+     *
+     * The staging point is also the reserved
+     * center position for the last tile of that row.
      */
-    const stagingX =
-        viewport.width / 2 -
-        TILE_SIZE / 2
+    const getRowStagingPosition = (row) => {
+        return {
+            x:
+                viewport.width / 2 -
+                TILE_SIZE / 2,
 
-    const stagingY =
-        NAVBAR_HEIGHT +
-        GRID_MARGIN_TOP
+            y:
+                NAVBAR_HEIGHT +
+                GRID_MARGIN_TOP +
+                row *
+                (
+                    TILE_SIZE +
+                    GRID_GAP
+                ),
+        }
+    }
 
     /*
      * Every tile enters from bottom-center.
      */
+    const entranceX =
+        viewport.width / 2 -
+        TILE_SIZE / 2
+
     const entranceY =
         viewport.height +
         TILE_SIZE
@@ -310,8 +321,25 @@ const BuildTiles = () => {
             grid.positions[index]
 
         /*
+         * Determine which row this tile belongs to.
+         */
+        const row =
+            Math.floor(
+                index /
+                grid.columns
+            )
+
+        const staging =
+            getRowStagingPosition(
+                row
+            )
+
+        /*
          * Phase 1:
-         * bottom-center -> top-center staging.
+         *
+         * bottom-center
+         *      ↓
+         * this row's center
          */
         const entranceProgress =
             Math.min(
@@ -330,11 +358,12 @@ const BuildTiles = () => {
             ENTRANCE_PHASE
         ) {
             return {
-                x: stagingX,
+                x: entranceX,
+
                 y:
                     entranceY +
                     (
-                        stagingY -
+                        staging.y -
                         entranceY
                     ) *
                     smoothEntrance,
@@ -343,7 +372,10 @@ const BuildTiles = () => {
 
         /*
          * Phase 2:
-         * top-center staging -> final grid position.
+         *
+         * row center
+         *      →
+         * final grid position
          */
         const moveProgress =
             Math.min(
@@ -366,46 +398,49 @@ const BuildTiles = () => {
         const direction =
             directionsRef.current[index]
 
+        /*
+         * Much smaller curve.
+         *
+         * This keeps the random left/right
+         * character without making the tile
+         * look playful or swing around.
+         */
         const horizontalDistance =
             Math.abs(
                 target.x -
-                stagingX
+                staging.x
             )
 
         const curveStrength =
             Math.min(
-                120,
+                28,
                 horizontalDistance *
-                0.35
+                0.08
             )
 
         const x =
-            stagingX +
+            staging.x +
             (
                 target.x -
-                stagingX
+                staging.x
             ) *
-            smoothMove
-
-        const baseY =
-            stagingY +
+            smoothMove +
             (
-                target.y -
-                stagingY
-            ) *
-            smoothMove
-
-        const curve =
-            Math.sin(
-                Math.PI *
-                smoothMove
-            ) *
-            curveStrength *
-            direction
+                Math.sin(
+                    Math.PI *
+                    smoothMove
+                ) *
+                curveStrength *
+                direction
+            )
 
         const y =
-            baseY +
-            curve
+            staging.y +
+            (
+                target.y -
+                staging.y
+            ) *
+            smoothMove
 
         return {
             x,
