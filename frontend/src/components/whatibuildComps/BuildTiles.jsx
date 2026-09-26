@@ -4,11 +4,11 @@ import BuildTile from './cards/BuildTile'
 import builds from '../../db/builds'
 import { nebulaWipeState } from './nebulaWipe'
 
-const TILE_SIZE = 220
-const GRID_GAP = 24
+const TILE_SIZE = 250
+const GRID_GAP = 26
 
-const GRID_MARGIN_LEFT = 72
-const GRID_MARGIN_RIGHT = 24
+const GRID_MARGIN_LEFT = 50
+const GRID_MARGIN_RIGHT = 50
 
 const NAVBAR_HEIGHT = 80
 const GRID_MARGIN_TOP = 24
@@ -126,16 +126,19 @@ const BuildTiles = () => {
             GRID_MARGIN_LEFT -
             GRID_MARGIN_RIGHT
 
-        const columns = Math.max(
-            1,
-            Math.floor(
-                (
-                    availableWidth +
-                    GRID_GAP
-                ) /
-                (
-                    TILE_SIZE +
-                    GRID_GAP
+        const columns = Math.min(
+            3,
+            Math.max(
+                1,
+                Math.floor(
+                    (
+                        availableWidth +
+                        GRID_GAP
+                    ) /
+                    (
+                        TILE_SIZE +
+                        GRID_GAP
+                    )
                 )
             )
         )
