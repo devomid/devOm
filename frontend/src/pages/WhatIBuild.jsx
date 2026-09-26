@@ -8,14 +8,22 @@ const WhatIBuild = () => {
     <Box
       sx={{
         position: 'relative',
-        width: '100%',
-        minHeight: '100vh',
-        overflow: 'hidden',
+        minHeight: '200vh',
+        background: '#050403',
       }}
     >
-      <NebulaText />
-
-      <BuildTiles />
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          overflow: 'hidden',
+          background: '#050403',
+        }}
+      >
+        <NebulaText />
+        <BuildTiles />
+      </Box>
     </Box>
   )
 }

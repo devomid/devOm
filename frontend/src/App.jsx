@@ -65,10 +65,6 @@ function App() {
     <Box
       sx={{
         minHeight: '100svh',
-        backgroundColor:
-          colors.background.primary,
-        color:
-          colors.text.primary,
       }}
     >
       <NavBar
