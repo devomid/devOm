@@ -646,8 +646,8 @@ const velocityFlowFragmentShader = `
                 float influence =
                     1.0 -
                     smoothstep(
-                        0.72,
-                        1.72,
+                        0.45,
+                        2.25,
                         boxDistance
                     );
 
@@ -659,8 +659,8 @@ const velocityFlowFragmentShader = `
                 float core =
                     1.0 -
                     smoothstep(
-                        0.45,
-                        1.05,
+                        0.38,
+                        1.12,
                         boxDistance
                     );
 
@@ -735,26 +735,26 @@ const velocityFlowFragmentShader = `
                 vec2 disturbance =
                     radialVector *
                     (
-                        0.72 +
-                        core * 0.58
+                        1.05 +
+                        core * 0.85
                     );
 
                 disturbance +=
                     wipeDirection *
                     (
-                        0.30 +
-                        core * 0.28
+                        0.52 +
+                        core * 0.44
                     );
 
                 disturbance +=
-                    tangent *
-                    (
-                        sin(
-                            phase * 1.71 +
-                            uTime * 0.85
-                        ) *
-                        0.14
-                    );
+    tangent *
+    (
+        sin(
+            phase * 1.71 +
+            uTime * 0.85
+        ) *
+        0.24
+    );
 
                 /*
                  * The disturbance is strongest around the
@@ -763,17 +763,17 @@ const velocityFlowFragmentShader = `
                  */
 
                 float disturbanceStrength =
-                    uWipeStrength *
-                    influence *
-                    (
-                        0.72 +
-                        core * 0.48
-                    );
+    uWipeStrength *
+    influence *
+    (
+        0.92 +
+        core * 0.68
+    );
 
-                velocity.xy +=
-                    disturbance *
-                    disturbanceStrength *
-                    0.00165;
+velocity.xy +=
+    disturbance *
+    disturbanceStrength *
+    0.00320;
 
                 /*
                  * A small depth impulse makes the particles
@@ -794,7 +794,7 @@ const velocityFlowFragmentShader = `
 
                 velocity.z +=
                     depthImpulse *
-                    0.00042 *
+                    0.00078 *
                     (
                         position.z >= 0.0
                             ? 1.0
@@ -919,7 +919,7 @@ const velocityFlowFragmentShader = `
                     float springAcceleration =
                         clamp(
                             distanceToTarget *
-                            0.00175,
+                            0.00250,
                             0.00028,
                             0.0075
                         );
@@ -945,7 +945,7 @@ const velocityFlowFragmentShader = `
                     float desiredRadialVelocity =
                         clamp(
                             distanceToTarget *
-                            0.00058,
+                            0.00064,
                             -0.0010,
                             0.0048
                         );
@@ -955,7 +955,7 @@ const velocityFlowFragmentShader = `
                             desiredRadialVelocity -
                             radialVelocity
                         ) *
-                        0.073;
+                        0.080;
 
                     velocity +=
                         direction *
