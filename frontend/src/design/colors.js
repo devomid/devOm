@@ -1,6 +1,6 @@
 export const colors = {
     background: {
-        primary: "#ffff02",
+        primary: "#0f0f0f",
         secondary: "#EFEFEA",
         tertiary: "#E5E5DF",
         inverse: "#0B0B0D",
@@ -15,7 +15,7 @@ export const colors = {
     },
 
     text: {
-        primary: "#0B0B0D",
+        primary: "#be8800",
         secondary: "#4A4A4F",
         tertiary: "#707077",
         muted: "#929299",
