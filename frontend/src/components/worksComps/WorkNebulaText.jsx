@@ -16,7 +16,7 @@ const PARTICLE_COUNT =
 
 const TEXT_PARTICLE_RATIO = 0.58
 
-const RECTANGLE_PARTICLE_RATIO = 0.80
+const RECTANGLE_PARTICLE_RATIO = 0.95
 
 const TEXT_WORLD_WIDTH = 8.9
 const TEXT_WORLD_HEIGHT = 2.45
@@ -255,22 +255,19 @@ const createTextTargetTexture = (
 
         const jitterX =
             Math.sin(
-                variation *
-                1.71,
+                variation * 1.71,
             ) *
             0.008
 
         const jitterY =
             Math.cos(
-                variation *
-                1.43,
+                variation * 1.43,
             ) *
             0.008
 
         const jitterZ =
             Math.sin(
-                variation *
-                0.91,
+                variation * 0.91,
             ) *
             0.025
 
@@ -324,22 +321,16 @@ const createTextTargetTexture = (
  * CLOUD TARGET
  * ----------------------------------------------------
  *
- * This is intentionally ONLY a particle cloud.
+ * This is intentionally simple.
  *
- * No:
- * - Gaussian masses
- * - center attractor
- * - radial distribution
- * - angular waves
- * - edge waves
- * - rotation
- * - ellipse
- * - diagonal structures
- * - depth structure
- * - secondary shapes
+ * 95% of the particles are recruited.
  *
- * Every recruited particle is distributed uniformly
- * across the same rectangular area.
+ * The target is a dense, flat rectangular field.
+ * There is no second shape, no ellipse, no rotation,
+ * no radial construction and no additional geometry.
+ *
+ * The organic GPU forces are disabled separately while
+ * rectangleStrength is active.
  * ----------------------------------------------------
  */
 
@@ -378,12 +369,6 @@ const createRectangleTargetTexture = () => {
         const index =
             particleIndex * 4
 
-        /*
-         * Use only 80% of the total particles.
-         *
-         * This keeps the cloud substantially lighter
-         * than the previous 95% version.
-         */
         if (
             randomFor(
                 particleIndex,
@@ -398,9 +383,6 @@ const createRectangleTargetTexture = () => {
             continue
         }
 
-        /*
-         * Uniform X distribution.
-         */
         const x =
             (
                 randomFor(
@@ -411,9 +393,6 @@ const createRectangleTargetTexture = () => {
             ) *
             RECTANGLE_WIDTH
 
-        /*
-         * Uniform Y distribution.
-         */
         const y =
             (
                 randomFor(
@@ -424,11 +403,6 @@ const createRectangleTargetTexture = () => {
             ) *
             RECTANGLE_HEIGHT
 
-        /*
-         * Completely flat cloud.
-         */
-        const z = 0
-
         data[index] =
             x
 
@@ -436,7 +410,7 @@ const createRectangleTargetTexture = () => {
             y
 
         data[index + 2] =
-            z
+            0
 
         data[index + 3] =
             1
@@ -538,10 +512,9 @@ const WorkNebulaText = () => {
     useEffect(() => {
         updateProgress()
 
-        const handleScroll =
-            () => {
-                updateProgress()
-            }
+        const handleScroll = () => {
+            updateProgress()
+        }
 
         window.addEventListener(
             'scroll',
@@ -641,12 +614,8 @@ const WorkNebulaText = () => {
                 if (
                     rectangleAlive === 0
                 ) {
-                    dynamicData[
-                        index
-                    ] =
-                        baseTextData[
-                        index
-                        ]
+                    dynamicData[index] =
+                        baseTextData[index]
 
                     dynamicData[
                         index + 1
@@ -672,9 +641,7 @@ const WorkNebulaText = () => {
 
                 const tx =
                     textAlive > 0
-                        ? baseTextData[
-                        index
-                        ]
+                        ? baseTextData[index]
                         : 0
 
                 const ty =
@@ -692,9 +659,7 @@ const WorkNebulaText = () => {
                         : 0
 
                 const rx =
-                    rectangleData[
-                    index
-                    ]
+                    rectangleData[index]
 
                 const ry =
                     rectangleData[
@@ -706,65 +671,44 @@ const WorkNebulaText = () => {
                     index + 2
                     ]
 
-                dynamicData[
-                    index
-                ] =
+                dynamicData[index] =
+                    tx *
                     (
-                        tx *
-                        (
-                            1 -
-                            rectangleAmount
-                        )
-                    ) +
-                    (
-                        rx *
+                        1 -
                         rectangleAmount
-                    )
+                    ) +
+                    rx *
+                    rectangleAmount
 
                 dynamicData[
                     index + 1
                 ] =
+                    ty *
                     (
-                        ty *
-                        (
-                            1 -
-                            rectangleAmount
-                        )
-                    ) +
-                    (
-                        ry *
+                        1 -
                         rectangleAmount
-                    )
+                    ) +
+                    ry *
+                    rectangleAmount
 
                 dynamicData[
                     index + 2
                 ] =
+                    tz *
                     (
-                        tz *
-                        (
-                            1 -
-                            rectangleAmount
-                        )
-                    ) +
-                    (
-                        rz *
+                        1 -
                         rectangleAmount
-                    )
+                    ) +
+                    rz *
+                    rectangleAmount
 
-                if (
+                dynamicData[
+                    index + 3
+                ] =
                     rectangleAmount >
-                    0.001
-                ) {
-                    dynamicData[
-                        index + 3
-                    ] =
-                        rectangleAlive
-                } else {
-                    dynamicData[
-                        index + 3
-                    ] =
-                        textAlive
-                }
+                        0.001
+                        ? rectangleAlive
+                        : textAlive
             }
 
             textTargetTexture.needsUpdate =
@@ -801,38 +745,20 @@ const WorkNebulaText = () => {
     return (
         <main
             style={{
-                position:
-                    'relative',
-
-                width:
-                    '100%',
-
-                height:
-                    '300vh',
-
-                background:
-                    '#050403',
+                position: 'relative',
+                width: '100%',
+                height: '300vh',
+                background: '#050403',
             }}
         >
             <div
                 style={{
-                    position:
-                        'fixed',
-
-                    inset:
-                        0,
-
-                    width:
-                        '100%',
-
-                    height:
-                        '100vh',
-
-                    overflow:
-                        'hidden',
-
-                    pointerEvents:
-                        'none',
+                    position: 'fixed',
+                    inset: 0,
+                    width: '100%',
+                    height: '100vh',
+                    overflow: 'hidden',
+                    pointerEvents: 'none',
                 }}
             >
                 <NebulaBackground
@@ -841,15 +767,10 @@ const WorkNebulaText = () => {
                             textTargetTexture,
                         )
                     }
-
                     textTargetTexture={
                         textTargetTexture
                     }
-
-                    textStrength={
-                        1.0
-                    }
-
+                    textStrength={1.0}
                     rectangleStrengthRef={
                         rectangleStrengthRef
                     }

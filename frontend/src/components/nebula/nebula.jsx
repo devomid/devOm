@@ -236,6 +236,8 @@ const velocityFlowFragmentShader = `
     uniform float uTextEnabled;
     uniform float uTextStrength;
 
+    uniform float uRectangleStrength;
+
     uniform vec2 uWipeCenter;
     uniform vec2 uWipeHalfSize;
     uniform vec2 uWipeDirection;
@@ -916,19 +918,34 @@ velocity.xy +=
                      * ------------------------------------
                      */
 
-                    float springAcceleration =
-                        clamp(
-                            distanceToTarget *
-                            0.00250,
-                            0.00028,
-                            0.0075
-                        );
+                    float normalSpringAcceleration =
+    clamp(
+        distanceToTarget *
+        0.00250,
+        0.00028,
+        0.0075
+    );
 
-                    velocity +=
-                        direction *
-                        springAcceleration *
-                        uTextStrength *
-                        formationWeight;
+float cloudSpringAcceleration =
+    clamp(
+        distanceToTarget *
+        0.01050,
+        0.00120,
+        0.0300
+    );
+
+float springAcceleration =
+    mix(
+        normalSpringAcceleration,
+        cloudSpringAcceleration,
+        uRectangleStrength
+    );
+
+velocity +=
+    direction *
+    springAcceleration *
+    uTextStrength *
+    formationWeight;
 
                     /*
                      * ------------------------------------
@@ -950,12 +967,19 @@ velocity.xy +=
                             0.0048
                         );
 
-                    float radialCorrection =
-                        (
-                            desiredRadialVelocity -
-                            radialVelocity
-                        ) *
-                        0.080;
+                    float radialCorrectionStrength =
+    mix(
+        0.080,
+        0.220,
+        uRectangleStrength
+    );
+
+float radialCorrection =
+    (
+        desiredRadialVelocity -
+        radialVelocity
+    ) *
+    radialCorrectionStrength;
 
                     velocity +=
                         direction *
@@ -1536,6 +1560,7 @@ const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
     textStrength = 0.0,
+    rectangleStrengthRef = null,
 }) => {
     const pointsRef =
         useRef(null)
@@ -1806,6 +1831,10 @@ const NebulaParticles = ({
                         value: null,
                     },
 
+                    uRectangleStrength: {
+                        value: 0.0,
+                    },
+
                     uVelocityTexture: {
                         value: null,
                     },
@@ -2044,6 +2073,12 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
+            
+            velocityMaterial
+                .uniforms
+                .uRectangleStrength
+                .value =
+                rectangleStrengthRef?.current || 0.0
 
             /*
              * ------------------------------------------------
@@ -2412,6 +2447,7 @@ const NebulaBackground = ({
     textEnabled = false,
     textTargetTexture = null,
     textStrength = 0.0,
+    rectangleStrengthRef = null,
 }) => {
     return (
         <Canvas
@@ -2460,6 +2496,9 @@ const NebulaBackground = ({
                 }
                 textStrength={
                     textStrength
+                }
+                rectangleStrengthRef={
+                    rectangleStrengthRef
                 }
             />
         </Canvas>
