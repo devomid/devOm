@@ -881,7 +881,7 @@ const createCloudTargetTexture = () => {
     return texture
 }
 
-const WorkNebulaText = ({progress}) => {
+const WorkNebulaText = ({progress, cardRect}) => {
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -1258,6 +1258,7 @@ const WorkNebulaText = ({progress}) => {
                 rectangleStrengthRef={
                     rectangleStrengthRef
                 }
+                cardRect={cardRect}
             />
         </Box>
     )

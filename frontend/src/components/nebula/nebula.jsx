@@ -2045,9 +2045,13 @@ const NebulaParticles = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
+    cardRect
 }) => {
+    
     const pointsRef =
         useRef(null)
+    
+    const cardMaskRef = useRef(null)
 
     const simulationRef =
         useRef(null)
@@ -2188,6 +2192,72 @@ const NebulaParticles = ({
                 }),
             [],
         )
+    
+    useEffect(() => {
+        if (!cardRect) return
+
+        const distance = camera.position.z
+
+        const visibleHeight =
+            2 *
+            distance *
+            Math.tan(
+                THREE.MathUtils.degToRad(
+                    camera.fov / 2,
+                ),
+            )
+
+        const visibleWidth =
+            visibleHeight *
+            camera.aspect
+
+        const centerX =
+            cardRect.left +
+            cardRect.width / 2
+
+        const centerY =
+            cardRect.top +
+            cardRect.height / 2
+
+        const worldX =
+            (
+                centerX / size.width -
+                0.5
+            ) *
+            visibleWidth
+
+        const worldY =
+            (
+                0.5 -
+                centerY / size.height
+            ) *
+            visibleHeight
+
+        const worldWidth =
+            (
+                cardRect.width /
+                size.width
+            ) *
+            visibleWidth
+
+        const worldHeight =
+            (
+                cardRect.height /
+                size.height
+            ) *
+            visibleHeight
+
+        console.log('[DEBUG] card world rect:', {
+            x: worldX,
+            y: worldY,
+            width: worldWidth,
+            height: worldHeight,
+        })
+    }, [
+        cardRect,
+        camera,
+        size,
+    ])
 
     useEffect(() => {
         if (
@@ -2941,7 +3011,9 @@ const NebulaBackground = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
+    cardRect
 }) => {
+    const canvasRef = useRef(null)
     return (
         <Canvas
             orthographic={
@@ -3009,6 +3081,7 @@ const NebulaBackground = ({
                 rectangleStrengthRef={
                     rectangleStrengthRef
                 }
+                cardRect={cardRect}
             />
         </Canvas>
     )
