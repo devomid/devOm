@@ -62,8 +62,8 @@ const WorkTile = ({
                         position: 'relative',
 
                         minHeight: {
-                            xs: 440,
-                            md: 560,
+                            xs: 310,
+                            md: 370,
                         },
 
                         borderRadius: {
@@ -113,7 +113,7 @@ const WorkTile = ({
                         )}
                     </Typography>
 
-                    <Typography
+                    {/* <Typography
                         sx={{
                             mt: 2,
 
@@ -132,7 +132,7 @@ const WorkTile = ({
                         }}
                     >
                         {work.title}
-                    </Typography>
+                    </Typography> */}
 
                     <Box
                         sx={{
@@ -194,15 +194,15 @@ const WorkTile = ({
                             'absolute',
 
                         top: 0,
-                        left: '30%',
+                        left: '25%',
 
                         transform:
                             'translate(-50%, -50%)',
 
                         width: {
-                            xs: '75%',
-                            sm: 310,
-                            md: 360,
+                            xs: '25%',
+                            sm: 100,
+                            md: 350,
                         },
 
                         minHeight: {
@@ -249,12 +249,20 @@ const WorkTile = ({
 
                     <Typography
                         sx={{
-                            mt: 1,
+                            mt: 2,
+
                             fontSize: {
-                                xs: '1.5rem',
-                                md: '2rem',
+                                xs: '2.5rem',
+                                sm: '4rem',
+                                md: '6rem',
                             },
-                            fontWeight: 600,
+
+                            fontWeight: 700,
+
+                            lineHeight: 0.95,
+
+                            letterSpacing:
+                                '-0.05em',
                         }}
                     >
                         {work.title}

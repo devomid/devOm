@@ -24,33 +24,6 @@ const clamp = (
         ),
     )
 
-const smoothstep = (
-    edge0,
-    edge1,
-    value,
-) => {
-    const t =
-        clamp(
-            (
-                value -
-                edge0
-            ) /
-            (
-                edge1 -
-                edge0
-            ),
-        )
-
-    return (
-        t *
-        t *
-        (
-            3 -
-            2 * t
-        )
-    )
-}
-
 const WorksTilesContainer = () => {
     const [
         progress,
@@ -120,34 +93,6 @@ const WorksTilesContainer = () => {
         }
     }, [])
 
-    /*
-     * ------------------------------------------------
-     * ONE COMPLETE CARD CYCLE
-     * ------------------------------------------------
-     *
-     * Every card gets one equal section of the
-     * total Works scroll.
-     *
-     * Card 0:
-     *
-     * 0.00 → 0.20
-     * card appears
-     *
-     * 0.20 → 0.40
-     * nebula text → cloud → text
-     *
-     * Card 1:
-     *
-     * 0.40 → 0.60
-     * cloud transition + card morph
-     *
-     * etc.
-     *
-     * The actual nebula phase is handled by
-     * WorkNebulaText.
-     * ------------------------------------------------
-     */
-
     const cardCount =
         works.length
 
@@ -159,70 +104,43 @@ const WorksTilesContainer = () => {
         )
 
     /*
-     * Keep the first card visible after its
-     * entrance and before the next card takes
-     * over.
+     * The card is ALWAYS visible.
+     *
+     * The cloud is responsible for hiding
+     * the card while we change from one work
+     * to the next.
+     *
+     * We switch the card around the middle
+     * of each cycle, where the cloud is at
+     * its strongest.
      */
-    const getCardState = (
-        index,
-    ) => {
-        const start =
-            index *
-            cycleLength
 
-        const end =
+    const activeIndex =
+        Math.min(
+            cardCount - 1,
+            Math.floor(
+                progress /
+                cycleLength,
+            ),
+        )
+
+    const activeWork =
+        works[
+        activeIndex
+        ]
+
+    const cycleStart =
+        activeIndex *
+        cycleLength
+
+    const local =
+        clamp(
             (
-                index + 1
-            ) *
-            cycleLength
-
-        const local =
-            clamp(
-                (
-                    progress -
-                    start
-                ) /
-                (
-                    end -
-                    start
-                ),
-            )
-
-        const entrance =
-            smoothstep(
-                0,
-                0.10,
-                local,
-            )
-
-        const exit =
-            1 -
-            smoothstep(
-                0.50,
-                0.62,
-                local,
-            )
-
-        return {
-            opacity:
-                entrance *
-                exit,
-
-            scale:
-                0.92 +
-                entrance *
-                0.08,
-
-            translateY:
-                (
-                    1 -
-                    entrance
-                ) *
-                80,
-
-            local,
-        }
-    }
+                progress -
+                cycleStart
+            ) /
+            cycleLength,
+        )
 
     return (
         <Box
@@ -243,48 +161,23 @@ const WorksTilesContainer = () => {
                     overflow: 'hidden',
                 }}
             >
-                {works.map(
-                    (
-                        work,
-                        index,
-                    ) => {
-                        const {
-                            opacity,
-                            scale,
-                            translateY,
-                            local,
-                        } =
-                            getCardState(
-                                index,
-                            )
-
-                        return (
-                            <WorkTile
-                                key={
-                                    work.id
-                                }
-                                work={
-                                    work
-                                }
-                                index={
-                                    index
-                                }
-                                progress={
-                                    local
-                                }
-                                opacity={
-                                    opacity
-                                }
-                                scale={
-                                    scale
-                                }
-                                translateY={
-                                    translateY
-                                }
-                            />
-                        )
-                    },
-                )}
+                <WorkTile
+                    key={
+                        activeWork.id
+                    }
+                    work={
+                        activeWork
+                    }
+                    index={
+                        activeIndex
+                    }
+                    progress={
+                        local
+                    }
+                    opacity={1}
+                    scale={1}
+                    translateY={0}
+                />
             </Box>
         </Box>
     )
