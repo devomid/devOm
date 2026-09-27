@@ -16,15 +16,11 @@ const PARTICLE_COUNT =
 
 const TEXT_PARTICLE_RATIO = 0.58
 
-const RECTANGLE_PARTICLE_RATIO = 0.95
+const RECTANGLE_PARTICLE_RATIO = 0.80
 
 const TEXT_WORLD_WIDTH = 8.9
 const TEXT_WORLD_HEIGHT = 2.45
 
-/*
- * The rectangle has EXACTLY the same
- * bounding dimensions as the text.
- */
 const RECTANGLE_WIDTH =
     TEXT_WORLD_WIDTH
 
@@ -203,10 +199,6 @@ const createTextTargetTexture = (
         const index =
             particleIndex * 4
 
-        /*
-         * 58% of particles form
-         * the initial text.
-         */
         if (
             normalizedHash >
             TEXT_PARTICLE_RATIO
@@ -329,23 +321,25 @@ const createTextTargetTexture = (
 
 /*
  * ----------------------------------------------------
- * RECTANGLE TARGET
+ * CLOUD TARGET
  * ----------------------------------------------------
  *
- * 95% of the ENTIRE particle population is recruited.
+ * This is intentionally ONLY a particle cloud.
  *
- * TRUE FLAT RECTANGLE.
+ * No:
+ * - Gaussian masses
+ * - center attractor
+ * - radial distribution
+ * - angular waves
+ * - edge waves
+ * - rotation
+ * - ellipse
+ * - diagonal structures
+ * - depth structure
+ * - secondary shapes
  *
- * No ellipse.
- * No depth.
- * No rotation.
- * No vortex.
- * No radial force.
- * No tangential force.
- * No time-based deformation.
- *
- * The rectangle dimensions are exactly the dimensions
- * of the original text bounding area.
+ * Every recruited particle is distributed uniformly
+ * across the same rectangular area.
  * ----------------------------------------------------
  */
 
@@ -355,12 +349,6 @@ const createRectangleTargetTexture = () => {
             PARTICLE_COUNT * 4,
         )
 
-    /*
-     * Deterministic pseudo-random number.
-     *
-     * This gives every particle a permanent,
-     * stable location inside the rectangle.
-     */
     const randomFor = (
         particleIndex,
         offset = 0,
@@ -391,7 +379,10 @@ const createRectangleTargetTexture = () => {
             particleIndex * 4
 
         /*
-         * Recruit 95% of ALL particles.
+         * Use only 80% of the total particles.
+         *
+         * This keeps the cloud substantially lighter
+         * than the previous 95% version.
          */
         if (
             randomFor(
@@ -408,7 +399,7 @@ const createRectangleTargetTexture = () => {
         }
 
         /*
-         * Fixed rectangular position.
+         * Uniform X distribution.
          */
         const x =
             (
@@ -420,6 +411,9 @@ const createRectangleTargetTexture = () => {
             ) *
             RECTANGLE_WIDTH
 
+        /*
+         * Uniform Y distribution.
+         */
         const y =
             (
                 randomFor(
@@ -431,10 +425,7 @@ const createRectangleTargetTexture = () => {
             RECTANGLE_HEIGHT
 
         /*
-         * FLAT.
-         *
-         * Every rectangle particle is on
-         * exactly the same Z plane.
+         * Completely flat cloud.
          */
         const z = 0
 
@@ -495,20 +486,8 @@ const WorkNebulaText = () => {
     const progressRef =
         useRef(0)
 
-    /*
-     * This is deliberately a ref.
-     *
-     * It updates every animation frame without
-     * causing React to rerender.
-     */
     const rectangleStrengthRef =
         useRef(0)
-
-    /*
-     * ------------------------------------------
-     * SCROLL PROGRESS
-     * ------------------------------------------
-     */
 
     const updateProgress = () => {
         const scrollY =
@@ -528,12 +507,6 @@ const WorkNebulaText = () => {
                 maxScroll,
             )
     }
-
-    /*
-     * ------------------------------------------
-     * CREATE TARGETS
-     * ------------------------------------------
-     */
 
     useEffect(() => {
         const textTexture =
@@ -561,12 +534,6 @@ const WorkNebulaText = () => {
             rectangleTexture.dispose()
         }
     }, [])
-
-    /*
-     * ------------------------------------------
-     * SCROLL LISTENER
-     * ------------------------------------------
-     */
 
     useEffect(() => {
         updateProgress()
@@ -602,22 +569,6 @@ const WorkNebulaText = () => {
         }
     }, [])
 
-    /*
-     * ------------------------------------------
-     * SCROLL-DRIVEN TEXT <-> RECTANGLE
-     * ------------------------------------------
-     *
-     * 0%   = WHAT I'VE DONE
-     *
-     * 50%  = FULL RECTANGLE
-     *
-     * 100% = WHAT I'VE DONE
-     *
-     * The transformation is driven directly
-     * by scroll progress.
-     * ------------------------------------------
-     */
-
     useEffect(() => {
         if (
             !textTargetTexture ||
@@ -626,25 +577,14 @@ const WorkNebulaText = () => {
             return undefined
         }
 
-        /*
-         * Original text positions.
-         *
-         * This NEVER changes.
-         */
         const baseTextData =
             new Float32Array(
                 textTargetTexture.image.data,
             )
 
-        /*
-         * This is the live target texture.
-         */
         const dynamicData =
             textTargetTexture.image.data
 
-        /*
-         * Fixed rectangle positions.
-         */
         const rectangleData =
             rectangleTargetTexture.image.data
 
@@ -652,21 +592,10 @@ const WorkNebulaText = () => {
             null
 
         const frame = () => {
-            /*
-             * READ CURRENT SCROLL POSITION.
-             */
             const progress =
                 progressRef.current
 
             let rectangleAmount
-
-            /*
-             * --------------------------------------
-             * 0 -> 50%
-             *
-             * TEXT -> RECTANGLE
-             * --------------------------------------
-             */
 
             if (
                 progress <= 0.5
@@ -678,14 +607,6 @@ const WorkNebulaText = () => {
                         progress,
                     )
             } else {
-                /*
-                 * ----------------------------------
-                 * 50 -> 100%
-                 *
-                 * RECTANGLE -> TEXT
-                 * ----------------------------------
-                 */
-
                 rectangleAmount =
                     1 -
                     smoothstep(
@@ -695,18 +616,8 @@ const WorkNebulaText = () => {
                     )
             }
 
-            /*
-             * SEND THE CURRENT SCROLL-DERIVED
-             * RECTANGLE STRENGTH TO THE GPU.
-             */
             rectangleStrengthRef.current =
                 rectangleAmount
-
-            /*
-             * --------------------------------------
-             * MORPH EVERY PARTICLE
-             * --------------------------------------
-             */
 
             for (
                 let particleIndex = 0;
@@ -727,11 +638,6 @@ const WorkNebulaText = () => {
                     index + 3
                     ]
 
-                /*
-                 * Particles outside the rectangle's
-                 * 95% population remain exactly as
-                 * their original text target.
-                 */
                 if (
                     rectangleAlive === 0
                 ) {
@@ -764,9 +670,6 @@ const WorkNebulaText = () => {
                     continue
                 }
 
-                /*
-                 * Original text position.
-                 */
                 const tx =
                     textAlive > 0
                         ? baseTextData[
@@ -788,9 +691,6 @@ const WorkNebulaText = () => {
                         ]
                         : 0
 
-                /*
-                 * Rectangle position.
-                 */
                 const rx =
                     rectangleData[
                     index
@@ -806,14 +706,6 @@ const WorkNebulaText = () => {
                     index + 2
                     ]
 
-                /*
-                 * ----------------------------------
-                 * DIRECT SCROLL MORPH
-                 * ----------------------------------
-                 *
-                 * rectangleAmount comes directly
-                 * from scroll progress.
-                 */
                 dynamicData[
                     index
                 ] =
@@ -859,13 +751,9 @@ const WorkNebulaText = () => {
                         rectangleAmount
                     )
 
-                /*
-                 * As soon as the user starts scrolling
-                 * toward the rectangle, recruit the 95%
-                 * rectangle population.
-                 */
                 if (
-                    rectangleAmount > 0.001
+                    rectangleAmount >
+                    0.001
                 ) {
                     dynamicData[
                         index + 3
@@ -879,24 +767,15 @@ const WorkNebulaText = () => {
                 }
             }
 
-            /*
-             * GPU texture changed.
-             */
             textTargetTexture.needsUpdate =
                 true
 
-            /*
-             * Continue checking scroll.
-             */
             animationFrame =
                 window.requestAnimationFrame(
                     frame,
                 )
         }
 
-        /*
-         * START THE LOOP.
-         */
         animationFrame =
             window.requestAnimationFrame(
                 frame,
@@ -918,12 +797,6 @@ const WorkNebulaText = () => {
         textTargetTexture,
         rectangleTargetTexture,
     ])
-
-    /*
-     * ------------------------------------------
-     * PAGE
-     * ------------------------------------------
-     */
 
     return (
         <main
