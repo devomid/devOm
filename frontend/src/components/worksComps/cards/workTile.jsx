@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useEffect, useRef} from 'react'
 
 import {
     Box,
@@ -14,6 +14,8 @@ const WorkTile = ({
     scale = 1,
     translateY = 0,
 }) => {
+    const cardRef = useRef(null)
+
     return (
         <Box
             sx={{
@@ -57,6 +59,7 @@ const WorkTile = ({
                 --------------------------------- */}
 
                 <Paper
+                    ref={cardRef}
                     elevation={0}
                     sx={{
                         position: 'relative',
@@ -78,10 +81,10 @@ const WorkTile = ({
                             md: 6,
                         },
 
-                        background:
-                            'rgba(255, 11, 11, 0.98)',
                         // background:
-                        //     'rgba(255,255,255,0.055)',
+                        //     'rgba(255, 11, 11, 0.98)',
+                        background:
+                            'rgba(255,255,255,0.055)',
 
                         backdropFilter:
                             'blur(22px)',
