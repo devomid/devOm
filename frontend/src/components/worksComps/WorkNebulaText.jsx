@@ -7,6 +7,7 @@ import {
 import * as THREE from 'three'
 
 import NebulaBackground from '../nebula/nebula'
+import { Box } from '@mui/material'
 
 const TEXTURE_SIZE = 512
 
@@ -949,6 +950,26 @@ const WorkNebulaText = () => {
         }
     }, [])
 
+    /*
+     * ------------------------------------------------
+     * GLOBAL WORKS SCROLL
+     * ------------------------------------------------
+     *
+     * Every project gets one complete:
+     *
+     * TEXT
+     *   ↓
+     * CLOUD
+     *   ↓
+     * TEXT
+     *
+     * cycle.
+     *
+     * The card underneath remains visible while
+     * the nebula changes depth relationship.
+     * ------------------------------------------------
+     */
+
     useEffect(() => {
         updateProgress()
 
@@ -983,16 +1004,23 @@ const WorkNebulaText = () => {
     }, [])
 
     /*
-     * ----------------------------------------------------
-     * SCROLL MORPH
-     * ----------------------------------------------------
+     * ------------------------------------------------
+     * TEXT / CLOUD MORPH
+     * ------------------------------------------------
      *
-     * 0.0 -> TEXT
-     * 0.5 -> CLOUD
-     * 1.0 -> TEXT
+     * For every card:
      *
-     * The GPU performs the actual particle interpolation.
-     * ----------------------------------------------------
+     * 0.00
+     * TEXT
+     *
+     * 0.00 → 0.50
+     * TEXT → CLOUD
+     *
+     * 0.50 → 1.00
+     * CLOUD → TEXT
+     *
+     * Then the next card begins.
+     * ------------------------------------------------
      */
 
     useEffect(() => {
@@ -1002,16 +1030,54 @@ const WorkNebulaText = () => {
             const progress =
                 progressRef.current
 
+            const cardCount = 5
+
+            const cycleLength =
+                1 /
+                cardCount
+
+            /*
+             * Which project cycle are we in?
+             */
+            const cycle =
+                Math.min(
+                    cardCount - 1,
+                    Math.floor(
+                        progress /
+                        cycleLength,
+                    ),
+                )
+
+            /*
+             * Progress inside the current
+             * project's cycle.
+             */
+            const cycleStart =
+                cycle *
+                cycleLength
+
+            const localProgress =
+                clamp(
+                    (
+                        progress -
+                        cycleStart
+                    ) /
+                    cycleLength,
+                )
+
+            /*
+             * TEXT → CLOUD → TEXT
+             */
             let cloudAmount
 
             if (
-                progress <= 0.5
+                localProgress <= 0.5
             ) {
                 cloudAmount =
                     smoothstep(
                         0,
                         0.5,
-                        progress,
+                        localProgress,
                     )
             } else {
                 cloudAmount =
@@ -1019,7 +1085,7 @@ const WorkNebulaText = () => {
                     smoothstep(
                         0.5,
                         1,
-                        progress,
+                        localProgress,
                     )
             }
 
@@ -1052,67 +1118,45 @@ const WorkNebulaText = () => {
     }, [])
 
     return (
-        <main
-            style={{
-                position:
-                    'relative',
+        <Box
+            sx={{
+                position: 'fixed',
+                inset: 0,
 
-                width:
-                    '100%',
+                width: '100%',
+                height: '100vh',
 
-                height:
-                    '300vh',
+                overflow: 'hidden',
 
-                background:
-                    '#050403',
+                pointerEvents: 'none',
+
+                zIndex: 1,
             }}
         >
-            <div
-                style={{
-                    position:
-                        'fixed',
+            <NebulaBackground
+                textEnabled={
+                    Boolean(
+                        textTargetTexture,
+                    )
+                }
 
-                    inset:
-                        0,
+                textTargetTexture={
+                    textTargetTexture
+                }
 
-                    width:
-                        '100%',
+                cloudTargetTexture={
+                    cloudTargetTexture
+                }
 
-                    height:
-                        '100vh',
+                textStrength={
+                    1.0
+                }
 
-                    overflow:
-                        'hidden',
-
-                    pointerEvents:
-                        'none',
-                }}
-            >
-                <NebulaBackground
-                    textEnabled={
-                        Boolean(
-                            textTargetTexture,
-                        )
-                    }
-
-                    textTargetTexture={
-                        textTargetTexture
-                    }
-
-                    cloudTargetTexture={
-                        cloudTargetTexture
-                    }
-
-                    textStrength={
-                        1.0
-                    }
-
-                    rectangleStrengthRef={
-                        rectangleStrengthRef
-                    }
-                />
-            </div>
-        </main>
+                rectangleStrengthRef={
+                    rectangleStrengthRef
+                }
+            />
+        </Box>
     )
 }
 

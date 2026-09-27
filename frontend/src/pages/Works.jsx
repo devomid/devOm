@@ -1,12 +1,22 @@
 import React from 'react'
+import { Box } from '@mui/material'
 
 import WorkNebulaText from '../components/worksComps/WorkNebulaText'
-import WorkTile from '../components/worksComps/cards/workTile'
+import WorkTilesContainer from '../components/worksComps/WorkTilesContainer'
 
 const Works = () => {
   return (
-    // <WorkNebulaText />
-    <WorkTile/>
+    <Box
+      sx={{
+        position: 'relative',
+        minHeight: '600vh',
+        background: '#050403',
+      }}
+    >
+      <WorkNebulaText />
+
+      <WorkTilesContainer />
+    </Box>
   )
 }
 
