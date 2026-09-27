@@ -1,4 +1,3 @@
-import {useState} from 'react'
 
 import {
     Box,
@@ -21,22 +20,9 @@ const clamp = (
 
 const WorksTilesContainer = ({
     progress,
+    onCardLayout
 }) => {
     const cardCount = works.length
-
-    const [cardRect, setCardRect] = useState(null)
-    const updateCardRect = () => {
-        if (!cardRef.current) return
-
-        const rect = cardRef.current.getBoundingClientRect()
-
-        setCardRect({
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-            height: rect.height,
-        })
-    }
 
     const cycleLength =
         1 / cardCount
@@ -99,7 +85,7 @@ const WorksTilesContainer = ({
                     }
                     scale={1}
                     translateY={0}
-                    onCardLayout={setCardRect}
+                    onCardLayout={onCardLayout}
                 />
             </Box>
         </Box>

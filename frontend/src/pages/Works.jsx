@@ -25,6 +25,7 @@ const Works = () => {
   const worksRef = useRef(null)
 
   const [progress, setProgress] = useState(0)
+  const [cardRect, setCardRect] = useState(null)
 
   useEffect(() => {
     const updateProgress = () => {
@@ -92,10 +93,12 @@ const Works = () => {
     >
       <WorkNebulaText
         progress={progress}
+        cardRect={cardRect}
       />
 
       <WorkTilesContainer
         progress={progress}
+        onCardLayout={setCardRect}
       />
     </Box>
   )
