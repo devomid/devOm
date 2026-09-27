@@ -784,12 +784,110 @@ const velocityFlowFragmentShader = `
                     uRectangleStrength
                 );
 
-            vec3 target =
+            /*
+ * ------------------------------------
+ * SUBTLE CD-STYLE CLOUD SPIN
+ * ------------------------------------
+ *
+ * Rotate the cloud around the Z axis.
+ *
+ * This is a face-on rotation:
+ *
+ *       camera
+ *         |
+ *         v
+ *
+ *      [ CLOUD ]
+ *          |
+ *          Z axis
+ *
+ * X/Y rotate around Z.
+ * Z itself does not rotate.
+ *
+ * This keeps the cloud's 2D gaseous
+ * silhouette visible instead of turning
+ * it into a thin 3D edge.
+ */
+
+float cloudSpinAngle =
+    -uTime *
+    0.055 *
+    cloudAmount;
+
+float cloudSpinCos =
+    cos(
+        cloudSpinAngle
+    );
+
+float cloudSpinSin =
+    sin(
+        cloudSpinAngle
+    );
+
+vec3 rotatedCloudTarget =
+    cloudTargetSample.xyz;
+
+rotatedCloudTarget.xy =
+    vec2(
+        rotatedCloudTarget.x *
+            cloudSpinCos -
+        rotatedCloudTarget.y *
+            cloudSpinSin,
+
+        rotatedCloudTarget.x *
+            cloudSpinSin +
+        rotatedCloudTarget.y *
+            cloudSpinCos
+    );
+
+vec3 target =
     mix(
         textTargetSample.xyz,
-        cloudTargetSample.xyz,
+        rotatedCloudTarget,
         cloudAmount
     );
+
+    /*
+ * ------------------------------------
+ * GLOBAL CLOUD ROTATION
+ * ------------------------------------
+ *
+ * Rotate the actual cloud target around
+ * the cloud center.
+ *
+ * The particles are therefore pulled
+ * toward a continuously rotating cloud
+ * instead of being pulled toward a static
+ * cloud while a weak velocity tries to
+ * rotate them.
+ */
+
+float cloudRotationAngle =
+    uTime *
+    0.34 *
+    cloudAmount;
+
+float rotationCos =
+    cos(
+        cloudRotationAngle
+    );
+
+float rotationSin =
+    sin(
+        cloudRotationAngle
+    );
+
+vec2 rotatedCloudPosition =
+    vec2(
+        target.x * rotationCos -
+        target.y * rotationSin,
+
+        target.x * rotationSin +
+        target.y * rotationCos
+    );
+
+target.xy =
+    rotatedCloudPosition;
 
 /*
  * ------------------------------------
@@ -1154,7 +1252,68 @@ velocity +=
     uTextStrength *
     formationWeight;
 
-                    /*
+   /*
+ * ------------------------------------
+ * GLOBAL CLOUD SWIRL
+ * ------------------------------------
+ *
+ * One large rotational field for the
+ * entire cloud.
+ *
+ * This is deliberately stronger than
+ * the local vortex so the whole cloud
+ * develops a visible circulation.
+ */
+
+vec2 cloudCenterOffset =
+    position.xy;
+
+float cloudRadiusLength =
+    length(
+        cloudCenterOffset
+    );
+
+vec2 cloudRadial =
+    normalize(
+        cloudCenterOffset +
+        vec2(
+            0.00001
+        )
+    );
+
+vec2 cloudTangent =
+    vec2(
+        -cloudRadial.y,
+        cloudRadial.x
+    );
+
+float cloudRotationFalloff =
+    smoothstep(
+        0.15,
+        7.5,
+        cloudRadiusLength
+    );
+
+float cloudRotationWave =
+    0.72 +
+    0.28 *
+    sin(
+        cloudRadiusLength * 0.72 -
+        uTime * 0.45 +
+        phase * 0.37
+    );
+
+velocity.xy +=
+    cloudTangent *
+    0.00125 *
+    cloudRotationFalloff *
+    cloudRotationWave *
+    cloudAmount *
+    particleSpeed *
+    uTextStrength *
+    formationWeight;
+                    
+    /*
  * ------------------------------------
  * NEBULA INTERNAL TURBULENCE
  * ------------------------------------
