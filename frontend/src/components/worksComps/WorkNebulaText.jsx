@@ -313,14 +313,18 @@ const createTextTargetTexture = (
  * CLOUD TARGET
  * ----------------------------------------------------
  *
- * One destination for every existing particle.
+ * Dense organic particle cloud.
  *
- * The particles occupy a broad rounded rectangular
- * field. There is no second particle population and
- * no separate geometry.
+ * This is NOT a rectangle.
+ * This is NOT a second geometry.
+ * This uses the existing particle population.
  *
- * Corners become progressively sparse rather than
- * producing a hard rectangular edge.
+ * Most particles are pulled into one broad,
+ * irregular, continuous mass.
+ *
+ * A small percentage remain completely untargeted
+ * so the surrounding nebula can continue moving
+ * freely around the cloud.
  * ----------------------------------------------------
  */
 
@@ -331,37 +335,27 @@ const createCloudTargetTexture = () => {
         )
 
     /*
-     * Slightly smaller footprint than before.
+     * Broad card-sized footprint.
      *
-     * Fewer particles are assigned to the cloud,
-     * but they occupy a smaller area, making the
-     * rectangle visibly denser.
+     * The aspect ratio remains wide enough to cover
+     * the Work area, but the actual boundary is
+     * deliberately much more organic than a rectangle.
      */
     const cloudWidth =
-        15.8
+        15.9
 
     const cloudHeight =
-        6.25
-
-    const halfWidth =
-        cloudWidth * 0.5
-
-    const halfHeight =
-        cloudHeight * 0.5
-
-    const cornerRadius =
-        1.05
+        6.35
 
     /*
-     * About 78% of the existing particles form
-     * the cloud.
+     * About 92% of the existing particles become
+     * part of the cloud.
      *
-     * The remaining ~22% have alpha = 0 and therefore
-     * do NOT receive a cloud target. They remain part
-     * of the normal free-moving nebula.
+     * The remaining ~8% have alpha = 0 and remain
+     * completely free-moving nebula particles.
      */
     const CLOUD_PARTICLE_RATIO =
-        0.78
+        0.92
 
     const randomFor = (
         particleIndex,
@@ -399,69 +393,151 @@ const createCloudTargetTexture = () => {
         )
     }
 
-    const isInsideRoundedRectangle = (
+    /*
+     * Continuous low-frequency shape noise.
+     *
+     * The important difference from the old rectangle:
+     *
+     * We do NOT start with a rounded rectangle and
+     * merely disturb its corners.
+     *
+     * Instead, the cloud boundary is produced from
+     * several overlapping spatial frequencies.
+     */
+    const cloudField = (
         x,
         y,
     ) => {
-        const ax =
-            Math.abs(x)
-
-        const ay =
-            Math.abs(y)
-
-        const innerWidth =
-            halfWidth -
-            cornerRadius
-
-        const innerHeight =
-            halfHeight -
-            cornerRadius
-
-        /*
-         * Main horizontal body.
-         */
-        if (
-            ax <=
-            innerWidth
-        ) {
-            return (
-                ay <=
-                halfHeight
+        const nx =
+            x /
+            (
+                cloudWidth *
+                0.5
             )
-        }
 
-        /*
-         * Main vertical body.
-         */
-        if (
-            ay <=
-            innerHeight
-        ) {
-            return (
-                ax <=
-                halfWidth
+        const ny =
+            y /
+            (
+                cloudHeight *
+                0.5
             )
-        }
 
         /*
-         * Rounded corner.
+         * Slight spatial warp prevents the field from
+         * having a clean mathematical symmetry.
          */
-        const dx =
-            ax -
-            innerWidth
+        const warpedX =
+            nx +
+            Math.sin(
+                ny * 2.7,
+            ) *
+            0.105
 
-        const dy =
-            ay -
-            innerHeight
+        const warpedY =
+            ny +
+            Math.cos(
+                nx * 2.35,
+            ) *
+            0.075
 
-        return (
-            dx * dx +
-            dy * dy
-        ) <=
-            cornerRadius *
-            cornerRadius
+        /*
+         * Base body.
+         *
+         * Exponent below 2 makes the cloud broader and
+         * less ellipse-like while still keeping one
+         * continuous central mass.
+         */
+        const body =
+            Math.pow(
+                Math.abs(
+                    warpedX,
+                ),
+                1.62,
+            ) +
+            Math.pow(
+                Math.abs(
+                    warpedY,
+                ),
+                1.72,
+            )
+
+        /*
+         * Large-scale lumpy deformation.
+         *
+         * These are deliberately overlapping fields,
+         * not separate blobs.
+         */
+        const largeNoise =
+            Math.sin(
+                warpedX * 3.15 +
+                warpedY * 1.45,
+            ) *
+            0.13 +
+            Math.cos(
+                warpedX * 4.55 -
+                warpedY * 2.35,
+            ) *
+            0.095 +
+            Math.sin(
+                warpedX * 6.8 +
+                warpedY * 4.15,
+            ) *
+            0.055
+
+        /*
+         * Asymmetric directional deformation.
+         *
+         * This prevents the cloud from looking like a
+         * centered mathematical capsule.
+         */
+        const directionalNoise =
+            (
+                Math.sin(
+                    warpedY * 5.4 +
+                    warpedX * 1.7,
+                ) *
+                0.075
+            ) +
+            (
+                Math.cos(
+                    warpedX * 7.2 -
+                    warpedY * 3.1,
+                ) *
+                0.045
+            )
+
+        /*
+         * Edge threshold.
+         *
+         * Lower threshold in some areas creates
+         * protrusions and indentations.
+         */
+        const threshold =
+            1.0 +
+            largeNoise +
+            directionalNoise
+
+        return {
+            value:
+                body -
+                threshold,
+
+            body,
+            nx,
+            ny,
+        }
     }
 
+    /*
+     * Find a point inside the continuous organic field.
+     *
+     * We sample a large rectangular area and accept
+     * positions according to the distorted cloud field.
+     *
+     * This creates high particle density throughout the
+     * cloud instead of concentrating particles into a
+     * geometric outline.
+     */
     for (
         let particleIndex = 0;
         particleIndex <
@@ -475,12 +551,8 @@ const createCloudTargetTexture = () => {
          * --------------------------------------------
          * FREE PARTICLES
          * --------------------------------------------
-         *
-         * These particles have no cloud target.
-         *
-         * The velocity shader sees cloudTarget.a = 0
-         * and therefore leaves them completely alone.
          */
+
         const cloudMembership =
             randomFor(
                 particleIndex,
@@ -511,30 +583,33 @@ const createCloudTargetTexture = () => {
 
         /*
          * --------------------------------------------
-         * CLOUD POSITION
+         * ORGANIC CLOUD SAMPLING
          * --------------------------------------------
-         *
-         * Rejection sampling gives the particles a
-         * genuinely rectangular distribution instead
-         * of making them follow an ellipse.
          */
+
+        let accepted =
+            false
+
         for (
             let attempt = 0;
-            attempt < 16;
+            attempt < 24;
             attempt += 1
         ) {
-            const candidateX =
+            /*
+             * Broad candidate distribution.
+             */
+            let candidateX =
                 (
                     randomFor(
                         particleIndex,
                         100 +
-                        attempt * 11,
+                        attempt * 13,
                     ) -
                     0.5
                 ) *
                 cloudWidth
 
-            const candidateY =
+            let candidateY =
                 (
                     randomFor(
                         particleIndex,
@@ -545,11 +620,65 @@ const createCloudTargetTexture = () => {
                 ) *
                 cloudHeight
 
-            if (
-                isInsideRoundedRectangle(
+            /*
+             * Large-scale position warp.
+             *
+             * This bends the cloud instead of merely
+             * changing its outer border.
+             */
+            candidateX +=
+                Math.sin(
+                    candidateY * 1.35,
+                ) *
+                0.24
+
+            candidateY +=
+                Math.sin(
+                    candidateX * 1.05,
+                ) *
+                0.16
+
+            const field =
+                cloudField(
                     candidateX,
                     candidateY,
                 )
+
+            /*
+             * Interior particles are accepted very
+             * easily. Near the boundary acceptance becomes
+             * selective, producing a ragged particle edge.
+             */
+            const edgeNoise =
+                (
+                    Math.sin(
+                        candidateX * 4.2 +
+                        candidateY * 2.1 +
+                        particleIndex * 0.0007,
+                    ) *
+                    0.035
+                ) +
+                (
+                    Math.cos(
+                        candidateX * 7.1 -
+                        candidateY * 3.7 +
+                        particleIndex * 0.00031,
+                    ) *
+                    0.022
+                )
+
+            const acceptance =
+                field.value +
+                edgeNoise
+
+            /*
+             * Keep the center dense.
+             *
+             * Only the outer boundary becomes sparse.
+             */
+            if (
+                acceptance <=
+                0
             ) {
                 x =
                     candidateX
@@ -557,85 +686,128 @@ const createCloudTargetTexture = () => {
                 y =
                     candidateY
 
+                accepted =
+                    true
+
                 break
-            }
-
-            /*
-             * Guaranteed fallback inside the main body.
-             */
-            if (
-                attempt === 15
-            ) {
-                x =
-                    (
-                        randomFor(
-                            particleIndex,
-                            401,
-                        ) -
-                        0.5
-                    ) *
-                    (
-                        cloudWidth -
-                        cornerRadius *
-                        0.75
-                    )
-
-                y =
-                    (
-                        randomFor(
-                            particleIndex,
-                            503,
-                        ) -
-                        0.5
-                    ) *
-                    (
-                        cloudHeight -
-                        cornerRadius *
-                        0.75
-                    )
             }
         }
 
         /*
+         * Extremely unlikely fallback.
+         *
+         * This guarantees every cloud particle receives
+         * a valid destination without creating a separate
+         * geometric shape.
+         */
+        if (!accepted) {
+            const fallbackAngle =
+                randomFor(
+                    particleIndex,
+                    811,
+                ) *
+                Math.PI *
+                2
+
+            const fallbackRadius =
+                Math.sqrt(
+                    randomFor(
+                        particleIndex,
+                        823,
+                    ),
+                )
+
+            x =
+                Math.cos(
+                    fallbackAngle,
+                ) *
+                (
+                    cloudWidth *
+                    0.30 *
+                    fallbackRadius
+                )
+
+            y =
+                Math.sin(
+                    fallbackAngle,
+                ) *
+                (
+                    cloudHeight *
+                    0.30 *
+                    fallbackRadius
+                )
+        }
+
+        /*
          * --------------------------------------------
-         * ORGANIC MICRO-DISTORTION
+         * PARTICLE-LEVEL ORGANIC MOTION
          * --------------------------------------------
          *
-         * Keep the rectangle organic without allowing
-         * the distortion to destroy its silhouette.
+         * The target itself is static, but particles
+         * do not all land on identical mathematical
+         * coordinates. This gives the cloud a granular,
+         * turbulent surface.
          */
+
         const organicX =
             (
                 Math.sin(
                     particleIndex *
-                    0.0173,
+                    0.0173 +
+                    y * 2.4,
                 ) *
+                0.075
+            ) +
+            (
                 Math.cos(
                     particleIndex *
-                    0.0061,
-                )
-            ) *
-            0.055
+                    0.0061 +
+                    x * 1.7,
+                ) *
+                0.045
+            )
 
         const organicY =
             (
                 Math.cos(
                     particleIndex *
-                    0.0131,
+                    0.0131 +
+                    x * 2.1,
                 ) *
+                0.065
+            ) +
+            (
                 Math.sin(
                     particleIndex *
-                    0.0087,
-                )
-            ) *
-            0.045
+                    0.0087 +
+                    y * 1.9,
+                ) *
+                0.040
+            )
 
+        /*
+         * Very small depth variation.
+         *
+         * This keeps the cloud volumetric rather than
+         * making it look like a flat bitmap.
+         */
         const organicZ =
-            Math.sin(
-                particleIndex *
-                0.0217,
-            ) *
-            0.055
+            (
+                Math.sin(
+                    particleIndex *
+                    0.0217 +
+                    x * 0.31,
+                ) *
+                0.075
+            ) +
+            (
+                Math.cos(
+                    particleIndex *
+                    0.0134 +
+                    y * 0.47,
+                ) *
+                0.045
+            )
 
         data[index] =
             x +
@@ -649,10 +821,8 @@ const createCloudTargetTexture = () => {
             organicZ
 
         /*
-         * IMPORTANT:
-         *
-         * alpha = 1 means this particle participates
-         * in the cloud target.
+         * alpha = 1:
+         * this particle has a valid cloud destination.
          */
         data[index + 3] =
             1
@@ -799,10 +969,7 @@ const WorkNebulaText = () => {
      * 0.5 -> CLOUD
      * 1.0 -> TEXT
      *
-     * Only the scalar amount is updated here.
-     *
-     * The actual 262,144-particle interpolation happens
-     * inside the GPU simulation shader.
+     * The GPU performs the actual particle interpolation.
      * ----------------------------------------------------
      */
 

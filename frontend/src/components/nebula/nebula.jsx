@@ -567,17 +567,17 @@ const velocityFlowFragmentShader = `
 
         velocity.x +=
             flowX *
-            0.00105 *
+            0.00155 *
             particleSpeed;
 
         velocity.y +=
             flowY *
-            0.00105 *
+            0.00155 *
             particleSpeed;
 
         velocity.z +=
             flowZ *
-            0.00105 *
+            0.00155 *
             particleSpeed;
 
         velocity.x *= 0.965;
@@ -785,13 +785,73 @@ const velocityFlowFragmentShader = `
                 );
 
             vec3 target =
-                mix(
-                    textTargetSample.xyz,
-                    cloudTargetSample.xyz,
-                    cloudAmount
-                );
+    mix(
+        textTargetSample.xyz,
+        cloudTargetSample.xyz,
+        cloudAmount
+    );
 
-            float targetAvailable =
+/*
+ * ------------------------------------
+ * DYNAMIC CLOUD FORMATION
+ * ------------------------------------
+ *
+ * The cloud target itself continuously
+ * breathes, stretches and folds.
+ *
+ * This makes the cloud FORM and REFORM
+ * instead of behaving like a static mask.
+ */
+
+float cloudFormA =
+    sin(
+        target.y * 0.72 +
+        target.z * 0.41 +
+        uTime * 0.31 +
+        phase * 1.73
+    );
+
+float cloudFormB =
+    cos(
+        target.x * 0.64 -
+        target.z * 0.53 -
+        uTime * 0.27 +
+        phase * 1.31
+    );
+
+float cloudFormC =
+    sin(
+        target.x * 0.91 +
+        target.y * 0.47 +
+        uTime * 0.19 +
+        phase * 2.17
+    );
+
+float cloudFormD =
+    sin(
+        target.x * 1.37 -
+        target.y * 1.12 +
+        target.z * 0.74 +
+        uTime * 0.43 +
+        phase * 3.11
+    );
+
+vec3 cloudDeformation =
+    vec3(
+        cloudFormA * 0.0018 +
+        cloudFormD * 0.0010,
+
+        cloudFormB * 0.0017 +
+        cloudFormD * 0.0008,
+
+        cloudFormC * 0.0009
+    );
+
+target +=
+    cloudDeformation *
+    cloudAmount;
+
+float targetAvailable =
                 mix(
                     textTargetSample.a,
                     cloudTargetSample.a,
@@ -986,115 +1046,345 @@ const velocityFlowFragmentShader = `
                         uTextStrength *
                         formationWeight;
 
+                        vec3 cloudFlow =
+    vec3(
+        flowX,
+        flowY,
+        flowZ
+    );
+
+float flowAlongTarget =
+    dot(
+        cloudFlow,
+        direction
+    );
+
+vec3 tangentialFlow =
+    cloudFlow -
+    direction *
+    flowAlongTarget;
+
+velocity +=
+    tangentialFlow *
+    0.00135 *
+    cloudAmount *
+    particleSpeed *
+    uTextStrength *
+    formationWeight;
+
+    /*
+ * ------------------------------------
+ * NEBULA TURBULENCE
+ * ------------------------------------
+ */
+
+vec3 localTurbulence;
+
+localTurbulence.x =
+    sin(
+        position.y * 1.35 +
+        position.z * 0.82 +
+        uTime * 1.35 +
+        phase * 2.17
+    );
+
+localTurbulence.y =
+    cos(
+        position.x * 1.17 -
+        position.z * 1.08 -
+        uTime * 1.18 +
+        phase * 1.73
+    );
+
+localTurbulence.z =
+    sin(
+        position.x * 0.91 +
+        position.y * 1.42 +
+        uTime * 1.07 +
+        phase * 2.61
+    );
+
+velocity +=
+    localTurbulence *
+    0.00042 *
+    cloudAmount *
+    particleSpeed *
+    uTextStrength *
+    formationWeight;
+
+    /*
+ * ------------------------------------
+ * LOCAL VORTEX
+ * ------------------------------------
+ */
+
+vec3 vortexAxis =
+    normalize(
+        vec3(
+            sin(
+                target.y * 0.72 +
+                uTime * 0.41 +
+                phase
+            ),
+            cos(
+                target.x * 0.68 -
+                uTime * 0.37 +
+                phase * 1.43
+            ),
+            sin(
+                target.x * 0.51 +
+                target.y * 0.63 +
+                uTime * 0.29 +
+                phase * 0.71
+            )
+        )
+    );
+
+vec3 vortexFlow =
+    cross(
+        vortexAxis,
+        direction
+    );
+
+velocity +=
+    vortexFlow *
+    0.00034 *
+    cloudAmount *
+    particleSpeed *
+    uTextStrength *
+    formationWeight;
+
                     /*
-                     * ------------------------------------
-                     * ORGANIC INTERNAL MOTION
-                     * ------------------------------------
-                     *
-                     * The global nebula remains alive.
-                     * Cloud motion is reduced rather than
-                     * completely frozen.
-                     */
+ * ------------------------------------
+ * NEBULA INTERNAL TURBULENCE
+ * ------------------------------------
+ *
+ * Stronger than the original cloud swirl.
+ * Multiple scales interfere with each
+ * other so the cloud never settles.
+ */
 
-                    vec3 swirl;
+vec3 swirl;
 
-                    swirl.x =
-                        sin(
-                            target.y * 0.85 +
-                            uTime * 0.62 +
-                            phase
-                        );
+swirl.x =
+    sin(
+        target.y * 0.91 +
+        target.z * 0.47 +
+        uTime * 0.73 +
+        phase
+    );
 
-                    swirl.y =
-                        cos(
-                            target.x * 0.78 -
-                            uTime * 0.55 +
-                            phase * 1.31
-                        );
+swirl.y =
+    cos(
+        target.x * 0.83 -
+        target.z * 0.61 -
+        uTime * 0.67 +
+        phase * 1.31
+    );
 
-                    swirl.z =
-                        sin(
-                            target.x * 0.55 +
-                            target.y * 0.43 +
-                            uTime * 0.47 +
-                            phase * 0.71
-                        );
+swirl.z =
+    sin(
+        target.x * 0.57 +
+        target.y * 0.76 +
+        uTime * 0.59 +
+        phase * 0.71
+    );
 
-                    velocity +=
-                        swirl *
-                        0.000021 *
-                        uTextStrength *
-                        formationWeight;
+vec3 fineSwirl;
+
+fineSwirl.x =
+    sin(
+        target.y * 2.31 +
+        target.x * 1.17 +
+        uTime * 1.21 +
+        phase * 2.17
+    );
+
+fineSwirl.y =
+    cos(
+        target.x * 2.07 -
+        target.y * 1.43 -
+        uTime * 1.07 +
+        phase * 1.73
+    );
+
+fineSwirl.z =
+    sin(
+        target.x * 1.61 +
+        target.y * 2.19 +
+        uTime * 0.93 +
+        phase * 2.61
+    );
+
+velocity +=
+    swirl *
+    0.000085 *
+    cloudAmount *
+    uTextStrength *
+    formationWeight;
+
+velocity +=
+    fineSwirl *
+    0.000038 *
+    cloudAmount *
+    uTextStrength *
+    formationWeight;
 
                     /*
-                     * ------------------------------------
-                     * VERY RARE ESCAPE
-                     * ------------------------------------
-                     *
-                     * Keep the organic escape behavior
-                     * for the text, but suppress it as the
-                     * cloud forms.
-                     */
+ * ------------------------------------
+ * GAS ESCAPE / REJOIN
+ * ------------------------------------
+ *
+ * Particles periodically leave the cloud,
+ * travel outward, then get captured again.
+ *
+ * This creates the gas-like "escape,
+ * dissolve, reform" behavior.
+ */
 
-                    float escapeWave =
-                        sin(
-                            phase * 2.91 +
-                            uTime * 0.43
-                        );
+float escapeWaveA =
+    sin(
+        phase * 2.17 +
+        uTime * 0.73
+    );
 
-                    float escapeAmount =
-                        smoothstep(
-                            0.93,
-                            0.995,
-                            escapeWave
-                        );
+float escapeWaveB =
+    sin(
+        phase * 4.71 -
+        uTime * 0.41
+    );
 
-                    float escapeProximity =
-                        1.0 -
-                        smoothstep(
-                            0.35,
-                            2.20,
-                            distanceToTarget
-                        );
+float escapeWaveC =
+    cos(
+        phase * 7.13 +
+        uTime * 0.27
+    );
 
-                    escapeAmount *=
-                        escapeProximity;
+float escapeNoise =
+    escapeWaveA * 0.52 +
+    escapeWaveB * 0.31 +
+    escapeWaveC * 0.17;
 
-                    escapeAmount *=
-                        1.0 -
-                        cloudAmount;
+float escapeAmount =
+    smoothstep(
+        0.48,
+        0.91,
+        escapeNoise
+    );
 
-                    vec3 escapeDirection =
-                        normalize(
-                            vec3(
-                                direction.x +
-                                sin(
-                                    phase +
-                                    uTime * 0.37
-                                ) *
-                                0.42,
+/*
+ * Escape is stronger near the outer
+ * regions of the cloud and weaker deep
+ * inside it.
+ */
 
-                                direction.y +
-                                cos(
-                                    phase * 1.37 -
-                                    uTime * 0.29
-                                ) *
-                                0.42,
+float escapeProximity =
+    smoothstep(
+        0.35,
+        2.80,
+        distanceToTarget
+    );
 
-                                direction.z +
-                                sin(
-                                    phase * 0.71 +
-                                    uTime * 0.25
-                                ) *
-                                0.18
-                            )
-                        );
+escapeAmount *=
+    escapeProximity;
 
-                    velocity +=
-                        escapeDirection *
-                        escapeAmount *
-                        formationWeight *
-                        0.000070;
+/*
+ * Only a portion of the cloud escapes
+ * at any moment.
+ */
+
+escapeAmount *=
+    cloudAmount *
+    0.72;
+
+vec3 gasDirection =
+    normalize(
+        vec3(
+            direction.x +
+            sin(
+                phase * 1.71 +
+                uTime * 0.83
+            ) *
+            0.78,
+
+            direction.y +
+            cos(
+                phase * 2.37 -
+                uTime * 0.67
+            ) *
+            0.78,
+
+            direction.z +
+            sin(
+                phase * 0.93 +
+                uTime * 0.51
+            ) *
+            0.36
+        )
+    );
+
+/*
+ * Tangential component makes escaping
+ * particles curve instead of shooting
+ * straight away.
+ */
+
+vec3 gasTangent =
+    cross(
+        direction,
+        gasDirection
+    );
+
+velocity +=
+    gasDirection *
+    escapeAmount *
+    0.00032 *
+    uTextStrength *
+    formationWeight;
+
+velocity +=
+    gasTangent *
+    escapeAmount *
+    0.00021 *
+    uTextStrength *
+    formationWeight;
+
+/*
+ * ------------------------------------
+ * GAS REJOIN
+ * ------------------------------------
+ *
+ * Once particles drift away, the target
+ * spring pulls them back.
+ *
+ * This creates continuous:
+ *
+ * ESCAPE -> DRIFT -> REJOIN -> ESCAPE
+ */
+
+float rejoinWave =
+    0.5 +
+    0.5 *
+    sin(
+        phase * 1.37 -
+        uTime * 0.29
+    );
+
+float rejoinStrength =
+    smoothstep(
+        1.25,
+        4.20,
+        distanceToTarget
+    );
+
+velocity +=
+    direction *
+    rejoinStrength *
+    rejoinWave *
+    0.00042 *
+    cloudAmount *
+    uTextStrength *
+    formationWeight;
 
                     /*
                      * ------------------------------------
