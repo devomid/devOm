@@ -13,8 +13,31 @@ const WorkTile = ({
     opacity = 1,
     scale = 1,
     translateY = 0,
+    onCardLayout
 }) => {
     const cardRef = useRef(null)
+    useEffect(() => {
+        if (!cardRef.current || !onCardLayout) return
+
+        const update = () => {
+            const rect = cardRef.current.getBoundingClientRect()
+
+            onCardLayout({
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+            })
+        }
+
+        update()
+
+        window.addEventListener('resize', update)
+
+        return () => {
+            window.removeEventListener('resize', update)
+        }
+    }, [onCardLayout])
 
     return (
         <Box
