@@ -472,17 +472,17 @@ const createCloudTargetTexture = () => {
                 warpedX * 3.15 +
                 warpedY * 1.45,
             ) *
-            0.13 +
+            0.22 +
             Math.cos(
                 warpedX * 4.55 -
                 warpedY * 2.35,
             ) *
-            0.095 +
+            0.016 +
             Math.sin(
                 warpedX * 6.8 +
                 warpedY * 4.15,
             ) *
-            0.055
+            0.095
 
         /*
          * Asymmetric directional deformation.
@@ -652,19 +652,19 @@ const createCloudTargetTexture = () => {
             const edgeNoise =
                 (
                     Math.sin(
-                        candidateX * 4.2 +
-                        candidateY * 2.1 +
+                        candidateX * 2.7 +
+                        candidateY * 1.35 +
                         particleIndex * 0.0007,
                     ) *
-                    0.035
+                    0.075
                 ) +
                 (
                     Math.cos(
-                        candidateX * 7.1 -
-                        candidateY * 3.7 +
+                        candidateX * 4.8 -
+                        candidateY * 2.5 +
                         particleIndex * 0.00031,
                     ) *
-                    0.022
+                    0.050
                 )
 
             const acceptance =
@@ -676,9 +676,31 @@ const createCloudTargetTexture = () => {
              *
              * Only the outer boundary becomes sparse.
              */
+            const outsideDistance =
+                Math.max(
+                    0,
+                    acceptance,
+                )
+
+            const outerChance =
+                Math.exp(
+                    -outsideDistance *
+                    5.5,
+                )
+
+            const porousSample =
+                randomFor(
+                    particleIndex,
+                    900 +
+                    attempt * 29,
+                )
+
             if (
                 acceptance <=
-                0
+                0 ||
+                porousSample <
+                outerChance *
+                0.34
             ) {
                 x =
                     candidateX
@@ -798,7 +820,7 @@ const createCloudTargetTexture = () => {
                     0.0217 +
                     x * 0.31,
                 ) *
-                0.075
+                0.018
             ) +
             (
                 Math.cos(
@@ -806,7 +828,7 @@ const createCloudTargetTexture = () => {
                     0.0134 +
                     y * 0.47,
                 ) *
-                0.010
+                0.075
             )
 
         data[index] =

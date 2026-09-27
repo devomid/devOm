@@ -1066,7 +1066,7 @@ vec3 tangentialFlow =
 
 velocity +=
     tangentialFlow *
-    0.00135 *
+    0.00230 *
     cloudAmount *
     particleSpeed *
     uTextStrength *
@@ -1106,7 +1106,7 @@ localTurbulence.z =
 
 velocity +=
     localTurbulence *
-    0.00042 *
+    0.00082 *
     cloudAmount *
     particleSpeed *
     uTextStrength *
@@ -1148,7 +1148,7 @@ vec3 vortexFlow =
 
 velocity +=
     vortexFlow *
-    0.00034 *
+    0.00068 *
     cloudAmount *
     particleSpeed *
     uTextStrength *
@@ -1218,14 +1218,14 @@ fineSwirl.z =
 
 velocity +=
     swirl *
-    0.000085 *
+    0.000018 *
     cloudAmount *
     uTextStrength *
     formationWeight;
 
 velocity +=
     fineSwirl *
-    0.000038 *
+    0.000095 *
     cloudAmount *
     uTextStrength *
     formationWeight;
@@ -1295,7 +1295,7 @@ escapeAmount *=
 
 escapeAmount *=
     cloudAmount *
-    0.72;
+    0.92;
 
 vec3 gasDirection =
     normalize(
@@ -1338,14 +1338,14 @@ vec3 gasTangent =
 velocity +=
     gasDirection *
     escapeAmount *
-    0.00032 *
+    0.00058 *
     uTextStrength *
     formationWeight;
 
 velocity +=
     gasTangent *
     escapeAmount *
-    0.00021 *
+    0.00040 *
     uTextStrength *
     formationWeight;
 
@@ -1381,7 +1381,7 @@ velocity +=
     direction *
     rejoinStrength *
     rejoinWave *
-    0.00042 *
+    0.00034 *
     cloudAmount *
     uTextStrength *
     formationWeight;
