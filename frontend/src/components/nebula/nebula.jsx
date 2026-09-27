@@ -2966,7 +2966,7 @@ const NebulaBackground = ({
                     true,
 
                 alpha:
-                    false,
+                    true,
 
                 powerPreference:
                     'high-performance',
@@ -2986,9 +2986,7 @@ const NebulaBackground = ({
 
                 pointerEvents:
                     'none',
-
-                background:
-                    '#050403',
+            
             }}
         >
             <NebulaParticles

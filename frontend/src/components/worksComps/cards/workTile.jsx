@@ -35,8 +35,8 @@ const WorkTile = ({
                 transform:
                     `translateY(${translateY}px) scale(${scale})`,
 
-                transition:
-                    'opacity 120ms linear, transform 120ms linear',
+                // transition:
+                //     'opacity 120ms linear, transform 120ms linear',
 
                 px: {
                     xs: 2,
@@ -79,7 +79,9 @@ const WorkTile = ({
                         },
 
                         background:
-                            'rgba(255,255,255,0.055)',
+                            'rgba(255, 11, 11, 0.98)',
+                        // background:
+                        //     'rgba(255,255,255,0.055)',
 
                         backdropFilter:
                             'blur(22px)',
