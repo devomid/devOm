@@ -846,6 +846,63 @@ vec3 target =
         rotatedCloudTarget,
         cloudAmount
     );
+
+/*
+ * ------------------------------------
+ * MORPH VOLUME RELEASE
+ * ------------------------------------
+ *
+ * During the transition the particles
+ * must NOT collapse onto a shallow
+ * intermediate surface.
+ *
+ * The release is strongest in the middle
+ * of the morph and disappears completely
+ * when the cloud is fully formed.
+ *
+ * X/Y stay restrained so this does not
+ * throw the cloud off-screen.
+ *
+ * Z receives most of the separation,
+ * giving the transition real volume.
+ */
+
+float morphRelease =
+    4.0 *
+    cloudAmount *
+    (
+        1.0 -
+        cloudAmount
+    );
+
+vec3 morphVolumeDirection =
+    normalize(
+        vec3(
+            sin(
+                phase * 1.91 +
+                uTime * 0.37
+            ),
+
+            cos(
+                phase * 1.37 -
+                uTime * 0.29
+            ),
+
+            sin(
+                phase * 0.83 +
+                uTime * 0.21
+            )
+        )
+    );
+
+target +=
+    morphVolumeDirection *
+    vec3(
+        0.28,
+        0.22,
+        1.15
+    ) *
+    morphRelease;
     
 
 /*
