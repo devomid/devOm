@@ -1,8 +1,4 @@
-import React, {
-    useEffect,
-    useRef,
-    useState,
-} from 'react'
+import React from 'react'
 
 import {
     Box,
@@ -15,136 +11,52 @@ const clamp = (
     value,
     min = 0,
     max = 1,
-) =>
+) => Math.min(
+    max,
     Math.max(
         min,
-        Math.min(
-            max,
-            value,
-        ),
-    )
+        value,
+    ),
+)
 
-const WorksTilesContainer = () => {
-    const [
-        progress,
-        setProgress,
-    ] = useState(0)
-
-    const containerRef =
-        useRef(null)
-
-    useEffect(() => {
-        const updateProgress = () => {
-            const element =
-                containerRef.current
-
-            if (!element) {
-                return
-            }
-
-            const rect =
-                element.getBoundingClientRect()
-
-            const total =
-                element.offsetHeight -
-                window.innerHeight
-
-            if (total <= 0) {
-                setProgress(0)
-                return
-            }
-
-            const travelled =
-                -rect.top
-
-            setProgress(
-                clamp(
-                    travelled /
-                    total,
-                ),
-            )
-        }
-
-        updateProgress()
-
-        window.addEventListener(
-            'scroll',
-            updateProgress,
-            {
-                passive: true,
-            },
-        )
-
-        window.addEventListener(
-            'resize',
-            updateProgress,
-        )
-
-        return () => {
-            window.removeEventListener(
-                'scroll',
-                updateProgress,
-            )
-
-            window.removeEventListener(
-                'resize',
-                updateProgress,
-            )
-        }
-    }, [])
-
-    const cardCount =
-        works.length
+const WorksTilesContainer = ({
+    progress,
+}) => {
+    const cardCount = works.length
 
     const cycleLength =
-        1 /
-        Math.max(
-            1,
-            cardCount,
-        )
+        1 / cardCount
 
     /*
-     * The card is ALWAYS visible.
+     * Nebula cloud peaks happen at:
      *
-     * The cloud is responsible for hiding
-     * the card while we change from one work
-     * to the next.
-     *
-     * We switch the card around the middle
-     * of each cycle, where the cloud is at
-     * its strongest.
+     * 0.1
+     * 0.3
+     * 0.5
+     * 0.7
+     * 0.9
      */
 
-    const activeIndex =
-        Math.min(
-            cardCount - 1,
-            Math.floor(
-                progress /
-                cycleLength,
-            ),
-        )
+    const cyclePosition =
+        progress / cycleLength
+
+    const activeIndex = clamp(
+        Math.floor(
+            cyclePosition + 0.5,
+        ) - 1,
+        0,
+        cardCount - 1,
+    )
+
+    const firstCardVisible =
+        progress >=
+        cycleLength * 0.5
 
     const activeWork =
-        works[
-        activeIndex
-        ]
-
-    const cycleStart =
-        activeIndex *
-        cycleLength
-
-    const local =
-        clamp(
-            (
-                progress -
-                cycleStart
-            ) /
-            cycleLength,
-        )
+        works[activeIndex]
 
     return (
         <Box
-            ref={containerRef}
             sx={{
                 position: 'relative',
                 zIndex: 15,
@@ -162,19 +74,15 @@ const WorksTilesContainer = () => {
                 }}
             >
                 <WorkTile
-                    key={
-                        activeWork.id
+                    key={activeWork.id}
+                    work={activeWork}
+                    index={activeIndex}
+                    progress={progress}
+                    opacity={
+                        firstCardVisible
+                            ? 1
+                            : 0
                     }
-                    work={
-                        activeWork
-                    }
-                    index={
-                        activeIndex
-                    }
-                    progress={
-                        local
-                    }
-                    opacity={1}
                     scale={1}
                     translateY={0}
                 />

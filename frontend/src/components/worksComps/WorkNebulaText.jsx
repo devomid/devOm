@@ -881,7 +881,7 @@ const createCloudTargetTexture = () => {
     return texture
 }
 
-const WorkNebulaText = () => {
+const WorkNebulaText = ({progress}) => {
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -900,6 +900,10 @@ const WorkNebulaText = () => {
 
     const layerRef =
         useRef(null)
+
+    useEffect(() => {
+        progressRef.current = progress
+    }, [progress])
 
     const updateProgress = () => {
         const scrollY =
