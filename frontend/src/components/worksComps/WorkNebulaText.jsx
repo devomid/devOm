@@ -898,6 +898,9 @@ const WorkNebulaText = () => {
     const rectangleStrengthRef =
         useRef(0)
 
+    const layerRef =
+        useRef(null)
+
     const updateProgress = () => {
         const scrollY =
             window.scrollY
@@ -954,20 +957,6 @@ const WorkNebulaText = () => {
      * ------------------------------------------------
      * GLOBAL WORKS SCROLL
      * ------------------------------------------------
-     *
-     * Every project gets one complete:
-     *
-     * TEXT
-     *   ↓
-     * CLOUD
-     *   ↓
-     * TEXT
-     *
-     * cycle.
-     *
-     * The card underneath remains visible while
-     * the nebula changes depth relationship.
-     * ------------------------------------------------
      */
 
     useEffect(() => {
@@ -1005,21 +994,30 @@ const WorkNebulaText = () => {
 
     /*
      * ------------------------------------------------
-     * TEXT / CLOUD MORPH
+     * TEXT / CLOUD MORPH + DEPTH
      * ------------------------------------------------
      *
-     * For every card:
+     * The particle simulation itself remains unchanged.
      *
-     * 0.00
-     * TEXT
+     * What changes here is the DOM layer:
      *
-     * 0.00 → 0.50
-     * TEXT → CLOUD
+     * TEXT:
      *
-     * 0.50 → 1.00
-     * CLOUD → TEXT
+     *      CARD
+     *      ↑
+     *   NEBULA
      *
-     * Then the next card begins.
+     *
+     * CLOUD:
+     *
+     *   NEBULA / CLOUD
+     *      ↑
+     *      CARD
+     *
+     *
+     * This makes the cloud physically appear to pass
+     * over the glass card without changing the particle
+     * simulation.
      * ------------------------------------------------
      */
 
@@ -1030,6 +1028,12 @@ const WorkNebulaText = () => {
             const progress =
                 progressRef.current
 
+            /*
+             * There are currently five works.
+             *
+             * Keep this synchronized with the works
+             * database / WorkTilesContainer.
+             */
             const cardCount = 5
 
             const cycleLength =
@@ -1066,8 +1070,11 @@ const WorkNebulaText = () => {
                 )
 
             /*
-             * TEXT → CLOUD → TEXT
+             * ----------------------------------------
+             * TEXT → CLOUD
+             * ----------------------------------------
              */
+
             let cloudAmount
 
             if (
@@ -1080,6 +1087,12 @@ const WorkNebulaText = () => {
                         localProgress,
                     )
             } else {
+                /*
+                 * ------------------------------------
+                 * CLOUD → TEXT
+                 * ------------------------------------
+                 */
+
                 cloudAmount =
                     1 -
                     smoothstep(
@@ -1091,6 +1104,71 @@ const WorkNebulaText = () => {
 
             rectangleStrengthRef.current =
                 cloudAmount
+
+            /*
+             * ----------------------------------------
+             * DEPTH SWITCH
+             * ----------------------------------------
+             *
+             * The cloud must come ABOVE the cards.
+             *
+             * We deliberately switch before the cloud
+             * reaches maximum density so that the
+             * transition itself appears to come forward.
+             *
+             * Once the cloud is sufficiently formed,
+             * the whole nebula layer sits above the card.
+             *
+             * As the cloud retreats, the nebula moves
+             * behind the card again.
+             * ----------------------------------------
+             */
+
+            const FRONT_THRESHOLD =
+                0.12
+
+            const BACK_THRESHOLD =
+                0.06
+
+            const currentZIndex =
+                Number(
+                    layerRef.current
+                        ?.dataset
+                        ?.nebulaLayer ||
+                    1,
+                )
+
+            if (
+                cloudAmount >=
+                FRONT_THRESHOLD
+            ) {
+                if (
+                    currentZIndex !== 3
+                ) {
+                    layerRef.current
+                        .style
+                        .zIndex = '3'
+
+                    layerRef.current
+                        .dataset
+                        .nebulaLayer = '3'
+                }
+            } else if (
+                cloudAmount <=
+                BACK_THRESHOLD
+            ) {
+                if (
+                    currentZIndex !== 1
+                ) {
+                    layerRef.current
+                        .style
+                        .zIndex = '1'
+
+                    layerRef.current
+                        .dataset
+                        .nebulaLayer = '1'
+                }
+            }
 
             animationFrame =
                 window.requestAnimationFrame(
@@ -1119,8 +1197,13 @@ const WorkNebulaText = () => {
 
     return (
         <Box
+            ref={
+                layerRef
+            }
+            data-nebula-layer="1"
             sx={{
                 position: 'fixed',
+
                 inset: 0,
 
                 width: '100%',
@@ -1130,7 +1213,23 @@ const WorkNebulaText = () => {
 
                 pointerEvents: 'none',
 
+                /*
+                 * TEXT STARTS BEHIND THE CARDS.
+                 *
+                 * This is changed directly on the
+                 * DOM by the animation loop when the
+                 * cloud forms.
+                 */
                 zIndex: 1,
+
+                /*
+                 * Don't animate z-index.
+                 *
+                 * z-index is intentionally discrete:
+                 *
+                 * 1 = behind card
+                 * 3 = in front of card
+                 */
             }}
         >
             <NebulaBackground
