@@ -355,7 +355,7 @@ const createCloudTargetTexture = () => {
      * completely free-moving nebula particles.
      */
     const CLOUD_PARTICLE_RATIO =
-        0.92
+        0.95
 
     const randomFor = (
         particleIndex,
@@ -496,14 +496,14 @@ const createCloudTargetTexture = () => {
                     warpedY * 5.4 +
                     warpedX * 1.7,
                 ) *
-                0.075
+                0.016
             ) +
             (
                 Math.cos(
                     warpedX * 7.2 -
                     warpedY * 3.1,
                 ) *
-                0.045
+                0.010
             )
 
         /*
@@ -806,7 +806,7 @@ const createCloudTargetTexture = () => {
                     0.0134 +
                     y * 0.47,
                 ) *
-                0.045
+                0.010
             )
 
         data[index] =

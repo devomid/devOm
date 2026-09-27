@@ -193,8 +193,8 @@ const particleFragmentShader = `
         float alpha =
             edge *
             (
-                0.43 +
-                core * 0.30
+                0.68 +
+                core * 0.32
             );
 
         gl_FragColor =
