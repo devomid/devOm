@@ -477,7 +477,7 @@ const createCloudTargetTexture = () => {
                 warpedX * 4.55 -
                 warpedY * 2.35,
             ) *
-            0.016 +
+            0.16 +
             Math.sin(
                 warpedX * 6.8 +
                 warpedY * 4.15,
