@@ -17,9 +17,12 @@ import {
 } from '../whatibuildComps/nebulaWipe'
 
 const PARTICLE_COUNT = 262144
+
 const TEXTURE_SIZE = 512
+
 const TEXTURE_CAPACITY =
-    TEXTURE_SIZE * TEXTURE_SIZE
+    TEXTURE_SIZE *
+    TEXTURE_SIZE
 
 /*
  * ============================================================
@@ -231,6 +234,7 @@ const velocityFlowFragmentShader = `
     uniform sampler2D uMetadataTexture;
 
     uniform sampler2D uTextTargetTexture;
+    uniform sampler2D uCloudTargetTexture;
 
     uniform float uTime;
     uniform float uTextEnabled;
@@ -584,16 +588,6 @@ const velocityFlowFragmentShader = `
          * ------------------------------------------------
          * BUILD TILE / TEXT DISTURBANCE
          * ------------------------------------------------
-         *
-         * The tile is represented as a soft force field.
-         *
-         * This deliberately does NOT hide or delete
-         * particles. It adds velocity to the particles
-         * that belong to the text target.
-         *
-         * The existing text spring below remains active,
-         * which is what makes the text reform naturally
-         * after the tile has passed.
          */
 
         if (
@@ -622,14 +616,6 @@ const velocityFlowFragmentShader = `
                     position.xy -
                     uWipeCenter;
 
-                /*
-                 * Normalized distance from the tile
-                 * rectangle.
-                 *
-                 * Values below 1 are inside the tile.
-                 * Values above 1 are outside it.
-                 */
-
                 vec2 normalizedDelta =
                     abs(delta) /
                     halfSize;
@@ -640,11 +626,6 @@ const velocityFlowFragmentShader = `
                         normalizedDelta.y
                     );
 
-                /*
-                 * Wide soft influence around the glass
-                 * tile rather than a hard collision edge.
-                 */
-
                 float influence =
                     1.0 -
                     smoothstep(
@@ -653,11 +634,6 @@ const velocityFlowFragmentShader = `
                         boxDistance
                     );
 
-                /*
-                 * Stronger response inside the tile and
-                 * immediately around its surface.
-                 */
-
                 float core =
                     1.0 -
                     smoothstep(
@@ -665,15 +641,6 @@ const velocityFlowFragmentShader = `
                         1.12,
                         boxDistance
                     );
-
-                /*
-                 * Elliptical radial direction.
-                 *
-                 * The small phase contribution prevents
-                 * a mathematically undefined direction
-                 * when a particle is exactly at the tile
-                 * center.
-                 */
 
                 vec2 radialVector =
                     vec2(
@@ -702,21 +669,11 @@ const velocityFlowFragmentShader = `
                         radialVector
                     );
 
-                /*
-                 * Tangential component gives the disturbance
-                 * a slight fluid wake instead of making the
-                 * text simply explode radially.
-                 */
-
                 vec2 tangent =
                     vec2(
                         -radialVector.y,
                         radialVector.x
                     );
-
-                /*
-                 * Tile movement direction.
-                 */
 
                 vec2 wipeDirection =
                     normalize(
@@ -725,14 +682,6 @@ const velocityFlowFragmentShader = `
                             0.00001
                         )
                     );
-
-                /*
-                 * Combine:
-                 *
-                 *  - radial displacement
-                 *  - forward tile wake
-                 *  - tangential swirl
-                 */
 
                 vec2 disturbance =
                     radialVector *
@@ -749,39 +698,27 @@ const velocityFlowFragmentShader = `
                     );
 
                 disturbance +=
-    tangent *
-    (
-        sin(
-            phase * 1.71 +
-            uTime * 0.85
-        ) *
-        0.24
-    );
-
-                /*
-                 * The disturbance is strongest around the
-                 * actual text-bearing particles and fades
-                 * smoothly outward.
-                 */
+                    tangent *
+                    (
+                        sin(
+                            phase * 1.71 +
+                            uTime * 0.85
+                        ) *
+                        0.24
+                    );
 
                 float disturbanceStrength =
-    uWipeStrength *
-    influence *
-    (
-        0.92 +
-        core * 0.68
-    );
+                    uWipeStrength *
+                    influence *
+                    (
+                        0.92 +
+                        core * 0.68
+                    );
 
-velocity.xy +=
-    disturbance *
-    disturbanceStrength *
-    0.00320;
-
-                /*
-                 * A small depth impulse makes the particles
-                 * feel volumetric instead of remaining locked
-                 * to a perfectly flat plane.
-                 */
+                velocity.xy +=
+                    disturbance *
+                    disturbanceStrength *
+                    0.00320;
 
                 float depthImpulse =
                     (
@@ -807,30 +744,64 @@ velocity.xy +=
 
         /*
          * ------------------------------------------------
-         * ORGANIC TARGET FORMATION
+         * TARGET FORMATION
          * ------------------------------------------------
          *
-         * Strong, dense formation.
+         * THIS is the important change.
          *
-         * Most particles stay attached to the target.
-         * Only a very small population occasionally
-         * peels away before returning naturally.
+         * The same particle samples both targets.
+         *
+         * During the cloud phase:
+         *
+         * TEXT TARGET
+         *      |
+         *      | GPU interpolation
+         *      v
+         * CLOUD TARGET
+         *
+         * There is no JavaScript-side particle mutation.
          */
 
-        if (uTextEnabled > 0.5) {
-            vec4 targetSample =
+        if (
+            uTextEnabled > 0.5
+        ) {
+            vec4 textTargetSample =
                 texture2D(
                     uTextTargetTexture,
                     vUv
                 );
 
+            vec4 cloudTargetSample =
+                texture2D(
+                    uCloudTargetTexture,
+                    vUv
+                );
+
+            float cloudAmount =
+                smoothstep(
+                    0.0,
+                    1.0,
+                    uRectangleStrength
+                );
+
+            vec3 target =
+                mix(
+                    textTargetSample.xyz,
+                    cloudTargetSample.xyz,
+                    cloudAmount
+                );
+
             float targetAvailable =
-                targetSample.a;
+                mix(
+                    textTargetSample.a,
+                    cloudTargetSample.a,
+                    cloudAmount
+                );
 
-            if (targetAvailable > 0.001) {
-                vec3 target =
-                    targetSample.xyz;
-
+            if (
+                targetAvailable >
+                0.001
+            ) {
                 vec3 toTarget =
                     target -
                     position;
@@ -850,11 +821,15 @@ velocity.xy +=
 
                     /*
                      * ------------------------------------
-                     * STRONG PARTICLE MEMBERSHIP
+                     * PARTICLE ATTACHMENT
                      * ------------------------------------
                      *
-                     * The majority of particles remain
-                     * part of the formation.
+                     * Text keeps its original organic
+                     * membership.
+                     *
+                     * Cloud phase makes attachment nearly
+                     * universal so the cloud does not split
+                     * into disconnected glyph remnants.
                      */
 
                     float attachmentWave =
@@ -873,11 +848,18 @@ velocity.xy +=
                         attachmentWave * 0.82 +
                         attachmentWave2 * 0.18;
 
-                    float attachment =
+                    float normalAttachment =
                         smoothstep(
                             -0.45,
                             0.1,
                             attachmentNoise
+                        );
+
+                    float attachment =
+                        mix(
+                            normalAttachment,
+                            1.0,
+                            cloudAmount
                         );
 
                     float personalVariation =
@@ -888,8 +870,18 @@ velocity.xy +=
                             1.7
                         );
 
+                    /*
+                     * During cloud formation the variation
+                     * is reduced so there are no missing
+                     * particle populations.
+                     */
+
                     attachment *=
-                        personalVariation;
+                        mix(
+                            personalVariation,
+                            1.0,
+                            cloudAmount
+                        );
 
                     /*
                      * ------------------------------------
@@ -909,43 +901,50 @@ velocity.xy +=
                         attachment *
                         (
                             0.84 +
-                            distanceInfluence * 0.28
+                            distanceInfluence *
+                            0.28
                         );
 
                     /*
                      * ------------------------------------
-                     * STRONG FORMATION SPRING
+                     * TARGET SPRING
                      * ------------------------------------
                      */
 
                     float normalSpringAcceleration =
-    clamp(
-        distanceToTarget *
-        0.00250,
-        0.00028,
-        0.0075
-    );
+                        clamp(
+                            distanceToTarget *
+                            0.00250,
+                            0.00028,
+                            0.0075
+                        );
 
-float cloudSpringAcceleration =
-    clamp(
-        distanceToTarget *
-        0.01050,
-        0.00120,
-        0.0300
-    );
+                    /*
+                     * Strong enough to form the cloud,
+                     * but not so aggressive that the whole
+                     * nebula becomes a heavy solid mass.
+                     */
 
-float springAcceleration =
-    mix(
-        normalSpringAcceleration,
-        cloudSpringAcceleration,
-        uRectangleStrength
-    );
+                    float cloudSpringAcceleration =
+                        clamp(
+                            distanceToTarget *
+                            0.00720,
+                            0.00085,
+                            0.0200
+                        );
 
-velocity +=
-    direction *
-    springAcceleration *
-    uTextStrength *
-    formationWeight;
+                    float springAcceleration =
+                        mix(
+                            normalSpringAcceleration,
+                            cloudSpringAcceleration,
+                            cloudAmount
+                        );
+
+                    velocity +=
+                        direction *
+                        springAcceleration *
+                        uTextStrength *
+                        formationWeight;
 
                     /*
                      * ------------------------------------
@@ -968,18 +967,18 @@ velocity +=
                         );
 
                     float radialCorrectionStrength =
-    mix(
-        0.080,
-        0.220,
-        uRectangleStrength
-    );
+                        mix(
+                            0.080,
+                            0.155,
+                            cloudAmount
+                        );
 
-float radialCorrection =
-    (
-        desiredRadialVelocity -
-        radialVelocity
-    ) *
-    radialCorrectionStrength;
+                    float radialCorrection =
+                        (
+                            desiredRadialVelocity -
+                            radialVelocity
+                        ) *
+                        radialCorrectionStrength;
 
                     velocity +=
                         direction *
@@ -992,8 +991,9 @@ float radialCorrection =
                      * ORGANIC INTERNAL MOTION
                      * ------------------------------------
                      *
-                     * Very subtle now. The structure should
-                     * breathe rather than visibly break apart.
+                     * The global nebula remains alive.
+                     * Cloud motion is reduced rather than
+                     * completely frozen.
                      */
 
                     vec3 swirl;
@@ -1031,8 +1031,9 @@ float radialCorrection =
                      * VERY RARE ESCAPE
                      * ------------------------------------
                      *
-                     * Only a tiny fraction of particles
-                     * occasionally escape.
+                     * Keep the organic escape behavior
+                     * for the text, but suppress it as the
+                     * cloud forms.
                      */
 
                     float escapeWave =
@@ -1048,13 +1049,6 @@ float radialCorrection =
                             escapeWave
                         );
 
-                    /*
-                     * Escapes are strongest near the target
-                     * so they read as particles peeling off
-                     * the structure rather than the entire
-                     * formation exploding.
-                     */
-
                     float escapeProximity =
                         1.0 -
                         smoothstep(
@@ -1065,6 +1059,10 @@ float radialCorrection =
 
                     escapeAmount *=
                         escapeProximity;
+
+                    escapeAmount *=
+                        1.0 -
+                        cloudAmount;
 
                     vec3 escapeDirection =
                         normalize(
@@ -1102,10 +1100,6 @@ float radialCorrection =
                      * ------------------------------------
                      * CLOSE-RANGE STABILITY
                      * ------------------------------------
-                     *
-                     * Prevent particles that have reached
-                     * the shape from immediately flying back
-                     * out.
                      */
 
                     if (
@@ -1121,7 +1115,11 @@ float radialCorrection =
                         velocity -=
                             direction *
                             closeRadialVelocity *
-                            0.060 *
+                            mix(
+                                0.060,
+                                0.090,
+                                cloudAmount
+                            ) *
                             formationWeight;
                     }
                 }
@@ -1157,7 +1155,8 @@ const positionFragmentShader = `
                 vUv
             ).xyz;
 
-        position += velocity;
+        position +=
+            velocity;
 
         gl_FragColor =
             vec4(
@@ -1200,7 +1199,10 @@ const containmentFragmentShader = `
             abs(position.z) /
             2.05;
 
-        if (edgeX > 0.82) {
+        if (
+            edgeX >
+            0.82
+        ) {
             velocity.x +=
                 -sign(position.x) *
                 pow(
@@ -1210,7 +1212,10 @@ const containmentFragmentShader = `
                 0.00085;
         }
 
-        if (edgeY > 0.82) {
+        if (
+            edgeY >
+            0.82
+        ) {
             velocity.y +=
                 -sign(position.y) *
                 pow(
@@ -1220,7 +1225,10 @@ const containmentFragmentShader = `
                 0.00070;
         }
 
-        if (edgeZ > 0.80) {
+        if (
+            edgeZ >
+            0.80
+        ) {
             velocity.z +=
                 -sign(position.z) *
                 pow(
@@ -1338,10 +1346,12 @@ const createParticleData = () => {
             0.16
 
         positions[i3] =
-            x * spread
+            x *
+            spread
 
         positions[i3 + 1] =
-            y * spread
+            y *
+            spread
 
         positions[i3 + 2] =
             z
@@ -1470,10 +1480,14 @@ const createInitialTextures = (
             particles.positions[i3]
 
         positionData[i4 + 1] =
-            particles.positions[i3 + 1]
+            particles.positions[
+            i3 + 1
+            ]
 
         positionData[i4 + 2] =
-            particles.positions[i3 + 2]
+            particles.positions[
+            i3 + 2
+            ]
 
         positionData[i4 + 3] =
             1.0
@@ -1482,10 +1496,14 @@ const createInitialTextures = (
             particles.velocities[i3]
 
         velocityData[i4 + 1] =
-            particles.velocities[i3 + 1]
+            particles.velocities[
+            i3 + 1
+            ]
 
         velocityData[i4 + 2] =
-            particles.velocities[i3 + 2]
+            particles.velocities[
+            i3 + 2
+            ]
 
         velocityData[i4 + 3] =
             1.0
@@ -1559,6 +1577,7 @@ const createStateTarget = () => {
 const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
+    cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
 }) => {
@@ -1831,10 +1850,6 @@ const NebulaParticles = ({
                         value: null,
                     },
 
-                    uRectangleStrength: {
-                        value: 0.0,
-                    },
-
                     uVelocityTexture: {
                         value: null,
                     },
@@ -1849,11 +1864,20 @@ const NebulaParticles = ({
                             initialTextures.position,
                     },
 
+                    uCloudTargetTexture: {
+                        value:
+                            initialTextures.position,
+                    },
+
                     uTextEnabled: {
                         value: 0,
                     },
 
                     uTextStrength: {
+                        value: 0.0,
+                    },
+
+                    uRectangleStrength: {
                         value: 0.0,
                     },
 
@@ -2035,6 +2059,10 @@ const NebulaParticles = ({
                 simulationQuad,
             } = simulation
 
+            const cloudAmount =
+                rectangleStrengthRef?.current ||
+                0.0
+
             velocityMaterial
                 .uniforms
                 .uPositionTexture
@@ -2062,6 +2090,13 @@ const NebulaParticles = ({
 
             velocityMaterial
                 .uniforms
+                .uCloudTargetTexture
+                .value =
+                cloudTargetTexture ||
+                initialTextures.position
+
+            velocityMaterial
+                .uniforms
                 .uTextEnabled
                 .value =
                 textEnabled
@@ -2073,23 +2108,22 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
-            
+
             velocityMaterial
                 .uniforms
                 .uRectangleStrength
                 .value =
-                rectangleStrengthRef?.current || 0.0
+                cloudAmount
 
             /*
              * ------------------------------------------------
              * BUILD TILE -> WORLD SPACE
              * ------------------------------------------------
              *
-             * BuildTiles reports CSS-pixel coordinates.
+             * UNCHANGED.
              *
-             * The Nebula uses a perspective camera at z=10.
-             * Convert the tile rectangle into the actual
-             * Three.js world space occupied by the camera.
+             * nebulaWipe remains independent from the new
+             * text/cloud morph.
              */
 
             const wipe =
@@ -2109,12 +2143,12 @@ const NebulaParticles = ({
 
                 const cameraDistance =
                     Math.abs(
-                        camera.position.z
+                        camera.position.z,
                     )
 
                 const fovRadians =
                     THREE.MathUtils.degToRad(
-                        camera.fov
+                        camera.fov,
                     )
 
                 const worldHeight =
@@ -2122,7 +2156,7 @@ const NebulaParticles = ({
                     cameraDistance *
                     Math.tan(
                         fovRadians /
-                        2
+                        2,
                     )
 
                 const worldWidth =
@@ -2188,15 +2222,6 @@ const NebulaParticles = ({
                         worldHalfHeight,
                     )
 
-                /*
-                 * Calculate the direction the active tile
-                 * is moving in world space.
-                 *
-                 * A newly activated tile starts with no
-                 * velocity so a tile-to-tile handoff cannot
-                 * create a giant artificial impulse.
-                 */
-
                 const previousWipe =
                     previousWipeRef.current
 
@@ -2244,7 +2269,7 @@ const NebulaParticles = ({
                             movementX *
                             movementX +
                             movementY *
-                            movementY
+                            movementY,
                         )
 
                     if (
@@ -2258,14 +2283,14 @@ const NebulaParticles = ({
                                 movementLength,
 
                                 movementY /
-                                movementLength
+                                movementLength,
                             )
                     } else {
                         wipeUniforms
                             .uWipeDirection
                             .value.set(
                                 0,
-                                0
+                                0,
                             )
                     }
                 } else {
@@ -2273,15 +2298,9 @@ const NebulaParticles = ({
                         .uWipeDirection
                         .value.set(
                             0,
-                            0
+                            0,
                         )
                 }
-
-                /*
-                 * The disturbance has a gentle ramp-in.
-                 *
-                 * It does not alter the tile animation itself.
-                 */
 
                 wipeUniforms
                     .uWipeStrength
@@ -2314,12 +2333,18 @@ const NebulaParticles = ({
                     .uWipeDirection
                     .value.set(
                         0,
-                        0
+                        0,
                     )
 
                 previousWipeRef.current =
                     null
             }
+
+            /*
+             * ------------------------------------------------
+             * GPU SIMULATION
+             * ------------------------------------------------
+             */
 
             simulationQuad.material =
                 velocityMaterial
@@ -2429,7 +2454,9 @@ const NebulaParticles = ({
 
     return (
         <points
-            ref={pointsRef}
+            ref={
+                pointsRef
+            }
             geometry={
                 particleGeometry
             }
@@ -2446,12 +2473,15 @@ const NebulaParticles = ({
 const NebulaBackground = ({
     textEnabled = false,
     textTargetTexture = null,
+    cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
 }) => {
     return (
         <Canvas
-            orthographic={false}
+            orthographic={
+                false
+            }
             camera={{
                 position: [
                     0,
@@ -2459,15 +2489,20 @@ const NebulaBackground = ({
                     10,
                 ],
 
-                fov: 60,
+                fov:
+                    60,
             }}
             dpr={[
                 1,
                 1.5,
             ]}
             gl={{
-                antialias: true,
-                alpha: false,
+                antialias:
+                    true,
+
+                alpha:
+                    false,
+
                 powerPreference:
                     'high-performance',
             }}
@@ -2475,10 +2510,14 @@ const NebulaBackground = ({
                 position:
                     'absolute',
 
-                inset: 0,
+                inset:
+                    0,
 
-                width: '100%',
-                height: '100%',
+                width:
+                    '100%',
+
+                height:
+                    '100%',
 
                 pointerEvents:
                     'none',
@@ -2491,12 +2530,19 @@ const NebulaBackground = ({
                 textEnabled={
                     textEnabled
                 }
+
                 textTargetTexture={
                     textTargetTexture
                 }
+
+                cloudTargetTexture={
+                    cloudTargetTexture
+                }
+
                 textStrength={
                     textStrength
                 }
+
                 rectangleStrengthRef={
                     rectangleStrengthRef
                 }

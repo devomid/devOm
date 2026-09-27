@@ -16,16 +16,8 @@ const PARTICLE_COUNT =
 
 const TEXT_PARTICLE_RATIO = 0.58
 
-const RECTANGLE_PARTICLE_RATIO = 0.95
-
 const TEXT_WORLD_WIDTH = 8.9
 const TEXT_WORLD_HEIGHT = 2.45
-
-const RECTANGLE_WIDTH =
-    TEXT_WORLD_WIDTH
-
-const RECTANGLE_HEIGHT =
-    TEXT_WORLD_HEIGHT
 
 const clamp = (
     value,
@@ -321,43 +313,153 @@ const createTextTargetTexture = (
  * CLOUD TARGET
  * ----------------------------------------------------
  *
- * This is intentionally simple.
+ * One destination for every existing particle.
  *
- * 95% of the particles are recruited.
+ * The particles occupy a broad rounded rectangular
+ * field. There is no second particle population and
+ * no separate geometry.
  *
- * The target is a dense, flat rectangular field.
- * There is no second shape, no ellipse, no rotation,
- * no radial construction and no additional geometry.
- *
- * The organic GPU forces are disabled separately while
- * rectangleStrength is active.
+ * Corners become progressively sparse rather than
+ * producing a hard rectangular edge.
  * ----------------------------------------------------
  */
 
-const createRectangleTargetTexture = () => {
+const createCloudTargetTexture = () => {
     const data =
         new Float32Array(
             PARTICLE_COUNT * 4,
         )
 
+    /*
+     * Slightly smaller footprint than before.
+     *
+     * Fewer particles are assigned to the cloud,
+     * but they occupy a smaller area, making the
+     * rectangle visibly denser.
+     */
+    const cloudWidth =
+        15.8
+
+    const cloudHeight =
+        6.25
+
+    const halfWidth =
+        cloudWidth * 0.5
+
+    const halfHeight =
+        cloudHeight * 0.5
+
+    const cornerRadius =
+        1.05
+
+    /*
+     * About 78% of the existing particles form
+     * the cloud.
+     *
+     * The remaining ~22% have alpha = 0 and therefore
+     * do NOT receive a cloud target. They remain part
+     * of the normal free-moving nebula.
+     */
+    const CLOUD_PARTICLE_RATIO =
+        0.78
+
     const randomFor = (
         particleIndex,
         offset = 0,
     ) => {
-        const value =
+        let value =
             (
                 (
                     particleIndex +
-                    offset
+                    1
                 ) *
-                1103515245 +
-                12345
+                1664525 +
+                1013904223 +
+                offset *
+                374761393
+            ) >>> 0
+
+        value =
+            (
+                value ^
+                (
+                    value >>> 16
+                )
+            ) >>> 0
+
+        value =
+            (
+                value *
+                2246822519
             ) >>> 0
 
         return (
             value /
             4294967295
         )
+    }
+
+    const isInsideRoundedRectangle = (
+        x,
+        y,
+    ) => {
+        const ax =
+            Math.abs(x)
+
+        const ay =
+            Math.abs(y)
+
+        const innerWidth =
+            halfWidth -
+            cornerRadius
+
+        const innerHeight =
+            halfHeight -
+            cornerRadius
+
+        /*
+         * Main horizontal body.
+         */
+        if (
+            ax <=
+            innerWidth
+        ) {
+            return (
+                ay <=
+                halfHeight
+            )
+        }
+
+        /*
+         * Main vertical body.
+         */
+        if (
+            ay <=
+            innerHeight
+        ) {
+            return (
+                ax <=
+                halfWidth
+            )
+        }
+
+        /*
+         * Rounded corner.
+         */
+        const dx =
+            ax -
+            innerWidth
+
+        const dy =
+            ay -
+            innerHeight
+
+        return (
+            dx * dx +
+            dy * dy
+        ) <=
+            cornerRadius *
+            cornerRadius
     }
 
     for (
@@ -369,49 +471,189 @@ const createRectangleTargetTexture = () => {
         const index =
             particleIndex * 4
 
-        if (
+        /*
+         * --------------------------------------------
+         * FREE PARTICLES
+         * --------------------------------------------
+         *
+         * These particles have no cloud target.
+         *
+         * The velocity shader sees cloudTarget.a = 0
+         * and therefore leaves them completely alone.
+         */
+        const cloudMembership =
             randomFor(
                 particleIndex,
-                991,
-            ) >
-            RECTANGLE_PARTICLE_RATIO
+                17,
+            )
+
+        if (
+            cloudMembership >
+            CLOUD_PARTICLE_RATIO
         ) {
-            data[
-                index + 3
-            ] = 0
+            data[index] =
+                0
+
+            data[index + 1] =
+                0
+
+            data[index + 2] =
+                0
+
+            data[index + 3] =
+                0
 
             continue
         }
 
-        const x =
-            (
-                randomFor(
-                    particleIndex,
-                    101,
-                ) -
-                0.5
-            ) *
-            RECTANGLE_WIDTH
+        let x = 0
+        let y = 0
 
-        const y =
+        /*
+         * --------------------------------------------
+         * CLOUD POSITION
+         * --------------------------------------------
+         *
+         * Rejection sampling gives the particles a
+         * genuinely rectangular distribution instead
+         * of making them follow an ellipse.
+         */
+        for (
+            let attempt = 0;
+            attempt < 16;
+            attempt += 1
+        ) {
+            const candidateX =
+                (
+                    randomFor(
+                        particleIndex,
+                        100 +
+                        attempt * 11,
+                    ) -
+                    0.5
+                ) *
+                cloudWidth
+
+            const candidateY =
+                (
+                    randomFor(
+                        particleIndex,
+                        200 +
+                        attempt * 17,
+                    ) -
+                    0.5
+                ) *
+                cloudHeight
+
+            if (
+                isInsideRoundedRectangle(
+                    candidateX,
+                    candidateY,
+                )
+            ) {
+                x =
+                    candidateX
+
+                y =
+                    candidateY
+
+                break
+            }
+
+            /*
+             * Guaranteed fallback inside the main body.
+             */
+            if (
+                attempt === 15
+            ) {
+                x =
+                    (
+                        randomFor(
+                            particleIndex,
+                            401,
+                        ) -
+                        0.5
+                    ) *
+                    (
+                        cloudWidth -
+                        cornerRadius *
+                        0.75
+                    )
+
+                y =
+                    (
+                        randomFor(
+                            particleIndex,
+                            503,
+                        ) -
+                        0.5
+                    ) *
+                    (
+                        cloudHeight -
+                        cornerRadius *
+                        0.75
+                    )
+            }
+        }
+
+        /*
+         * --------------------------------------------
+         * ORGANIC MICRO-DISTORTION
+         * --------------------------------------------
+         *
+         * Keep the rectangle organic without allowing
+         * the distortion to destroy its silhouette.
+         */
+        const organicX =
             (
-                randomFor(
-                    particleIndex,
-                    151,
-                ) -
-                0.5
+                Math.sin(
+                    particleIndex *
+                    0.0173,
+                ) *
+                Math.cos(
+                    particleIndex *
+                    0.0061,
+                )
             ) *
-            RECTANGLE_HEIGHT
+            0.055
+
+        const organicY =
+            (
+                Math.cos(
+                    particleIndex *
+                    0.0131,
+                ) *
+                Math.sin(
+                    particleIndex *
+                    0.0087,
+                )
+            ) *
+            0.045
+
+        const organicZ =
+            Math.sin(
+                particleIndex *
+                0.0217,
+            ) *
+            0.055
 
         data[index] =
-            x
+            x +
+            organicX
 
         data[index + 1] =
-            y
+            y +
+            organicY
 
         data[index + 2] =
-            0
+            organicZ
 
+        /*
+         * IMPORTANT:
+         *
+         * alpha = 1 means this particle participates
+         * in the cloud target.
+         */
         data[index + 3] =
             1
     }
@@ -453,8 +695,8 @@ const WorkNebulaText = () => {
     ] = useState(null)
 
     const [
-        rectangleTargetTexture,
-        setRectangleTargetTexture,
+        cloudTargetTexture,
+        setCloudTargetTexture,
     ] = useState(null)
 
     const progressRef =
@@ -488,24 +730,30 @@ const WorkNebulaText = () => {
                 'WHAT I\'VE DONE',
             )
 
-        if (!textTexture) {
+        const cloudTexture =
+            createCloudTargetTexture()
+
+        if (
+            !textTexture ||
+            !cloudTexture
+        ) {
+            textTexture?.dispose()
+            cloudTexture?.dispose()
+
             return undefined
         }
-
-        const rectangleTexture =
-            createRectangleTargetTexture()
 
         setTextTargetTexture(
             textTexture,
         )
 
-        setRectangleTargetTexture(
-            rectangleTexture,
+        setCloudTargetTexture(
+            cloudTexture,
         )
 
         return () => {
             textTexture.dispose()
-            rectangleTexture.dispose()
+            cloudTexture.dispose()
         }
     }, [])
 
@@ -542,45 +790,42 @@ const WorkNebulaText = () => {
         }
     }, [])
 
+    /*
+     * ----------------------------------------------------
+     * SCROLL MORPH
+     * ----------------------------------------------------
+     *
+     * 0.0 -> TEXT
+     * 0.5 -> CLOUD
+     * 1.0 -> TEXT
+     *
+     * Only the scalar amount is updated here.
+     *
+     * The actual 262,144-particle interpolation happens
+     * inside the GPU simulation shader.
+     * ----------------------------------------------------
+     */
+
     useEffect(() => {
-        if (
-            !textTargetTexture ||
-            !rectangleTargetTexture
-        ) {
-            return undefined
-        }
-
-        const baseTextData =
-            new Float32Array(
-                textTargetTexture.image.data,
-            )
-
-        const dynamicData =
-            textTargetTexture.image.data
-
-        const rectangleData =
-            rectangleTargetTexture.image.data
-
-        let animationFrame =
-            null
+        let animationFrame = null
 
         const frame = () => {
             const progress =
                 progressRef.current
 
-            let rectangleAmount
+            let cloudAmount
 
             if (
                 progress <= 0.5
             ) {
-                rectangleAmount =
+                cloudAmount =
                     smoothstep(
                         0,
                         0.5,
                         progress,
                     )
             } else {
-                rectangleAmount =
+                cloudAmount =
                     1 -
                     smoothstep(
                         0.5,
@@ -590,129 +835,7 @@ const WorkNebulaText = () => {
             }
 
             rectangleStrengthRef.current =
-                rectangleAmount
-
-            for (
-                let particleIndex = 0;
-                particleIndex <
-                PARTICLE_COUNT;
-                particleIndex += 1
-            ) {
-                const index =
-                    particleIndex * 4
-
-                const textAlive =
-                    baseTextData[
-                    index + 3
-                    ]
-
-                const rectangleAlive =
-                    rectangleData[
-                    index + 3
-                    ]
-
-                if (
-                    rectangleAlive === 0
-                ) {
-                    dynamicData[index] =
-                        baseTextData[index]
-
-                    dynamicData[
-                        index + 1
-                    ] =
-                        baseTextData[
-                        index + 1
-                        ]
-
-                    dynamicData[
-                        index + 2
-                    ] =
-                        baseTextData[
-                        index + 2
-                        ]
-
-                    dynamicData[
-                        index + 3
-                    ] =
-                        textAlive
-
-                    continue
-                }
-
-                const tx =
-                    textAlive > 0
-                        ? baseTextData[index]
-                        : 0
-
-                const ty =
-                    textAlive > 0
-                        ? baseTextData[
-                        index + 1
-                        ]
-                        : 0
-
-                const tz =
-                    textAlive > 0
-                        ? baseTextData[
-                        index + 2
-                        ]
-                        : 0
-
-                const rx =
-                    rectangleData[index]
-
-                const ry =
-                    rectangleData[
-                    index + 1
-                    ]
-
-                const rz =
-                    rectangleData[
-                    index + 2
-                    ]
-
-                dynamicData[index] =
-                    tx *
-                    (
-                        1 -
-                        rectangleAmount
-                    ) +
-                    rx *
-                    rectangleAmount
-
-                dynamicData[
-                    index + 1
-                ] =
-                    ty *
-                    (
-                        1 -
-                        rectangleAmount
-                    ) +
-                    ry *
-                    rectangleAmount
-
-                dynamicData[
-                    index + 2
-                ] =
-                    tz *
-                    (
-                        1 -
-                        rectangleAmount
-                    ) +
-                    rz *
-                    rectangleAmount
-
-                dynamicData[
-                    index + 3
-                ] =
-                    rectangleAmount >
-                        0.001
-                        ? rectangleAlive
-                        : textAlive
-            }
-
-            textTargetTexture.needsUpdate =
-                true
+                cloudAmount
 
             animationFrame =
                 window.requestAnimationFrame(
@@ -737,28 +860,43 @@ const WorkNebulaText = () => {
             rectangleStrengthRef.current =
                 0
         }
-    }, [
-        textTargetTexture,
-        rectangleTargetTexture,
-    ])
+    }, [])
 
     return (
         <main
             style={{
-                position: 'relative',
-                width: '100%',
-                height: '300vh',
-                background: '#050403',
+                position:
+                    'relative',
+
+                width:
+                    '100%',
+
+                height:
+                    '300vh',
+
+                background:
+                    '#050403',
             }}
         >
             <div
                 style={{
-                    position: 'fixed',
-                    inset: 0,
-                    width: '100%',
-                    height: '100vh',
-                    overflow: 'hidden',
-                    pointerEvents: 'none',
+                    position:
+                        'fixed',
+
+                    inset:
+                        0,
+
+                    width:
+                        '100%',
+
+                    height:
+                        '100vh',
+
+                    overflow:
+                        'hidden',
+
+                    pointerEvents:
+                        'none',
                 }}
             >
                 <NebulaBackground
@@ -767,10 +905,19 @@ const WorkNebulaText = () => {
                             textTargetTexture,
                         )
                     }
+
                     textTargetTexture={
                         textTargetTexture
                     }
-                    textStrength={1.0}
+
+                    cloudTargetTexture={
+                        cloudTargetTexture
+                    }
+
+                    textStrength={
+                        1.0
+                    }
+
                     rectangleStrengthRef={
                         rectangleStrengthRef
                     }
