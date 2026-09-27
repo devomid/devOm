@@ -188,35 +188,18 @@ const WorksTilesContainer = () => {
                 ),
             )
 
-        /*
-         * --------------------------------------------
-         * CARD ENTERS
-         * --------------------------------------------
-         *
-         * First part of the cycle.
-         */
         const entrance =
             smoothstep(
                 0,
-                0.25,
+                0.10,
                 local,
             )
 
-        /*
-         * --------------------------------------------
-         * CARD EXITS
-         * --------------------------------------------
-         *
-         * The card doesn't disappear immediately.
-         *
-         * It remains visible while the nebula is
-         * transforming over it.
-         */
         const exit =
             1 -
             smoothstep(
-                0.82,
-                1,
+                0.50,
+                0.62,
                 local,
             )
 
@@ -246,7 +229,7 @@ const WorksTilesContainer = () => {
             ref={containerRef}
             sx={{
                 position: 'relative',
-                zIndex: 2,
+                zIndex: 15,
                 height: '600vh',
                 pointerEvents: 'none',
             }}

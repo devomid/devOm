@@ -11,6 +11,8 @@ const Works = () => {
         position: 'relative',
         minHeight: '600vh',
         background: '#050403',
+
+        isolation: 'isolate',
       }}
     >
       <WorkNebulaText />

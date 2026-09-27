@@ -1143,30 +1143,30 @@ const WorkNebulaText = () => {
                 FRONT_THRESHOLD
             ) {
                 if (
-                    currentZIndex !== 3
+                    currentZIndex !== 20
                 ) {
                     layerRef.current
                         .style
-                        .zIndex = '3'
+                        .zIndex = '20'
 
                     layerRef.current
                         .dataset
-                        .nebulaLayer = '3'
+                        .nebulaLayer = '20'
                 }
             } else if (
                 cloudAmount <=
                 BACK_THRESHOLD
             ) {
                 if (
-                    currentZIndex !== 1
+                    currentZIndex !== 10
                 ) {
                     layerRef.current
                         .style
-                        .zIndex = '1'
+                        .zIndex = '10'
 
                     layerRef.current
                         .dataset
-                        .nebulaLayer = '1'
+                        .nebulaLayer = '10'
                 }
             }
 
@@ -1200,7 +1200,7 @@ const WorkNebulaText = () => {
             ref={
                 layerRef
             }
-            data-nebula-layer="1"
+            data-nebula-layer="10"
             sx={{
                 position: 'fixed',
 
@@ -1220,7 +1220,7 @@ const WorkNebulaText = () => {
                  * DOM by the animation loop when the
                  * cloud forms.
                  */
-                zIndex: 1,
+                zIndex: 10,
 
                 /*
                  * Don't animate z-index.
