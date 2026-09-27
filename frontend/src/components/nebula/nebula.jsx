@@ -811,7 +811,7 @@ const velocityFlowFragmentShader = `
 
 float cloudSpinAngle =
     -uTime *
-    0.055 *
+    0.035 *
     cloudAmount;
 
 float cloudSpinCos =
@@ -827,16 +827,16 @@ float cloudSpinSin =
 vec3 rotatedCloudTarget =
     cloudTargetSample.xyz;
 
-rotatedCloudTarget.xy =
+rotatedCloudTarget.xz =
     vec2(
         rotatedCloudTarget.x *
             cloudSpinCos -
-        rotatedCloudTarget.y *
+        rotatedCloudTarget.z *
             cloudSpinSin,
 
         rotatedCloudTarget.x *
             cloudSpinSin +
-        rotatedCloudTarget.y *
+        rotatedCloudTarget.z *
             cloudSpinCos
     );
 
@@ -846,48 +846,7 @@ vec3 target =
         rotatedCloudTarget,
         cloudAmount
     );
-
-    /*
- * ------------------------------------
- * GLOBAL CLOUD ROTATION
- * ------------------------------------
- *
- * Rotate the actual cloud target around
- * the cloud center.
- *
- * The particles are therefore pulled
- * toward a continuously rotating cloud
- * instead of being pulled toward a static
- * cloud while a weak velocity tries to
- * rotate them.
- */
-
-float cloudRotationAngle =
-    uTime *
-    0.34 *
-    cloudAmount;
-
-float rotationCos =
-    cos(
-        cloudRotationAngle
-    );
-
-float rotationSin =
-    sin(
-        cloudRotationAngle
-    );
-
-vec2 rotatedCloudPosition =
-    vec2(
-        target.x * rotationCos -
-        target.y * rotationSin,
-
-        target.x * rotationSin +
-        target.y * rotationCos
-    );
-
-target.xy =
-    rotatedCloudPosition;
+    
 
 /*
  * ------------------------------------
