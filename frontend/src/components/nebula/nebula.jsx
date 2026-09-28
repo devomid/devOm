@@ -894,37 +894,7 @@ vec3 getOrbitTangent(
         velocity.x *= 0.965;
         velocity.y *= 0.965;
         velocity.z *= 0.978;
-
-        /*
- * ------------------------------------------------
- * CARD FRONT WIND
- * ------------------------------------------------
- *
- * The particles do NOT gather around the card.
- *
- * Instead, the card becomes a volume that the
- * particles flow through.
- *
- * Camera is on +Z.
- *
- * Behind card:
- *      Z < 0
- *
- * Front of card:
- *      Z > 0
- *
- * Therefore the primary wind direction is +Z.
- */
-
-if (
-    uRectangleStrength > 0.001
-) {
-    float cloudAmount =
-        smoothstep(
-            0.0,
-            1.0,
-            uRectangleStrength
-        );
+        
 
     /*
      * --------------------------------------------
@@ -1499,18 +1469,11 @@ float targetAvailable =
  * cloud target gradually takes control.
  */
 
-float windRelease =
-    smoothstep(
-        0.0,
-        0.65,
-        cloudAmount
-    );
-
 float attachment =
     mix(
-        normalAttachment * 0.18,
+        normalAttachment,
         1.0,
-        windRelease
+        cloudAmount
     );
 
                     float personalVariation =
@@ -1548,13 +1511,41 @@ float attachment =
                             distanceToTarget
                         );
 
-                    float formationWeight =
-                        attachment *
-                        (
-                            0.84 +
-                            distanceInfluence *
-                            0.28
-                        );
+                    ffloat transitionRelease =
+    smoothstep(
+        0.08,
+        0.42,
+        cloudAmount
+    );
+
+float transitionReattach =
+    smoothstep(
+        0.48,
+        0.82,
+        cloudAmount
+    );
+
+float targetControl =
+    mix(
+        1.0,
+        0.32,
+        transitionRelease
+    );
+
+targetControl =
+    max(
+        targetControl,
+        transitionReattach
+    );
+
+float formationWeight =
+    attachment *
+    (
+        0.84 +
+        distanceInfluence *
+        0.28
+    ) *
+    targetControl;
 
                     /*
                      * ------------------------------------
@@ -1596,6 +1587,100 @@ float attachment =
                         springAcceleration *
                         uTextStrength *
                         formationWeight;
+
+                        /*
+ * ------------------------------------------------
+ * BACK -> FRONT WIND
+ * ------------------------------------------------
+ *
+ * This is a transition force only.
+ *
+ * It does NOT form the cloud.
+ *
+ * The existing target spring remains responsible
+ * for actually forming the cloud.
+ *
+ * The wind gives the particles a coherent depth
+ * movement so they appear to come from behind the
+ * card and pass through its front.
+ */
+
+float windIn =
+    smoothstep(
+        0.02,
+        0.28,
+        cloudAmount
+    );
+
+float windOut =
+    1.0 -
+    smoothstep(
+        0.52,
+        0.82,
+        cloudAmount
+    );
+
+float windPulse =
+    windIn *
+    windOut;
+
+/*
+ * Keep the force in the same order of magnitude
+ * as the existing nebula velocities.
+ */
+
+float windStrength =
+    windPulse *
+    0.00115 *
+    particleSpeed;
+
+/*
+ * --------------------------------------------
+ * FORWARD DEPTH
+ * --------------------------------------------
+ *
+ * Camera is at +Z.
+ *
+ * Negative Z = behind card.
+ * Positive Z = front of card.
+ *
+ * So +Z carries the particles toward the viewer.
+ */
+
+velocity.z +=
+    windStrength;
+
+/*
+ * --------------------------------------------
+ * GENTLE CROSS-FLOW
+ * --------------------------------------------
+ *
+ * Prevent a mechanical straight-line movement.
+ */
+
+float windWaveX =
+    sin(
+        phase * 1.73 +
+        position.y * 0.42 +
+        uTime * 0.38
+    );
+
+float windWaveY =
+    cos(
+        phase * 1.31 +
+        position.x * 0.37 -
+        uTime * 0.31
+    );
+
+velocity.x +=
+    windWaveX *
+    windStrength *
+    0.28;
+
+velocity.y +=
+    windWaveY *
+    windStrength *
+    0.22;
 
                         /*
  * ------------------------------------

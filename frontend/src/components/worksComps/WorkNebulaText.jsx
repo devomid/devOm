@@ -1024,11 +1024,9 @@ const WorkNebulaText = ({
 
             let cloudAmount
 
-            if (
-                cycle === 0
-            ) {
+            if (cycle === 0) {
                 if (
-                    localProgress < 0.38
+                    localProgress < 0.20
                 ) {
                     cloudAmount = 0
 
@@ -1037,7 +1035,7 @@ const WorkNebulaText = ({
                 ) {
                     cloudAmount =
                         smoothstep(
-                            0.38,
+                            0.20,
                             0.50,
                             localProgress,
                         )
@@ -1056,12 +1054,7 @@ const WorkNebulaText = ({
                 } else {
                     cloudAmount = 0
                 }
-
             } else {
-                /*
-                 * NORMAL WORK CYCLES
-                 */
-
                 if (
                     localProgress < 0.20
                 ) {
