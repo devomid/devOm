@@ -31,7 +31,7 @@ const clamp = (
  * ----------------------------------------------------
  */
 
-const CARD_SWITCH_PROGRESS = 0.53
+const CARD_SWITCH_PROGRESS = 0.56
 
 const WorksTilesContainer = ({
     progress,
