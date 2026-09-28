@@ -1128,52 +1128,6 @@ const WorkNebulaText = ({progress, cardRect}) => {
              * ----------------------------------------
              */
 
-            const FRONT_THRESHOLD =
-                0.12
-
-            const BACK_THRESHOLD =
-                0.06
-
-            const currentZIndex =
-                Number(
-                    layerRef.current
-                        ?.dataset
-                        ?.nebulaLayer ||
-                    1,
-                )
-
-            if (
-                cloudAmount >=
-                FRONT_THRESHOLD
-            ) {
-                if (
-                    currentZIndex !== 20
-                ) {
-                    layerRef.current
-                        .style
-                        .zIndex = '20'
-
-                    layerRef.current
-                        .dataset
-                        .nebulaLayer = '20'
-                }
-            } else if (
-                cloudAmount <=
-                BACK_THRESHOLD
-            ) {
-                if (
-                    currentZIndex !== 10
-                ) {
-                    layerRef.current
-                        .style
-                        .zIndex = '10'
-
-                    layerRef.current
-                        .dataset
-                        .nebulaLayer = '10'
-                }
-            }
-
             animationFrame =
                 window.requestAnimationFrame(
                     frame,
@@ -1204,7 +1158,6 @@ const WorkNebulaText = ({progress, cardRect}) => {
             ref={
                 layerRef
             }
-            data-nebula-layer="10"
             sx={{
                 position: 'fixed',
 
