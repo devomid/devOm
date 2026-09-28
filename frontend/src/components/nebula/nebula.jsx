@@ -2101,7 +2101,7 @@ const CardDepthProxy = ({ cardRect }) => {
         meshRef.current.position.set(
             worldX,
             worldY,
-            0,
+            0.35,
         )
 
         meshRef.current.scale.set(
