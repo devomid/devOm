@@ -718,7 +718,7 @@ const createRingTargetTexture = (
 }
 
 
-const HowIBuildNebulaText = () => {
+const HowIBuildNebulaText = ({ interactionRef }) => {
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -835,6 +835,7 @@ const HowIBuildNebulaText = () => {
                 textStrength={
                     1.0
                 }
+                interactionRef={interactionRef}
             />
         </div>
     )

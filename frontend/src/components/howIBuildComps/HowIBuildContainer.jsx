@@ -1,140 +1,344 @@
-
 import {
+    useCallback,
+    useEffect,
+    useRef,
     useState,
 } from 'react'
 
+import HOW_I_BUILD_STAGES
+    from '../../db/how'
 
-const BUILD_STAGES = [
-    {
-        id: 'idea',
-        number: '01',
-        title: 'IDEA',
-        description:
-            'Turn an idea into a clear product problem.',
+import HowIBuildCircle
+    from './cards/HowIBuildCircle'
+
+const REVEAL_DELAY =
+    400
+
+const BLOW_DURATION =
+    180
+
+export default function HowIBuildContainer({
+    interactionRef,
+}) {
+    const containerRef =
+        useRef(null)
+
+const stageRefs =
+    useRef([])
+
+const blowTimerRefs =
+    useRef([])
+
+const [
+    visibleStages,
+    setVisibleStages,
+] = useState(() => [])
+
+const [
+    activeStage,
+    setActiveStage,
+] = useState(null)
+
+
+/*
+ * --------------------------------------------------------
+ * TRIGGER PARTICLE BLOW
+ * --------------------------------------------------------
+ *
+ * The coordinates are calculated from the actual DOM
+ * position of the circle.
+ *
+ * This means the interaction stays aligned with the
+ * particle ring even after resize.
+ */
+const triggerBlow = useCallback(
+    (stageIndex) => {
+        const container =
+            containerRef.current
+
+        const element =
+            stageRefs.current[
+                stageIndex
+            ]
+
+        if (
+            !container ||
+            !element ||
+            !interactionRef
+        ) {
+            return
+        }
+
+        const containerRect =
+            container.getBoundingClientRect()
+
+        const elementRect =
+            element.getBoundingClientRect()
+
+        const x =
+            elementRect.left -
+            containerRect.left +
+            elementRect.width /
+                2
+
+        const y =
+            elementRect.top -
+            containerRect.top +
+            elementRect.height /
+                2
+
+        interactionRef.current = {
+            x,
+            y,
+            active: true,
+            strength: 1,
+        }
+
+        if (
+            blowTimerRefs.current[
+                stageIndex
+            ]
+        ) {
+            window.clearTimeout(
+                blowTimerRefs.current[
+                    stageIndex
+                ],
+            )
+        }
+
+        blowTimerRefs.current[
+            stageIndex
+        ] =
+            window.setTimeout(
+                () => {
+                    if (
+                        !interactionRef.current
+                    ) {
+                        return
+                    }
+
+                    interactionRef.current = {
+                        x,
+                        y,
+                        active: false,
+                        strength: 0,
+                    }
+                },
+                BLOW_DURATION,
+            )
     },
-
-    {
-        id: 'architecture',
-        number: '02',
-        title: 'ARCHITECTURE',
-        description:
-            'Design the system before building it.',
-    },
-
-    {
-        id: 'build',
-        number: '03',
-        title: 'BUILD',
-        description:
-            'Turn the architecture into working software.',
-    },
-
-    {
-        id: 'integrate',
-        number: '04',
-        title: 'INTEGRATE',
-        description:
-            'Connect interfaces, APIs, data, and services.',
-    },
-
-    {
-        id: 'harden',
-        number: '05',
-        title: 'HARDEN',
-        description:
-            'Test, validate, handle failure, and refine.',
-    },
-
-    {
-        id: 'ship',
-        number: '06',
-        title: 'SHIP',
-        description:
-            'Build, deploy, release, and iterate.',
-    },
-]
+    [
+        interactionRef,
+    ],
+)
 
 
-export default function HowIBuildContainer() {
-    const [
-        activeStage,
-        setActiveStage,
-    ] = useState(null)
+/*
+ * --------------------------------------------------------
+ * REVEAL STAGES
+ * --------------------------------------------------------
+ *
+ * One component appears every 400ms.
+ *
+ * After the component becomes visible, the particle blow
+ * is triggered against its ring.
+ */
+useEffect(() => {
+    const timers = []
 
-    return (
+    HOW_I_BUILD_STAGES.forEach(
+        (
+            stage,
+            index,
+        ) => {
+            const timer =
+                window.setTimeout(
+                    () => {
+                        setVisibleStages(
+                            (
+                                current,
+                            ) => [
+                                ...current,
+                                stage.id,
+                            ],
+                        )
+
+                        /*
+                         * Wait until React has painted
+                         * the component so its DOM position
+                         * can be measured.
+                         */
+                        window.requestAnimationFrame(
+                            () => {
+                                triggerBlow(
+                                    index,
+                                )
+                            },
+                        )
+                    },
+                    index *
+                        REVEAL_DELAY,
+                )
+
+            timers.push(
+                timer,
+            )
+        },
+    )
+
+    return () => {
+        timers.forEach(
+            (timer) => {
+                window.clearTimeout(
+                    timer,
+                )
+            },
+        )
+
+        blowTimerRefs.current.forEach(
+            (timer) => {
+                if (timer) {
+                    window.clearTimeout(
+                        timer,
+                    )
+                }
+            },
+        )
+    }
+}, [
+    triggerBlow,
+])
+
+
+/*
+ * --------------------------------------------------------
+ * POINTER INTERACTION
+ * --------------------------------------------------------
+ */
+const handlePointerDown =
+    useCallback(
+        (
+            index,
+        ) => {
+            triggerBlow(
+                index,
+            )
+        },
+        [
+            triggerBlow,
+        ],
+    )
+
+
+/*
+ * --------------------------------------------------------
+ * CLEANUP
+ * --------------------------------------------------------
+ */
+useEffect(() => {
+    return () => {
+        if (
+            interactionRef?.current
+        ) {
+            interactionRef.current = {
+                x: 0,
+                y: 0,
+                active: false,
+                strength: 0,
+            }
+        }
+    }
+}, [
+    interactionRef,
+])
+
+
+return (
+    <div
+        ref={
+            containerRef
+        }
+        className="how-i-build-container"
+    >
         <div
-            className="how-i-build-container"
+            className="how-i-build-stages"
         >
-            <div
-                className="how-i-build-stages"
-            >
-                {BUILD_STAGES.map(
-                    (stage) => {
+            {
+                HOW_I_BUILD_STAGES.map(
+                    (
+                        stage,
+                        index,
+                    ) => {
+                        const visible =
+                            visibleStages.includes(
+                                stage.id,
+                            )
+
                         const active =
                             activeStage ===
                             stage.id
 
                         return (
-                            <button
+                            <HowIBuildCircle
                                 key={
                                     stage.id
                                 }
-                                type="button"
-                                className={[
-                                    'how-i-build-stage',
+                                ref={
+                                    (
+                                        element,
+                                    ) => {
+                                        stageRefs.current[
+                                            index
+                                        ] =
+                                            element
+                                    }
+                                }
+                                stage={
+                                    stage
+                                }
+                                visible={
+                                    visible
+                                }
+                                active={
                                     active
-                                        ? 'how-i-build-stage--active'
-                                        : '',
-                                ].join(' ')}
-                                onPointerEnter={() =>
-                                    setActiveStage(
-                                        stage.id,
-                                    )
                                 }
-                                onPointerLeave={() =>
-                                    setActiveStage(
-                                        null,
-                                    )
+                                onPointerEnter={
+                                    () =>
+                                        setActiveStage(
+                                            stage.id,
+                                        )
                                 }
-                                onFocus={() =>
-                                    setActiveStage(
-                                        stage.id,
-                                    )
+                                onPointerLeave={
+                                    () =>
+                                        setActiveStage(
+                                            null,
+                                        )
                                 }
-                                onBlur={() =>
-                                    setActiveStage(
-                                        null,
-                                    )
+                                onFocus={
+                                    () =>
+                                        setActiveStage(
+                                            stage.id,
+                                        )
                                 }
-                            >
-                                <span
-                                    className="how-i-build-stage__number"
-                                >
-                                    {
-                                        stage.number
-                                    }
-                                </span>
-
-                                <span
-                                    className="how-i-build-stage__title"
-                                >
-                                    {
-                                        stage.title
-                                    }
-                                </span>
-
-                                <span
-                                    className="how-i-build-stage__description"
-                                >
-                                    {
-                                        stage.description
-                                    }
-                                </span>
-                            </button>
+                                onBlur={
+                                    () =>
+                                        setActiveStage(
+                                            null,
+                                        )
+                                }
+                                onPointerDown={
+                                    () =>
+                                        handlePointerDown(
+                                            index,
+                                        )
+                                }
+                            />
                         )
                     },
-                )}
-            </div>
+                )
+            }
         </div>
-    )
+    </div>
+)
+
 }
