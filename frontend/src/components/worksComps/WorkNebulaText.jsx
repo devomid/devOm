@@ -1029,28 +1029,58 @@ const WorkNebulaText = ({progress, cardRect}) => {
             let cloudAmount
 
             if (
-                localProgress <= 0.5
+                localProgress < 0.20
             ) {
+                /*
+                 * Stable TEXT phase.
+                 *
+                 * Give the user enough scroll distance
+                 * to actually see the text before the
+                 * cloud begins forming.
+                 */
+                cloudAmount = 0
+
+            } else if (
+                localProgress < 0.50
+            ) {
+                /*
+                 * TEXT → CLOUD
+                 *
+                 * The cloud forms gradually and still
+                 * reaches its existing peak at 0.50.
+                 */
                 cloudAmount =
                     smoothstep(
-                        0,
-                        0.5,
+                        0.20,
+                        0.50,
                         localProgress,
                     )
-            } else {
-                /*
-                 * ------------------------------------
-                 * CLOUD → TEXT
-                 * ------------------------------------
-                 */
 
+            } else if (
+                localProgress < 0.80
+            ) {
+                /*
+                 * CLOUD → TEXT
+                 *
+                 * Keep the cloud dominant through the
+                 * middle of the cycle, then let it dissolve.
+                 */
                 cloudAmount =
                     1 -
                     smoothstep(
-                        0.5,
-                        1,
+                        0.50,
+                        0.80,
                         localProgress,
                     )
+
+            } else {
+                /*
+                 * Stable TEXT phase again.
+                 *
+                 * The cloud is completely gone and stays
+                 * gone until the next cycle starts forming.
+                 */
+                cloudAmount = 0
             }
 
             rectangleStrengthRef.current =
