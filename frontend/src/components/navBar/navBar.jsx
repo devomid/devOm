@@ -30,7 +30,7 @@ const navItems = [
     { label: 'What I build', path: '/whatibuild' },
     { label: `What I've done`, path: '/works' },
     { label: 'How I build', path: '/howibuild' },
-    { label: 'Contacts', path: '/contacts' },
+    { label: 'How to find me', path: '/contacts' },
 ]
 
 const MotionBox = motion(Box)
