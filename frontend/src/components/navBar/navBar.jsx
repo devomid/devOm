@@ -221,7 +221,7 @@ const NavBar = ({ scrollProgress }) => {
         animate(
             indicatorX,
             itemRect.left -
-                navRect.left,
+            navRect.left,
             {
                 duration: 0.42,
                 ease: [0.16, 1, 0.3, 1],
@@ -258,7 +258,7 @@ const NavBar = ({ scrollProgress }) => {
     const navbarBackground = useTransform(
         navbarOpacity,
         (opacity) =>
-            `rgba(0, 0, 0, ${ opacity })`,
+            glass.floating.background,
     )
 
     /*
@@ -267,10 +267,7 @@ const NavBar = ({ scrollProgress }) => {
      * geometry remains MotionValue driven.
      */
     const navbarBackdropFilter =
-        useMotionTemplate`
-blur(30px)
-saturate(165 %)
-    `
+        useMotionTemplate`${glass.subtle.backdropFilter}`
 
     const navbarHeight = useTransform(
         navbarProgress,
@@ -330,8 +327,8 @@ saturate(165 %)
         navbarProgress,
         [0, NAVBAR_END_PROGRESS],
         [
-            colors.accent.primary,
-            colors.text.primary,
+            colors.text.accent,
+            colors.text.tertiary,
         ],
     )
 

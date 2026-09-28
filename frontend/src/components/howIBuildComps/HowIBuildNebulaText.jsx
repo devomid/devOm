@@ -14,181 +14,195 @@ import {
 } from '@react-three/fiber'
 
 
-/*
- * ============================================================
- * HOW I BUILD — NEBULA TEXT
- * ============================================================
- *
- * Sequence:
- *
- *   1. Particles begin scattered.
- *   2. Particles form "HOW I BUILD".
- *   3. One second after the text has formed,
- *      selected particles leave the text.
- *   4. Free particles join them.
- *   5. Six particle rings form underneath the text.
- *
- * Ring labels:
- *
- *   IDEA
- *   ARCHITECTURE
- *   BUILD
- *   INTEGRATE
- *   HARDEN
- *   SHIP
- *
- * The rings are intentionally particle-based so they belong
- * to the same visual language as the nebula text.
- */
-
-
-/* ============================================================
- * CONFIG
- * ========================================================== */
-
 const TEXT = 'HOW I BUILD'
 
-const PARTICLE_COUNT = 131072
+const PARTICLE_COUNT = 110000
 
-const TEXTURE_SIZE = 512
+const TEXT_TEXTURE_SIZE = 1024
 
-const TEXT_FORM_DURATION = 2.8
+const TEXT_FORM_TIME = 3.2
 
-const RINGS_DELAY = TEXT_FORM_DURATION + 1.0
+const RING_DELAY = 1.0
+
+const RING_FORM_TIME = 2.4
 
 const RING_COUNT = 6
 
-const RING_PARTICLES = 420
+const PARTICLES_PER_RING = 700
 
-const FREE_PARTICLES = 220
+const RING_PARTICLE_COUNT =
+    RING_COUNT * PARTICLES_PER_RING
 
-const RING_RADIUS = 0.62
+const AMBIENT_PARTICLE_COUNT = 6500
 
-const RING_GAP = 1.48
-
-const RING_Y = -1.55
-
-const RING_Z = 0.0
-
-const RING_FLOAT_AMOUNT = 0.10
-
-const RING_ROTATION_SPEED = 0.25
+const TEXT_PARTICLE_COUNT =
+    PARTICLE_COUNT -
+    RING_PARTICLE_COUNT
 
 
-/* ============================================================
- * HELPERS
- * ========================================================== */
+const RING_NAMES = [
+    'IDEA',
+    'ARCHITECTURE',
+    'BUILD',
+    'INTEGRATE',
+    'HARDEN',
+    'SHIP',
+]
+
+
+function clamp(value, min, max) {
+    return Math.max(
+        min,
+        Math.min(max, value),
+    )
+}
+
+
+function smoothstep(edge0, edge1, value) {
+    const x = clamp(
+        (value - edge0) /
+        (edge1 - edge0),
+        0,
+        1,
+    )
+
+    return (
+        x *
+        x *
+        (3 - 2 * x)
+    )
+}
+
 
 function easeOutCubic(value) {
-    return 1 - Math.pow(1 - value, 3)
+    return 1 -
+        Math.pow(
+            1 - value,
+            3,
+        )
 }
+
 
 function easeInOutCubic(value) {
     return value < 0.5
         ? 4 * value * value * value
-        : 1 - Math.pow(-2 * value + 2, 3) / 2
+        : 1 -
+        Math.pow(
+            -2 * value + 2,
+            3,
+        ) /
+        2
 }
 
-function randomRange(min, max) {
-    return min + Math.random() * (max - min)
+
+function hash(value) {
+    const x =
+        Math.sin(
+            value * 12.9898 +
+            78.233,
+        ) *
+        43758.5453123
+
+    return x -
+        Math.floor(x)
 }
 
 
-/* ============================================================
- * TEXTURE
- * ========================================================== */
+function createTextMask() {
+    const canvas =
+        document.createElement(
+            'canvas',
+        )
 
-function createTextTexture() {
-    const canvas = document.createElement('canvas')
+    canvas.width =
+        TEXT_TEXTURE_SIZE
 
-    canvas.width = TEXTURE_SIZE
-    canvas.height = TEXTURE_SIZE
+    canvas.height =
+        TEXT_TEXTURE_SIZE
 
-    const context = canvas.getContext('2d')
+    const context =
+        canvas.getContext('2d')
 
     context.clearRect(
         0,
         0,
-        TEXTURE_SIZE,
-        TEXTURE_SIZE,
+        TEXT_TEXTURE_SIZE,
+        TEXT_TEXTURE_SIZE,
     )
 
-    context.fillStyle = '#ffffff'
+    context.fillStyle =
+        '#ffffff'
 
-    context.textAlign = 'center'
-    context.textBaseline = 'middle'
+    context.textAlign =
+        'center'
 
-    context.font = `
-900
-78px
-Arial,
-    Helvetica,
-    sans - serif
-        `
+    context.textBaseline =
+        'middle'
+
+    context.font =
+        '900 118px Arial, Helvetica, sans-serif'
 
     context.fillText(
         TEXT,
-        TEXTURE_SIZE / 2,
-        TEXTURE_SIZE / 2,
+        TEXT_TEXTURE_SIZE / 2,
+        TEXT_TEXTURE_SIZE / 2,
     )
 
-    const texture = new THREE.CanvasTexture(canvas)
-
-    texture.needsUpdate = true
-
-    return texture
+    return {
+        canvas,
+        context,
+    }
 }
 
 
-/* ============================================================
- * TEXT PARTICLE POSITIONS
- * ========================================================== */
+function createTextTargets() {
+    const {
+        canvas,
+        context,
+    } = createTextMask()
 
-function createTextPositions() {
-    const texture = createTextTexture()
+    const imageData =
+        context.getImageData(
+            0,
+            0,
+            TEXT_TEXTURE_SIZE,
+            TEXT_TEXTURE_SIZE,
+        )
 
-    const canvas = document.createElement('canvas')
-
-    canvas.width = TEXTURE_SIZE
-    canvas.height = TEXTURE_SIZE
-
-    const context = canvas.getContext('2d')
-
-    context.drawImage(
-        texture.image,
-        0,
-        0,
-    )
-
-    const pixels = context.getImageData(
-        0,
-        0,
-        TEXTURE_SIZE,
-        TEXTURE_SIZE,
-    ).data
-
-    const positions = new Float32Array(
-        PARTICLE_COUNT * 3,
-    )
+    const pixels =
+        imageData.data
 
     const candidates = []
 
+    /*
+     * Sample the rendered text.
+     *
+     * We intentionally don't use every pixel.
+     * The spacing creates a more nebula-like particle field.
+     */
+
     for (
         let y = 0;
-        y < TEXTURE_SIZE;
-        y += 2
+        y < TEXT_TEXTURE_SIZE;
+        y += 3
     ) {
         for (
             let x = 0;
-            x < TEXTURE_SIZE;
-            x += 2
+            x < TEXT_TEXTURE_SIZE;
+            x += 3
         ) {
             const index =
-                (y * TEXTURE_SIZE + x) * 4
+                (
+                    y *
+                    TEXT_TEXTURE_SIZE +
+                    x
+                ) *
+                4
 
-            const alpha = pixels[index + 3]
+            const alpha =
+                pixels[index + 3]
 
-            if (alpha > 80) {
+            if (alpha > 100) {
                 candidates.push({
                     x,
                     y,
@@ -197,93 +211,167 @@ function createTextPositions() {
         }
     }
 
+    const targets =
+        new Float32Array(
+            TEXT_PARTICLE_COUNT * 3,
+        )
+
+    for (
+        let i = 0;
+        i < TEXT_PARTICLE_COUNT;
+        i++
+    ) {
+        const candidate =
+            candidates[
+            Math.floor(
+                hash(i + 11) *
+                candidates.length,
+            )
+            ]
+
+        const x =
+            (
+                candidate.x /
+                TEXT_TEXTURE_SIZE -
+                0.5
+            )
+
+        const y =
+            -(
+                candidate.y /
+                TEXT_TEXTURE_SIZE -
+                0.5
+            )
+
+        targets[i * 3] =
+            x * 9.8
+
+        targets[i * 3 + 1] =
+            y * 3.2
+
+        /*
+         * Tiny depth variation.
+         */
+        targets[i * 3 + 2] =
+            (
+                hash(i + 17) -
+                0.5
+            ) *
+            0.12
+    }
+
+    /*
+     * Keep the canvas alive only while constructing.
+     */
+    void canvas
+
+    return targets
+}
+
+
+function createInitialPositions() {
+    const positions =
+        new Float32Array(
+            PARTICLE_COUNT * 3,
+        )
+
     for (
         let i = 0;
         i < PARTICLE_COUNT;
         i++
     ) {
-        const candidate =
-            candidates[
-                Math.floor(
-                    Math.random() *
-                    candidates.length
-                )
-            ]
+        const r1 =
+            hash(i * 1.71 + 2)
 
-        const normalizedX =
-            (candidate.x / TEXTURE_SIZE - 0.5)
+        const r2 =
+            hash(i * 3.19 + 9)
 
-        const normalizedY =
-            -(candidate.y / TEXTURE_SIZE - 0.5)
+        const r3 =
+            hash(i * 7.41 + 14)
+
+        /*
+         * Most particles begin around the text area,
+         * rather than at arbitrary points in space.
+         *
+         * This gives the formation a nebula feel.
+         */
 
         positions[i * 3] =
-            normalizedX * 8.6
+            (
+                r1 - 0.5
+            ) *
+            14
 
         positions[i * 3 + 1] =
-            normalizedY * 3.0
+            (
+                r2 - 0.5
+            ) *
+            8
 
         positions[i * 3 + 2] =
-            randomRange(
-                -0.035,
-                0.035,
-            )
+            (
+                r3 - 0.5
+            ) *
+            4
     }
-
-    texture.dispose()
 
     return positions
 }
 
 
-/* ============================================================
- * FREE PARTICLE POSITIONS
- * ========================================================== */
-
-function createFreePositions() {
-    const positions = new Float32Array(
-        FREE_PARTICLES * 3,
-    )
+function createAmbientTargets() {
+    const positions =
+        new Float32Array(
+            AMBIENT_PARTICLE_COUNT * 3,
+        )
 
     for (
         let i = 0;
-        i < FREE_PARTICLES;
+        i < AMBIENT_PARTICLE_COUNT;
         i++
     ) {
+        const angle =
+            hash(i * 2.13) *
+            Math.PI *
+            2
+
+        const radius =
+            4.8 +
+            hash(i * 5.17) *
+            5.5
+
         positions[i * 3] =
-            randomRange(-6.5, 6.5)
+            Math.cos(angle) *
+            radius
 
         positions[i * 3 + 1] =
-            randomRange(-4.5, 4.5)
+            (
+                hash(i * 8.11) -
+                0.5
+            ) *
+            7
 
         positions[i * 3 + 2] =
-            randomRange(-1.8, 1.8)
+            (
+                hash(i * 3.81) -
+                0.5
+            ) *
+            4
     }
 
     return positions
 }
 
 
-/* ============================================================
- * RING TARGETS
- * ========================================================== */
-
 function createRingTargets() {
-    const total =
-        RING_COUNT *
-        RING_PARTICLES
-
     const targets =
         new Float32Array(
-            total * 3,
+            RING_PARTICLE_COUNT * 3,
         )
 
-    /*
-     * Keep the six rings centered as a group.
-     */
-
     const totalWidth =
-        (RING_COUNT - 1) *
-        RING_GAP
+        5 *
+        1.72
 
     for (
         let ring = 0;
@@ -291,58 +379,114 @@ function createRingTargets() {
         ring++
     ) {
         const centerX =
-            ring * RING_GAP -
+            ring *
+            1.72 -
             totalWidth / 2
+
+        const radius =
+            0.66 +
+            hash(ring * 31) *
+            0.12
 
         for (
             let particle = 0;
-            particle < RING_PARTICLES;
+            particle < PARTICLES_PER_RING;
             particle++
         ) {
             const index =
                 (
                     ring *
-                    RING_PARTICLES +
+                    PARTICLES_PER_RING +
                     particle
-                ) * 3
+                ) *
+                3
 
-            /*
-             * Slightly imperfect circle.
-             * This keeps the ring organic rather than
-             * mathematically sterile.
-             */
+            const t =
+                particle /
+                PARTICLES_PER_RING
 
             const angle =
-                (
-                    particle /
-                    RING_PARTICLES
-                ) *
+                t *
                 Math.PI *
                 2
 
-            const radius =
-                RING_RADIUS +
-                randomRange(
-                    -0.045,
-                    0.045,
+            /*
+             * Several noise frequencies make the ring
+             * deliberately imperfect.
+             */
+
+            const noise1 =
+                Math.sin(
+                    angle * 3 +
+                    ring * 1.7,
                 )
+
+            const noise2 =
+                Math.sin(
+                    angle * 7 -
+                    ring * 0.9,
+                )
+
+            const noise3 =
+                Math.sin(
+                    angle * 13 +
+                    particle * 0.017,
+                )
+
+            const irregularity =
+                1 +
+                noise1 * 0.055 +
+                noise2 * 0.025 +
+                noise3 * 0.012
+
+            const particleRadius =
+                radius *
+                irregularity
+
+            /*
+             * Ring has thickness.
+             */
+            const thickness =
+                (
+                    hash(
+                        particle +
+                        ring * 991,
+                    ) -
+                    0.5
+                ) *
+                0.085
+
+            const r =
+                particleRadius +
+                thickness
 
             targets[index] =
                 centerX +
                 Math.cos(angle) *
-                radius
+                r
 
             targets[index + 1] =
-                RING_Y +
                 Math.sin(angle) *
-                radius
+                r
 
+            /*
+             * Depth makes it feel like a 3D cloud.
+             */
             targets[index + 2] =
-                RING_Z +
-                randomRange(
-                    -0.08,
-                    0.08,
-                )
+                Math.sin(
+                    angle * 2 +
+                    ring,
+                ) *
+                0.16 +
+                (
+                    hash(
+                        particle *
+                        2.7 +
+                        ring * 71,
+                    ) -
+                    0.5
+                ) *
+                0.16
         }
     }
 
@@ -350,49 +494,44 @@ function createRingTargets() {
 }
 
 
-/* ============================================================
- * PARTICLE FIELD
- * ========================================================== */
+function NebulaField() {
+    const pointsRef =
+        useRef(null)
 
-function HowIBuildParticles() {
-    const pointsRef = useRef(null)
-
-    const elapsedRef = useRef(0)
-
-    const ringProgressRef =
+    const elapsedRef =
         useRef(0)
 
-    const textProgressRef =
-        useRef(0)
+    const {
+        camera,
+    } = useThree()
 
-    const { camera } = useThree()
-
-    const textPositions =
+    const textTargets =
         useMemo(
-            () => createTextPositions(),
+            () =>
+                createTextTargets(),
             [],
         )
 
-    const freePositions =
+    const initialPositions =
         useMemo(
-            () => createFreePositions(),
+            () =>
+                createInitialPositions(),
+            [],
+        )
+
+    const ambientTargets =
+        useMemo(
+            () =>
+                createAmbientTargets(),
             [],
         )
 
     const ringTargets =
         useMemo(
-            () => createRingTargets(),
+            () =>
+                createRingTargets(),
             [],
         )
-
-    /*
-     * Every ring takes particles from two sources:
-     *
-     *   - some particles already belonging to the text
-     *   - some particles that were flying freely
-     *
-     * The actual render buffer remains one particle cloud.
-     */
 
     const geometry =
         useMemo(() => {
@@ -409,11 +548,14 @@ function HowIBuildParticles() {
                     PARTICLE_COUNT,
                 )
 
-            const ringParticleStart =
-                PARTICLE_COUNT -
-                (
-                    RING_COUNT *
-                    RING_PARTICLES
+            const phases =
+                new Float32Array(
+                    PARTICLE_COUNT,
+                )
+
+            const speeds =
+                new Float32Array(
+                    PARTICLE_COUNT,
                 )
 
             for (
@@ -422,28 +564,34 @@ function HowIBuildParticles() {
                 i++
             ) {
                 positions[i * 3] =
-                    textPositions[i * 3]
+                    initialPositions[
+                    i * 3
+                    ]
 
                 positions[i * 3 + 1] =
-                    textPositions[i * 3 + 1]
+                    initialPositions[
+                    i * 3 + 1
+                    ]
 
                 positions[i * 3 + 2] =
-                    textPositions[i * 3 + 2]
-
-                /*
-                 * Slight size variation.
-                 */
+                    initialPositions[
+                    i * 3 + 2
+                    ]
 
                 sizes[i] =
-                    i >= ringParticleStart
-                        ? randomRange(
-                            0.75,
-                            1.15,
-                        )
-                        : randomRange(
-                            0.55,
-                            1.0,
-                        )
+                    0.45 +
+                    hash(i * 9.1) *
+                    1.05
+
+                phases[i] =
+                    hash(i * 4.73) *
+                    Math.PI *
+                    2
+
+                speeds[i] =
+                    0.35 +
+                    hash(i * 2.81) *
+                    0.7
             }
 
             geometry.setAttribute(
@@ -462,9 +610,25 @@ function HowIBuildParticles() {
                 ),
             )
 
+            geometry.setAttribute(
+                'aPhase',
+                new THREE.BufferAttribute(
+                    phases,
+                    1,
+                ),
+            )
+
+            geometry.setAttribute(
+                'aSpeed',
+                new THREE.BufferAttribute(
+                    speeds,
+                    1,
+                ),
+            )
+
             return geometry
         }, [
-            textPositions,
+            initialPositions,
         ])
 
     const material =
@@ -478,91 +642,118 @@ function HowIBuildParticles() {
                     THREE.AdditiveBlending,
 
                 uniforms: {
-                    uPixelRatio: {
-                        value:
-                            Math.min(
-                                window.devicePixelRatio,
-                                2,
-                            ),
+                    uTime: {
+                        value: 0,
                     },
 
                     uOpacity: {
-                        value: 0.95,
+                        value: 0.94,
+                    },
+
+                    uPixelRatio: {
+                        value: Math.min(
+                            window.devicePixelRatio,
+                            2,
+                        ),
                     },
                 },
 
                 vertexShader: `
                     attribute float aSize;
+                    attribute float aPhase;
+                    attribute float aSpeed;
 
+                    uniform float uTime;
                     uniform float uPixelRatio;
 
-void main() {
+                    varying float vBrightness;
+
+                    void main() {
                         vec4 mvPosition =
-        modelViewMatrix *
-        vec4(position, 1.0);
+                            modelViewMatrix *
+                            vec4(position, 1.0);
 
-    gl_PointSize =
-        aSize *
-        uPixelRatio *
-        2.2 *
-        (
-            180.0 /
-            -mvPosition.z
-        );
+                        float pulse =
+                            0.78 +
+                            0.22 *
+                            sin(
+                                uTime *
+                                aSpeed +
+                                aPhase
+                            );
 
-    gl_PointSize =
-        clamp(
-            gl_PointSize,
-            0.7,
-            5.0
-        );
+                        gl_PointSize =
+                            aSize *
+                            pulse *
+                            uPixelRatio *
+                            (
+                                175.0 /
+                                -mvPosition.z
+                            );
 
-    gl_Position =
-        projectionMatrix *
-        mvPosition;
-}
-`,
+                        gl_PointSize =
+                            clamp(
+                                gl_PointSize,
+                                0.45,
+                                4.5
+                            );
+
+                        vBrightness =
+                            pulse;
+
+                        gl_Position =
+                            projectionMatrix *
+                            mvPosition;
+                    }
+                `,
 
                 fragmentShader: `
                     uniform float uOpacity;
 
-void main() {
-                        vec2 uv =
-        gl_PointCoord -
-        vec2(0.5);
+                    varying float vBrightness;
 
-                        float distanceFromCenter =
-        length(uv);
+                    void main() {
+                        vec2 uv =
+                            gl_PointCoord -
+                            vec2(0.5);
+
+                        float d =
+                            length(uv);
 
                         float alpha =
-        1.0 -
-        smoothstep(
-            0.0,
-            0.5,
-            distanceFromCenter
-        );
+                            1.0 -
+                            smoothstep(
+                                0.05,
+                                0.5,
+                                d
+                            );
 
-    alpha *= uOpacity;
+                        alpha *=
+                            vBrightness *
+                            uOpacity;
 
-    if (alpha < 0.01) {
-        discard;
-    }
+                        if (
+                            alpha < 0.01
+                        ) {
+                            discard;
+                        }
 
-    gl_FragColor =
-        vec4(
-            1.0,
-            1.0,
-            1.0,
-            alpha
-        );
-}
-`,
+                        vec3 core =
+                            vec3(
+                                1.0,
+                                1.0,
+                                1.0
+                            );
+
+                        gl_FragColor =
+                            vec4(
+                                core,
+                                alpha
+                            );
+                    }
+                `,
             })
         }, [])
-
-    /*
-     * Dispose geometry/material.
-     */
 
     useEffect(() => {
         return () => {
@@ -574,469 +765,623 @@ void main() {
         material,
     ])
 
-    /*
-     * Main animation.
-     */
+    useFrame(
+        (state, delta) => {
+            if (
+                !pointsRef.current
+            ) {
+                return
+            }
 
-    useFrame((state, delta) => {
-        if (!pointsRef.current) {
-            return
-        }
+            elapsedRef.current +=
+                delta
 
-        elapsedRef.current += delta
+            const time =
+                elapsedRef.current
 
-        const elapsed =
-            elapsedRef.current
+            material.uniforms.uTime.value =
+                time
 
-        /*
-         * ------------------------------------------------------
-         * TEXT FORMATION
-         * ------------------------------------------------------
-         */
+            const positions =
+                geometry
+                    .attributes
+                    .position
+                    .array
 
-        const rawTextProgress =
-            Math.min(
-                elapsed /
-                TEXT_FORM_DURATION,
-                1,
-            )
-
-        const textProgress =
-            easeOutCubic(
-                rawTextProgress,
-            )
-
-        textProgressRef.current =
-            textProgress
-
-        /*
-         * ------------------------------------------------------
-         * RING FORMATION
-         * ------------------------------------------------------
-         */
-
-        const ringRawProgress =
-            Math.max(
-                0,
-                Math.min(
-                    (
-                        elapsed -
-                        RINGS_DELAY
-                    ) / 2.0,
-                    1,
-                ),
-            )
-
-        const ringProgress =
-            easeInOutCubic(
-                ringRawProgress,
-            )
-
-        ringProgressRef.current =
-            ringProgress
-
-        const positions =
-            geometry.attributes.position.array
-
-        /*
-         * ------------------------------------------------------
-         * TEXT PARTICLES
-         * ------------------------------------------------------
-         *
-         * Most particles remain text.
-         *
-         * The last N particles are reserved for the six rings.
-         */
-
-        const ringParticleStart =
-            PARTICLE_COUNT -
-            (
-                RING_COUNT *
-                RING_PARTICLES
-            )
-
-        for (
-            let i = 0;
-            i < PARTICLE_COUNT;
-            i++
-        ) {
             /*
-             * Ring particles.
+             * ==================================================
+             * TEXT FORMATION
+             * ==================================================
              */
 
-            if (i >= ringParticleStart) {
-                const ringIndex =
-                    i -
-                    ringParticleStart
+            const formRaw =
+                clamp(
+                    time /
+                    TEXT_FORM_TIME,
+                    0,
+                    1,
+                )
 
-                const targetIndex =
-                    ringIndex
+            const formProgress =
+                easeOutCubic(
+                    formRaw,
+                )
 
-                const tx =
-                    ringTargets[
-                        targetIndex * 3
-                    ]
+            /*
+             * ==================================================
+             * RING TIMING
+             * ==================================================
+             */
 
-                const ty =
-                    ringTargets[
-                        targetIndex * 3 + 1
-                    ]
+            const ringStart =
+                TEXT_FORM_TIME +
+                RING_DELAY
 
-                const tz =
-                    ringTargets[
-                        targetIndex * 3 + 2
-                    ]
-
-                /*
-                 * Find corresponding text source.
-                 *
-                 * This means the ring particles literally
-                 * come out of the text.
-                 */
-
-                const sourceIndex =
+            const ringRaw =
+                clamp(
                     (
-                        i -
-                        ringParticleStart
-                    ) %
-                    PARTICLE_COUNT
+                        time -
+                        ringStart
+                    ) /
+                    RING_FORM_TIME,
+                    0,
+                    1,
+                )
 
-                const sx =
-                    textPositions[
-                        sourceIndex * 3
-                    ]
+            const ringProgress =
+                easeInOutCubic(
+                    ringRaw,
+                )
 
-                const sy =
-                    textPositions[
-                        sourceIndex * 3 + 1
-                    ]
+            /*
+             * ==================================================
+             * MAIN TEXT PARTICLES
+             * ==================================================
+             */
 
-                const sz =
-                    textPositions[
-                        sourceIndex * 3 + 2
-                    ]
+            for (
+                let i = 0;
+                i < TEXT_PARTICLE_COUNT;
+                i++
+            ) {
+                const index =
+                    i * 3
+
+                const targetX =
+                    textTargets[index]
+
+                const targetY =
+                    textTargets[index + 1]
+
+                const targetZ =
+                    textTargets[index + 2]
 
                 /*
-                 * Before ring formation:
-                 * remain part of text.
-                 *
-                 * During formation:
-                 * travel toward ring.
+                 * A subset near the end of the particle
+                 * population will eventually be released.
                  */
 
-                positions[i * 3] =
-                    THREE.MathUtils.lerp(
-                        sx,
-                        tx,
-                        ringProgress,
+                const extraction =
+                    i >
+                        TEXT_PARTICLE_COUNT -
+                        RING_PARTICLE_COUNT
+                        ? smoothstep(
+                            0,
+                            1,
+                            ringProgress,
+                        )
+                        : 0
+
+                /*
+                 * Give extracted particles an intermediate
+                 * wandering position before they reach rings.
+                 */
+
+                const angle =
+                    (
+                        hash(i * 4.13) *
+                        Math.PI *
+                        2
+                    ) +
+                    time *
+                    (
+                        0.25 +
+                        hash(i * 7.3) *
+                        0.25
                     )
 
-                positions[i * 3 + 1] =
-                    THREE.MathUtils.lerp(
-                        sy,
-                        ty,
-                        ringProgress,
+                const escapeRadius =
+                    1.2 +
+                    hash(i * 9.1) *
+                    1.4
+
+                const escapeX =
+                    targetX +
+                    Math.cos(angle) *
+                    escapeRadius
+
+                const escapeY =
+                    targetY -
+                    (
+                        0.5 +
+                        hash(i * 3.7) *
+                        0.9
                     )
 
-                positions[i * 3 + 2] =
+                const escapeZ =
+                    targetZ +
+                    Math.sin(angle) *
+                    0.8
+
+                /*
+                 * Determine which ring this extracted
+                 * particle eventually belongs to.
+                 */
+
+                let ringTargetX =
+                    escapeX
+
+                let ringTargetY =
+                    escapeY
+
+                let ringTargetZ =
+                    escapeZ
+
+                if (
+                    extraction > 0
+                ) {
+                    const ringLocal =
+                        i %
+                        RING_PARTICLE_COUNT
+
+                    const ringIndex =
+                        ringLocal *
+                        3
+
+                    ringTargetX =
+                        ringTargets[
+                        ringIndex
+                        ]
+
+                    ringTargetY =
+                        ringTargets[
+                        ringIndex + 1
+                        ]
+
+                    ringTargetZ =
+                        ringTargets[
+                        ringIndex + 2
+                        ]
+                }
+
+                let x =
                     THREE.MathUtils.lerp(
-                        sz,
-                        tz,
-                        ringProgress,
+                        initialPositions[index],
+                        targetX,
+                        formProgress,
                     )
 
-                continue
+                let y =
+                    THREE.MathUtils.lerp(
+                        initialPositions[
+                        index + 1
+                        ],
+                        targetY,
+                        formProgress,
+                    )
+
+                let z =
+                    THREE.MathUtils.lerp(
+                        initialPositions[
+                        index + 2
+                        ],
+                        targetZ,
+                        formProgress,
+                    )
+
+                /*
+                 * Release from text.
+                 */
+
+                if (
+                    extraction > 0
+                ) {
+                    const travel =
+                        smoothstep(
+                            0,
+                            1,
+                            extraction,
+                        )
+
+                    x =
+                        THREE.MathUtils.lerp(
+                            x,
+                            THREE.MathUtils.lerp(
+                                escapeX,
+                                ringTargetX,
+                                travel,
+                            ),
+                            extraction,
+                        )
+
+                    y =
+                        THREE.MathUtils.lerp(
+                            y,
+                            THREE.MathUtils.lerp(
+                                escapeY,
+                                ringTargetY,
+                                travel,
+                            ),
+                            extraction,
+                        )
+
+                    z =
+                        THREE.MathUtils.lerp(
+                            z,
+                            THREE.MathUtils.lerp(
+                                escapeZ,
+                                ringTargetZ,
+                                travel,
+                            ),
+                            extraction,
+                        )
+                }
+
+                /*
+                 * Text breathing.
+                 */
+
+                if (
+                    formProgress > 0.98 &&
+                    extraction < 0.1
+                ) {
+                    y +=
+                        Math.sin(
+                            time * 0.55 +
+                            i * 0.004,
+                        ) *
+                        0.009
+                }
+
+                positions[index] =
+                    x
+
+                positions[index + 1] =
+                    y
+
+                positions[index + 2] =
+                    z
             }
 
             /*
-             * Normal text particles.
-             */
-
-            const tx =
-                textPositions[i * 3]
-
-            const ty =
-                textPositions[i * 3 + 1]
-
-            const tz =
-                textPositions[i * 3 + 2]
-
-            /*
-             * Start position.
-             */
-
-            const startX =
-                randomRange(
-                    -8,
-                    8,
-                )
-
-            const startY =
-                randomRange(
-                    -4,
-                    4,
-                )
-
-            const startZ =
-                randomRange(
-                    -2,
-                    2,
-                )
-
-            /*
-             * We don't want to generate random values
-             * every frame.
+             * ==================================================
+             * AMBIENT PARTICLES
+             * ==================================================
              *
-             * Instead use deterministic pseudo-random
-             * values based on particle index.
+             * These particles exist around the text from
+             * the beginning.
+             *
+             * When rings form, some are pulled into the rings.
              */
 
-            const noise =
-                Math.sin(
-                    i * 12.9898
-                ) * 43758.5453
+            const ambientStart =
+                TEXT_PARTICLE_COUNT
 
-            const random =
-                noise -
-                Math.floor(noise)
+            for (
+                let i = 0;
+                i < AMBIENT_PARTICLE_COUNT;
+                i++
+            ) {
+                const particleIndex =
+                    ambientStart +
+                    i
 
-            const sx =
-                -8 +
-                random * 16
+                if (
+                    particleIndex >=
+                    PARTICLE_COUNT
+                ) {
+                    break
+                }
 
-            const sy =
-                -4 +
-                (
+                const index =
+                    particleIndex * 3
+
+                const phase =
+                    hash(i * 3.31) *
+                    Math.PI *
+                    2
+
+                const speed =
+                    0.08 +
+                    hash(i * 8.71) *
+                    0.16
+
+                const baseX =
+                    ambientTargets[
+                    (
+                        i % AMBIENT_PARTICLE_COUNT
+                    ) * 3
+                    ]
+
+                const baseY =
+                    ambientTargets[
+                    (
+                        i % AMBIENT_PARTICLE_COUNT
+                    ) * 3 +
+                    1
+                    ]
+
+                const baseZ =
+                    ambientTargets[
+                    (
+                        i % AMBIENT_PARTICLE_COUNT
+                    ) * 3 +
+                    2
+                    ]
+
+                let x =
+                    baseX +
                     Math.sin(
-                        i * 7.31
+                        time * speed +
+                        phase,
                     ) *
-                    0.5 +
-                    0.5
-                ) * 8
+                    0.45
 
-            const sz =
-                -2 +
-                (
+                let y =
+                    baseY +
                     Math.cos(
-                        i * 5.17
+                        time *
+                        speed *
+                        0.8 +
+                        phase,
                     ) *
-                    0.5 +
-                    0.5
-                ) * 4
+                    0.32
+
+                let z =
+                    baseZ +
+                    Math.sin(
+                        time *
+                        speed *
+                        0.65 +
+                        phase,
+                    ) *
+                    0.22
+
+                /*
+                 * Only a subset of ambient particles
+                 * gets recruited.
+                 */
+
+                const recruit =
+                    ringRaw > 0 &&
+                        hash(i * 13.71) >
+                        0.86
+                        ? ringProgress
+                        : 0
+
+                if (
+                    recruit > 0
+                ) {
+                    const ringIndex =
+                        i %
+                        RING_PARTICLE_COUNT
+
+                    const targetIndex =
+                        ringIndex * 3
+
+                    x =
+                        THREE.MathUtils.lerp(
+                            x,
+                            ringTargets[
+                            targetIndex
+                            ],
+                            recruit,
+                        )
+
+                    y =
+                        THREE.MathUtils.lerp(
+                            y,
+                            ringTargets[
+                            targetIndex + 1
+                            ],
+                            recruit,
+                        )
+
+                    z =
+                        THREE.MathUtils.lerp(
+                            z,
+                            ringTargets[
+                            targetIndex + 2
+                            ],
+                            recruit,
+                        )
+                }
+
+                positions[index] =
+                    x
+
+                positions[index + 1] =
+                    y
+
+                positions[index + 2] =
+                    z
+            }
 
             /*
-             * Slight per-particle delay.
+             * ==================================================
+             * RING MOTION
+             * ==================================================
              *
-             * This prevents the entire word from appearing
-             * at exactly the same time.
-             */
-
-            const particleDelay =
-                random * 0.35
-
-            const particleProgress =
-                Math.max(
-                    0,
-                    Math.min(
-                        (
-                            rawTextProgress -
-                            particleDelay
-                        ) /
-                        (
-                            1 -
-                            particleDelay
-                        ),
-                        1,
-                    ),
-                )
-
-            const eased =
-                easeOutCubic(
-                    particleProgress,
-                )
-
-            positions[i * 3] =
-                THREE.MathUtils.lerp(
-                    sx,
-                    tx,
-                    eased,
-                )
-
-            positions[i * 3 + 1] =
-                THREE.MathUtils.lerp(
-                    sy,
-                    ty,
-                    eased,
-                )
-
-            positions[i * 3 + 2] =
-                THREE.MathUtils.lerp(
-                    sz,
-                    tz,
-                    eased,
-                )
-
-            /*
-             * Tiny breathing movement once formed.
+             * Once formed, the rings don't become rigid.
+             * Their particles continue to move.
              */
 
             if (
-                textProgress > 0.98
+                ringProgress > 0
             ) {
-                positions[i * 3 + 1] +=
-                    Math.sin(
-                        elapsed * 0.65 +
-                        i * 0.003
-                    ) *
-                    0.008
-            }
-        }
-
-        /*
-         * ------------------------------------------------------
-         * FREE-FLYING PARTICLES
-         * ------------------------------------------------------
-         *
-         * These are not part of the visible text.
-         *
-         * They move around the scene and are visually pulled
-         * into the rings when ring formation begins.
-         *
-         * They occupy a small portion of the ring particle
-         * population conceptually through the ring target
-         * motion below.
-         */
-
-        for (
-            let ring = 0;
-            ring < RING_COUNT;
-            ring++
-        ) {
-            const base =
-                ring *
-                RING_PARTICLES
-
-            /*
-             * Slight individual ring motion.
-             */
-
-            const floatOffset =
-                Math.sin(
-                    elapsed * 0.75 +
-                    ring * 0.7
-                ) *
-                RING_FLOAT_AMOUNT
-
-            for (
-                let particle = 0;
-                particle < RING_PARTICLES;
-                particle++
-            ) {
-                const index =
-                    (
-                        base +
-                        particle
-                    ) * 3
-
-                if (
-                    ringProgress > 0.0
+                for (
+                    let ring = 0;
+                    ring < RING_COUNT;
+                    ring++
                 ) {
-                    /*
-                     * Rotate each ring around its center.
-                     */
-
-                    const angle =
-                        (
-                            particle /
-                            RING_PARTICLES
-                        ) *
-                        Math.PI *
-                        2 +
-                        elapsed *
-                        RING_ROTATION_SPEED *
-                        (
-                            ring % 2 === 0
-                                ? 1
-                                : -1
-                        )
-
-                    const totalWidth =
-                        (
-                            RING_COUNT -
-                            1
-                        ) *
-                        RING_GAP
-
                     const centerX =
                         ring *
-                        RING_GAP -
-                        totalWidth /
-                        2
+                        1.72 -
+                        4.30
 
-                    const radius =
-                        RING_RADIUS
-
-                    const ringX =
-                        centerX +
-                        Math.cos(angle) *
-                        radius
-
-                    const ringY =
-                        RING_Y +
-                        floatOffset +
-                        Math.sin(angle) *
-                        radius
-
-                    const ringZ =
-                        RING_Z +
+                    const centerY =
+                        -1.65 +
                         Math.sin(
-                            angle * 2
+                            time * 0.55 +
+                            ring * 0.75,
                         ) *
-                        0.06
+                        0.08
 
-                    positions[index] =
-                        THREE.MathUtils.lerp(
-                            positions[index],
-                            ringX,
-                            0.08,
-                        )
+                    const centerZ =
+                        Math.sin(
+                            time * 0.32 +
+                            ring * 0.9,
+                        ) *
+                        0.12
 
-                    positions[index + 1] =
-                        THREE.MathUtils.lerp(
-                            positions[index + 1],
-                            ringY,
-                            0.08,
-                        )
+                    const direction =
+                        ring % 2 === 0
+                            ? 1
+                            : -1
 
-                    positions[index + 2] =
-                        THREE.MathUtils.lerp(
-                            positions[index + 2],
-                            ringZ,
-                            0.08,
-                        )
+                    for (
+                        let particle = 0;
+                        particle <
+                        PARTICLES_PER_RING;
+                        particle++
+                    ) {
+                        const index =
+                            (
+                                ring *
+                                PARTICLES_PER_RING +
+                                particle
+                            ) *
+                            3
+
+                        /*
+                         * The first part of the buffer
+                         * represents extracted text particles.
+                         *
+                         * We use a continuous procedural
+                         * ring position here, so the resulting
+                         * shape stays organic.
+                         */
+
+                        const t =
+                            particle /
+                            PARTICLES_PER_RING
+
+                        const angle =
+                            t *
+                            Math.PI *
+                            2 +
+                            time *
+                            0.18 *
+                            direction
+
+                        const n1 =
+                            Math.sin(
+                                angle * 3 +
+                                ring * 1.8,
+                            )
+
+                        const n2 =
+                            Math.sin(
+                                angle * 6 -
+                                ring * 0.7 +
+                                time * 0.3,
+                            )
+
+                        const n3 =
+                            Math.sin(
+                                angle * 11 +
+                                ring,
+                            )
+
+                        const radius =
+                            0.67 +
+                            n1 * 0.045 +
+                            n2 * 0.028 +
+                            n3 * 0.014
+
+                        const x =
+                            centerX +
+                            Math.cos(angle) *
+                            radius
+
+                        const y =
+                            centerY +
+                            Math.sin(angle) *
+                            radius
+
+                        const z =
+                            centerZ +
+                            Math.sin(
+                                angle * 2 +
+                                ring,
+                            ) *
+                            0.15
+
+                        /*
+                         * Do not snap the particles.
+                         * A small interpolation keeps the
+                         * nebula character.
+                         */
+
+                        positions[index] =
+                            THREE.MathUtils.lerp(
+                                positions[index],
+                                x,
+                                0.055,
+                            )
+
+                        positions[index + 1] =
+                            THREE.MathUtils.lerp(
+                                positions[
+                                index + 1
+                                ],
+                                y,
+                                0.055,
+                            )
+
+                        positions[index + 2] =
+                            THREE.MathUtils.lerp(
+                                positions[
+                                index + 2
+                                ],
+                                z,
+                                0.055,
+                            )
+                    }
                 }
             }
-        }
 
-        geometry.attributes.position.needsUpdate =
-            true
+            geometry.attributes
+                .position
+                .needsUpdate = true
 
-        /*
-         * Very subtle camera breathing.
-         */
+            /*
+             * Subtle camera breathing.
+             */
 
-        camera.position.x =
-            Math.sin(
-                elapsed * 0.12
-            ) *
-            0.035
+            camera.position.x =
+                Math.sin(
+                    time * 0.09,
+                ) *
+                0.045
 
-        camera.position.y =
-            Math.cos(
-                elapsed * 0.14
-            ) *
-            0.025
-    })
+            camera.position.y =
+                Math.cos(
+                    time * 0.11,
+                ) *
+                0.03
+        },
+    )
 
     return (
         <points
@@ -1048,41 +1393,41 @@ void main() {
 }
 
 
-/* ============================================================
- * CANVAS
- * ========================================================== */
-
 export default function HowIBuildNebulaText() {
     return (
         <div
-            style={{
-                width: '100%',
-                height: '100%',
-                position: 'absolute',
-                inset: 0,
-                pointerEvents: 'none',
-            }}
+            className="how-i-build-nebula"
         >
             <Canvas
                 camera={{
                     position: [
                         0,
                         0,
-                        8.5,
+                        9,
                     ],
+
                     fov: 42,
+
                     near: 0.1,
+
                     far: 100,
                 }}
-                dpr={[1, 2]}
+
+                dpr={[
+                    1,
+                    2,
+                ]}
+
                 gl={{
                     antialias: true,
+
                     alpha: true,
+
                     powerPreference:
                         'high-performance',
                 }}
             >
-                <HowIBuildParticles />
+                <NebulaField />
             </Canvas>
         </div>
     )

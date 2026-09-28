@@ -1,15 +1,19 @@
-import HowIBuildNebulaText from '../components/howIBuildComps/HowIBuildNebulaText'
-import HowIBuildContainer from '../components/howIBuildComps/HowIBuildContainer'
+
+import HowIBuildNebulaText
+  from './HowIBuildNebulaText'
+
+import HowIBuildContainer
+  from './HowIBuildContainer'
 
 
 export default function HowIBuild() {
-    return (
-        <section
-            className="how-i-build"
-        >
-            <HowIBuildNebulaText />
+  return (
+    <main
+      className="how-i-build"
+    >
+      <HowIBuildNebulaText />
 
-            <HowIBuildContainer />
-        </section>
-    )
+      <HowIBuildContainer />
+    </main>
+  )
 }
