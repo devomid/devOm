@@ -904,25 +904,7 @@ const WorkNebulaText = ({progress, cardRect}) => {
     useEffect(() => {
         progressRef.current = progress
     }, [progress])
-
-    const updateProgress = () => {
-        const scrollY =
-            window.scrollY
-
-        const maxScroll =
-            Math.max(
-                1,
-                document.documentElement
-                    .scrollHeight -
-                window.innerHeight,
-            )
-
-        progressRef.current =
-            clamp(
-                scrollY /
-                maxScroll,
-            )
-    }
+    
 
     useEffect(() => {
         const textTexture =
@@ -957,44 +939,6 @@ const WorkNebulaText = ({progress, cardRect}) => {
         }
     }, [])
 
-    /*
-     * ------------------------------------------------
-     * GLOBAL WORKS SCROLL
-     * ------------------------------------------------
-     */
-
-    useEffect(() => {
-        updateProgress()
-
-        const handleScroll = () => {
-            updateProgress()
-        }
-
-        window.addEventListener(
-            'scroll',
-            handleScroll,
-            {
-                passive: true,
-            },
-        )
-
-        window.addEventListener(
-            'resize',
-            updateProgress,
-        )
-
-        return () => {
-            window.removeEventListener(
-                'scroll',
-                handleScroll,
-            )
-
-            window.removeEventListener(
-                'resize',
-                updateProgress,
-            )
-        }
-    }, [])
 
     /*
      * ------------------------------------------------
@@ -1177,7 +1121,7 @@ const WorkNebulaText = ({progress, cardRect}) => {
                  * DOM by the animation loop when the
                  * cloud forms.
                  */
-                zIndex: 10,
+                zIndex: 20,
 
                 /*
                  * Don't animate z-index.
