@@ -896,162 +896,209 @@ vec3 getOrbitTangent(
         velocity.z *= 0.978;
 
         /*
-         * ------------------------------------------------
-         * BUILD TILE / TEXT DISTURBANCE
-         * ------------------------------------------------
-         */
+ * ------------------------------------------------
+ * CARD FRONT WIND
+ * ------------------------------------------------
+ *
+ * The particles do NOT gather around the card.
+ *
+ * Instead, the card becomes a volume that the
+ * particles flow through.
+ *
+ * Camera is on +Z.
+ *
+ * Behind card:
+ *      Z < 0
+ *
+ * Front of card:
+ *      Z > 0
+ *
+ * Therefore the primary wind direction is +Z.
+ */
 
-        if (
-            uWipeStrength > 0.001 &&
-            uTextEnabled > 0.5
-        ) {
-            vec4 wipeTarget =
-                texture2D(
-                    uTextTargetTexture,
-                    vUv
-                );
+if (
+    uRectangleStrength > 0.001
+) {
+    float cloudAmount =
+        smoothstep(
+            0.0,
+            1.0,
+            uRectangleStrength
+        );
 
-            if (
-                wipeTarget.a >
-                0.001
-            ) {
-                vec2 halfSize =
-                    max(
-                        uWipeHalfSize,
-                        vec2(
-                            0.001
-                        )
-                    );
+    /*
+     * --------------------------------------------
+     * LARGE WIND VOLUME
+     * --------------------------------------------
+     *
+     * Use the particle's current position.
+     *
+     * There is deliberately NO rectangular
+     * distance calculation here.
+     */
 
-                vec2 delta =
-                    position.xy -
-                    uWipeCenter;
+    vec3 windPosition =
+        position;
 
-                vec2 normalizedDelta =
-                    abs(delta) /
-                    halfSize;
+    /*
+     * --------------------------------------------
+     * DEPTH BAND
+     * --------------------------------------------
+     *
+     * The strongest wind happens around the
+     * card depth.
+     *
+     * Particles can approach from behind and
+     * continue through the front.
+     */
 
-                float boxDistance =
-                    max(
-                        normalizedDelta.x,
-                        normalizedDelta.y
-                    );
+    float depthBand =
+        exp(
+            -abs(
+                windPosition.z
+            ) *
+            0.32
+        );
 
-                float influence =
-                    1.0 -
-                    smoothstep(
-                        0.45,
-                        2.25,
-                        boxDistance
-                    );
+    /*
+     * --------------------------------------------
+     * COHERENT FORWARD FLOW
+     * --------------------------------------------
+     *
+     * +Z = toward the viewer.
+     */
 
-                float core =
-                    1.0 -
-                    smoothstep(
-                        0.38,
-                        1.12,
-                        boxDistance
-                    );
+    float forwardWind =
+        (
+            1.0 +
+            0.32 *
+            sin(
+                phase * 1.71 +
+                uTime * 0.35
+            )
+        );
 
-                vec2 radialVector =
-                    vec2(
-                        delta.x /
-                        (
-                            halfSize.x *
-                            halfSize.x
-                        ),
+    velocity.z +=
+        forwardWind *
+        cloudAmount *
+        (
+            0.010 +
+            depthBand * 0.012
+        );
 
-                        delta.y /
-                        (
-                            halfSize.y *
-                            halfSize.y
-                        )
-                    );
+    /*
+     * --------------------------------------------
+     * SIDE WIND
+     * --------------------------------------------
+     *
+     * Give the stream a little lateral motion
+     * so it feels like air rather than particles
+     * being pushed on a straight rail.
+     */
 
-                radialVector +=
-                    vec2(
-                        cos(phase),
-                        sin(phase)
-                    ) *
-                    0.025;
+    float sideFlow =
+        sin(
+            position.y * 0.42 +
+            position.z * 0.31 +
+            phase * 1.37 +
+            uTime * 0.28
+        );
 
-                radialVector =
-                    normalize(
-                        radialVector
-                    );
+    float verticalFlow =
+        cos(
+            position.x * 0.37 -
+            position.z * 0.28 +
+            phase * 1.13 -
+            uTime * 0.23
+        );
 
-                vec2 tangent =
-                    vec2(
-                        -radialVector.y,
-                        radialVector.x
-                    );
+    velocity.x +=
+        sideFlow *
+        cloudAmount *
+        0.0028;
 
-                vec2 wipeDirection =
-                    normalize(
-                        uWipeDirection +
-                        vec2(
-                            0.00001
-                        )
-                    );
+    velocity.y +=
+        verticalFlow *
+        cloudAmount *
+        0.0024;
 
-                vec2 disturbance =
-                    radialVector *
-                    (
-                        1.05 +
-                        core * 0.85
-                    );
+    /*
+     * --------------------------------------------
+     * TURBULENT SHEAR
+     * --------------------------------------------
+     *
+     * Different particles travel at slightly
+     * different speeds.
+     */
 
-                disturbance +=
-                    wipeDirection *
-                    (
-                        0.52 +
-                        core * 0.44
-                    );
+    float shear =
+        sin(
+            position.y * 0.67 +
+            phase * 2.13 +
+            uTime * 0.41
+        );
 
-                disturbance +=
-                    tangent *
-                    (
-                        sin(
-                            phase * 1.71 +
-                            uTime * 0.85
-                        ) *
-                        0.24
-                    );
+    velocity.z +=
+        shear *
+        cloudAmount *
+        0.0025;
 
-                float disturbanceStrength =
-                    uWipeStrength *
-                    influence *
-                    (
-                        0.92 +
-                        core * 0.68
-                    );
+    /*
+     * --------------------------------------------
+     * DEPTH SEPARATION
+     * --------------------------------------------
+     *
+     * Push some particles slightly farther
+     * behind and others farther in front.
+     *
+     * This creates the "passing through the card"
+     * volume instead of a flat 2D wipe.
+     */
 
-                velocity.xy +=
-                    disturbance *
-                    disturbanceStrength *
-                    0.00320;
+    float depthSeparation =
+        sin(
+            phase * 2.47 +
+            position.x * 0.31 +
+            position.y * 0.27
+        );
 
-                float depthImpulse =
-                    (
-                        0.16 +
-                        0.10 *
-                        sin(
-                            phase +
-                            uTime * 0.71
-                        )
-                    ) *
-                    disturbanceStrength;
+    velocity.z +=
+        depthSeparation *
+        cloudAmount *
+        0.0018;
 
-                velocity.z +=
-                    depthImpulse *
-                    0.00078 *
-                    (
-                        position.z >= 0.0
-                            ? 1.0
-                            : -1.0
-                    );
-            }
-        }
+    /*
+     * --------------------------------------------
+     * CURL
+     * --------------------------------------------
+     *
+     * Bend the wind around itself.
+     */
+
+    float curl =
+        sin(
+            position.x * 0.43 +
+            position.y * 0.51 +
+            position.z * 0.37 +
+            uTime * 0.31 +
+            phase
+        );
+
+    velocity.x +=
+        curl *
+        cloudAmount *
+        0.0017;
+
+    velocity.y +=
+        cos(
+            position.x * 0.39 -
+            position.y * 0.47 +
+            uTime * 0.27 +
+            phase * 1.31
+        ) *
+        cloudAmount *
+        0.0015;
+}
 
         /*
          * ------------------------------------------------
@@ -1442,12 +1489,29 @@ float targetAvailable =
                             attachmentNoise
                         );
 
-                    float attachment =
-                        mix(
-                            normalAttachment,
-                            1.0,
-                            cloudAmount
-                        );
+                    /*
+ * During the wind transition, particles should
+ * not immediately snap to the cloud.
+ *
+ * The wind carries them first.
+ *
+ * As the cloud reaches full strength, the
+ * cloud target gradually takes control.
+ */
+
+float windRelease =
+    smoothstep(
+        0.0,
+        0.65,
+        cloudAmount
+    );
+
+float attachment =
+    mix(
+        normalAttachment * 0.18,
+        1.0,
+        windRelease
+    );
 
                     float personalVariation =
                         0.93 +
