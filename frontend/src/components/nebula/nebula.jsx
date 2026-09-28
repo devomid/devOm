@@ -1789,6 +1789,59 @@ uniform float uInteractionStrength;
                     }
                 }
             }
+                /*
+ * =================================================
+ * CONTACTS POINTER / TOUCH DISTURBANCE
+ * =================================================
+ */
+
+if (
+    uInteractionStrength >
+    0.0001 &&
+    textTargetSample.a >
+    0.001
+) {
+    vec2 interactionOffset =
+        position.xy -
+        uInteractionCenter;
+
+    float interactionDistance =
+        length(
+            interactionOffset
+        );
+
+    float interactionInfluence =
+        1.0 -
+        smoothstep(
+            0.0,
+            4.8,
+            interactionDistance
+        );
+
+    vec2 interactionDirection =
+        interactionDistance >
+        0.0001
+            ? normalize(
+                interactionOffset
+            )
+            : vec2(
+                0.0,
+                0.0
+            );
+
+    float push =
+        interactionInfluence *
+        uInteractionStrength;
+
+    velocity.xy +=
+        interactionDirection *
+        push *
+        0.012;
+
+    velocity.z +=
+        push *
+        0.0035;
+}
         }
 
         gl_FragColor =
@@ -2988,7 +3041,88 @@ const NebulaParticles = ({
                     cloudAmount,
                     0.0,
                     1.0,
-                )
+            )
+            /*
+ * =================================================
+ * CONTACTS POINTER / TOUCH -> WORLD SPACE
+ * =================================================
+ */
+
+            const interaction =
+                interactionRef?.current
+
+            if (
+                interaction
+            ) {
+                const viewportWidth =
+                    size.width
+
+                const viewportHeight =
+                    size.height
+
+                const cameraDistance =
+                    Math.abs(
+                        camera.position.z,
+                    )
+
+                const fovRadians =
+                    THREE.MathUtils.degToRad(
+                        camera.fov,
+                    )
+
+                const worldHeight =
+                    2 *
+                    cameraDistance *
+                    Math.tan(
+                        fovRadians /
+                        2,
+                    )
+
+                const worldWidth =
+                    worldHeight *
+                    (
+                        viewportWidth /
+                        viewportHeight
+                    )
+
+                const worldInteractionX =
+                    (
+                        interaction.x /
+                        viewportWidth -
+                        0.5
+                    ) *
+                    worldWidth
+
+                const worldInteractionY =
+                    (
+                        0.5 -
+                        interaction.y /
+                        viewportHeight
+                    ) *
+                    worldHeight
+
+                velocityMaterial
+                    .uniforms
+                    .uInteractionCenter
+                    .value.set(
+                        worldInteractionX,
+                        worldInteractionY,
+                    )
+
+                velocityMaterial
+                    .uniforms
+                    .uInteractionStrength
+                    .value =
+                    interaction.active
+                        ? interaction.strength
+                        : 0.0
+            } else {
+                velocityMaterial
+                    .uniforms
+                    .uInteractionStrength
+                    .value =
+                    0.0
+            }
 
             /*
              * =================================================
