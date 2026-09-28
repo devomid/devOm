@@ -2148,6 +2148,7 @@ const NebulaParticles = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
+    depthStrengthRef = null,
     cardRect
 }) => {
 

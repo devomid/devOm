@@ -23,15 +23,19 @@ const clamp = (
 
 const Works = () => {
   const worksRef = useRef(null)
+  const snappingRef = useRef(false)
+  const snapTimerRef = useRef(null)
 
   const [progress, setProgress] = useState(0)
   const [cardRect, setCardRect] = useState(null)
 
   useEffect(() => {
-    const updateProgress = () => {
+    const workCount = 5
+
+    const getProgress = () => {
       const element = worksRef.current
 
-      if (!element) return
+      if (!element) return 0
 
       const rect =
         element.getBoundingClientRect()
@@ -40,26 +44,160 @@ const Works = () => {
         element.offsetHeight -
         window.innerHeight
 
-      if (total <= 0) {
-        setProgress(0)
-        return
+      if (total <= 0) return 0
+
+      return clamp(
+        -rect.top / total,
+      )
+    }
+
+    const getScrollPositionForProgress = (
+      targetProgress,
+    ) => {
+      const element =
+        worksRef.current
+
+      if (!element) return null
+
+      const total =
+        element.offsetHeight -
+        window.innerHeight
+
+      const documentTop =
+        window.scrollY +
+        element.getBoundingClientRect().top
+
+      return (
+        documentTop +
+        targetProgress *
+        total
+      )
+    }
+
+    const updateProgress = () => {
+      setProgress(
+        getProgress(),
+      )
+    }
+
+    let lastScrollY =
+      window.scrollY
+
+    let scrollDirection = 1
+
+    let scrollStopTimer = null
+
+    const handleScroll = () => {
+      const currentScrollY =
+        window.scrollY
+
+      if (
+        currentScrollY >
+        lastScrollY
+      ) {
+        scrollDirection = 1
       }
 
-      const travelled =
-        -rect.top
+      if (
+        currentScrollY <
+        lastScrollY
+      ) {
+        scrollDirection = -1
+      }
 
-      setProgress(
-        clamp(
-          travelled / total,
-        ),
+      lastScrollY =
+        currentScrollY
+
+      updateProgress()
+
+      clearTimeout(
+        scrollStopTimer,
       )
+
+      scrollStopTimer =
+        setTimeout(() => {
+          const currentProgress =
+            getProgress()
+
+          const cycleLength =
+            1 /
+            workCount
+
+          const cycle =
+            Math.min(
+              workCount - 1,
+              Math.floor(
+                currentProgress /
+                cycleLength,
+              ),
+            )
+
+          const cycleStart =
+            cycle *
+            cycleLength
+
+          const localProgress =
+            clamp(
+              (
+                currentProgress -
+                cycleStart
+              ) /
+              cycleLength,
+            )
+
+          /*
+           * Only snap while moving
+           * toward the FRONT of the card.
+           *
+           * Once we reach 0.5:
+           *
+           *   CARD CHANGES
+           *   particles start
+           *   moving BACK
+           *
+           * From there on, scrolling
+           * is completely normal.
+           */
+
+          const frontMotionActive =
+            scrollDirection > 0 &&
+            localProgress > 0 &&
+            localProgress < 0.5
+
+          if (
+            !frontMotionActive ||
+            cycle >= workCount - 1
+          ) {
+            return
+          }
+
+          const targetProgress =
+            cycleStart +
+            cycleLength * 0.5
+
+          const targetScroll =
+            getScrollPositionForProgress(
+              targetProgress,
+            )
+
+          if (
+            targetScroll === null
+          ) {
+            return
+          }
+
+          window.scrollTo({
+            top: targetScroll,
+            behavior: 'smooth',
+          })
+        }, 120)
     }
 
     updateProgress()
 
     window.addEventListener(
       'scroll',
-      updateProgress,
+      handleScroll,
       { passive: true },
     )
 
@@ -71,12 +209,16 @@ const Works = () => {
     return () => {
       window.removeEventListener(
         'scroll',
-        updateProgress,
+        handleScroll,
       )
 
       window.removeEventListener(
         'resize',
         updateProgress,
+      )
+
+      clearTimeout(
+        scrollStopTimer,
       )
     }
   }, [])
