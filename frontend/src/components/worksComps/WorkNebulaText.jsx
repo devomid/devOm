@@ -6,8 +6,10 @@ import {
 
 import * as THREE from 'three'
 
-import NebulaBackground from '../nebula/nebula'
 import { Box } from '@mui/material'
+
+import NebulaBackground from '../nebula/nebula'
+import works from '../../db/works'
 
 const TEXTURE_SIZE = 512
 
@@ -314,18 +316,9 @@ const createTextTargetTexture = (
  * CLOUD TARGET
  * ----------------------------------------------------
  *
- * Dense organic particle cloud.
+ * Existing cloud geometry.
  *
- * This is NOT a rectangle.
- * This is NOT a second geometry.
- * This uses the existing particle population.
- *
- * Most particles are pulled into one broad,
- * irregular, continuous mass.
- *
- * A small percentage remain completely untargeted
- * so the surrounding nebula can continue moving
- * freely around the cloud.
+ * DO NOT CHANGE THIS.
  * ----------------------------------------------------
  */
 
@@ -388,25 +381,6 @@ const createCloudTargetTexture = () => {
             4294967295
         )
     }
-
-    /*
-     * ------------------------------------------------
-     * ROUNDED RECTANGLE PERIMETER
-     * ------------------------------------------------
-     *
-     * Clockwise path:
-     *
-     * top
-     * top-right corner
-     * right
-     * bottom-right corner
-     * bottom
-     * bottom-left corner
-     * left
-     * top-left corner
-     *
-     * t = 0..1
-     */
 
     const halfWidth =
         orbitWidth * 0.5
@@ -774,10 +748,6 @@ const createCloudTargetTexture = () => {
         const index =
             particleIndex * 4
 
-        /*
-         * Some particles remain part of the
-         * surrounding nebula.
-         */
         const membership =
             randomFor(
                 particleIndex,
@@ -803,10 +773,6 @@ const createCloudTargetTexture = () => {
             continue
         }
 
-        /*
-         * Every particle receives a permanent
-         * position along the orbit.
-         */
         const orbitT =
             randomFor(
                 particleIndex,
@@ -818,10 +784,6 @@ const createCloudTargetTexture = () => {
                 orbitT,
             )
 
-        /*
-         * Spread particles across the thickness
-         * of the orbital tube.
-         */
         const tubeOffset =
             (
                 randomFor(
@@ -833,12 +795,6 @@ const createCloudTargetTexture = () => {
             2 *
             tubeThickness
 
-        /*
-         * The depth has two components:
-         *
-         * 1. deterministic orbital depth
-         * 2. local thickness
-         */
         const orbitalDepth =
             Math.sin(
                 orbitT *
@@ -857,11 +813,6 @@ const createCloudTargetTexture = () => {
             ) *
             0.75
 
-        /*
-         * Small organic displacement prevents
-         * the orbit from becoming a mathematically
-         * perfect tube.
-         */
         const organic =
             (
                 randomFor(
@@ -892,16 +843,6 @@ const createCloudTargetTexture = () => {
             orbitalDepth +
             depthOffset
 
-        /*
-         * IMPORTANT:
-         *
-         * Alpha no longer simply means "1".
-         *
-         * It stores the particle's orbit position.
-         *
-         * 0 = invalid/free particle
-         * 0.10..1.0 = valid cloud + orbitT
-         */
         data[index + 3] =
             0.10 +
             orbitT * 0.90
@@ -937,7 +878,10 @@ const createCloudTargetTexture = () => {
     return texture
 }
 
-const WorkNebulaText = ({progress, cardRect}) => {
+const WorkNebulaText = ({
+    progress,
+    cardRect,
+}) => {
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -953,7 +897,7 @@ const WorkNebulaText = ({progress, cardRect}) => {
 
     const rectangleStrengthRef =
         useRef(0)
-    
+
     const depthStrengthRef =
         useRef(0)
 
@@ -961,9 +905,9 @@ const WorkNebulaText = ({progress, cardRect}) => {
         useRef(null)
 
     useEffect(() => {
-        progressRef.current = progress
+        progressRef.current =
+            progress
     }, [progress])
-    
 
     useEffect(() => {
         const textTexture =
@@ -998,36 +942,6 @@ const WorkNebulaText = ({progress, cardRect}) => {
         }
     }, [])
 
-
-    /*
-     * ------------------------------------------------
-     * TEXT / CLOUD MORPH + DEPTH
-     * ------------------------------------------------
-     *
-     * The particle simulation itself remains unchanged.
-     *
-     * What changes here is the DOM layer:
-     *
-     * TEXT:
-     *
-     *      CARD
-     *      ↑
-     *   NEBULA
-     *
-     *
-     * CLOUD:
-     *
-     *   NEBULA / CLOUD
-     *      ↑
-     *      CARD
-     *
-     *
-     * This makes the cloud physically appear to pass
-     * over the glass card without changing the particle
-     * simulation.
-     * ------------------------------------------------
-     */
-
     useEffect(() => {
         let animationFrame = null
 
@@ -1036,20 +950,33 @@ const WorkNebulaText = ({progress, cardRect}) => {
                 progressRef.current
 
             /*
-             * There are currently five works.
+             * ----------------------------------------
+             * DYNAMIC WORK COUNT
+             * ----------------------------------------
              *
-             * Keep this synchronized with the works
-             * database / WorkTilesContainer.
+             * Never hard-code the number of works.
+             *
+             * Adding/removing a project automatically
+             * changes the cycle length.
+             * ----------------------------------------
              */
-            const cardCount = 5
+
+            const cardCount =
+                Math.max(
+                    works.length,
+                    1,
+                )
 
             const cycleLength =
                 1 /
                 cardCount
 
             /*
-             * Which project cycle are we in?
+             * ----------------------------------------
+             * CURRENT WORK CYCLE
+             * ----------------------------------------
              */
+
             const cycle =
                 Math.min(
                     cardCount - 1,
@@ -1059,10 +986,6 @@ const WorkNebulaText = ({progress, cardRect}) => {
                     ),
                 )
 
-            /*
-             * Progress inside the current
-             * project's cycle.
-             */
             const cycleStart =
                 cycle *
                 cycleLength
@@ -1080,68 +1003,105 @@ const WorkNebulaText = ({progress, cardRect}) => {
              * ----------------------------------------
              * TEXT → CLOUD
              * ----------------------------------------
+             *
+             * FIRST CYCLE
+             *
+             * The introduction gets more room.
+             *
+             * 0.00 ───────────── 0.38
+             *       TEXT
+             *
+             * 0.38 ───────────── 0.50
+             *       TEXT → CLOUD
+             *
+             * 0.50 ───────────── 0.80
+             *       CLOUD → DISSOLVE
+             *
+             * Later work cycles retain the original
+             * cloud timing.
+             * ----------------------------------------
              */
 
             let cloudAmount
 
             if (
-                localProgress < 0.20
+                cycle === 0
             ) {
-                /*
-                 * Stable TEXT phase.
-                 *
-                 * Give the user enough scroll distance
-                 * to actually see the text before the
-                 * cloud begins forming.
-                 */
-                cloudAmount = 0
+                if (
+                    localProgress < 0.38
+                ) {
+                    cloudAmount = 0
 
-            } else if (
-                localProgress < 0.50
-            ) {
-                /*
-                 * TEXT → CLOUD
-                 *
-                 * The cloud forms gradually and still
-                 * reaches its existing peak at 0.50.
-                 */
-                cloudAmount =
-                    smoothstep(
-                        0.20,
-                        0.50,
-                        localProgress,
-                    )
+                } else if (
+                    localProgress < 0.50
+                ) {
+                    cloudAmount =
+                        smoothstep(
+                            0.38,
+                            0.50,
+                            localProgress,
+                        )
 
-            } else if (
-                localProgress < 0.80
-            ) {
-                /*
-                 * CLOUD → TEXT
-                 *
-                 * Keep the cloud dominant through the
-                 * middle of the cycle, then let it dissolve.
-                 */
-                cloudAmount =
-                    1 -
-                    smoothstep(
-                        0.50,
-                        0.80,
-                        localProgress,
-                    )
+                } else if (
+                    localProgress < 0.80
+                ) {
+                    cloudAmount =
+                        1 -
+                        smoothstep(
+                            0.50,
+                            0.80,
+                            localProgress,
+                        )
+
+                } else {
+                    cloudAmount = 0
+                }
 
             } else {
                 /*
-                 * Stable TEXT phase again.
-                 *
-                 * The cloud is completely gone and stays
-                 * gone until the next cycle starts forming.
+                 * NORMAL WORK CYCLES
                  */
-                cloudAmount = 0
+
+                if (
+                    localProgress < 0.20
+                ) {
+                    cloudAmount = 0
+
+                } else if (
+                    localProgress < 0.50
+                ) {
+                    cloudAmount =
+                        smoothstep(
+                            0.20,
+                            0.50,
+                            localProgress,
+                        )
+
+                } else if (
+                    localProgress < 0.80
+                ) {
+                    cloudAmount =
+                        1 -
+                        smoothstep(
+                            0.50,
+                            0.80,
+                            localProgress,
+                        )
+
+                } else {
+                    cloudAmount = 0
+                }
             }
 
             rectangleStrengthRef.current =
                 cloudAmount
-            
+
+            /*
+             * ----------------------------------------
+             * DEPTH
+             * ----------------------------------------
+             */
+
             const depthTarget =
                 progress >=
                     cycleLength * 0.5
@@ -1153,25 +1113,6 @@ const WorkNebulaText = ({progress, cardRect}) => {
                     depthTarget -
                     depthStrengthRef.current
                 ) * 0.08
-
-            /*
-             * ----------------------------------------
-             * DEPTH SWITCH
-             * ----------------------------------------
-             *
-             * The cloud must come ABOVE the cards.
-             *
-             * We deliberately switch before the cloud
-             * reaches maximum density so that the
-             * transition itself appears to come forward.
-             *
-             * Once the cloud is sufficiently formed,
-             * the whole nebula layer sits above the card.
-             *
-             * As the cloud retreats, the nebula moves
-             * behind the card again.
-             * ----------------------------------------
-             */
 
             animationFrame =
                 window.requestAnimationFrame(
@@ -1215,23 +1156,7 @@ const WorkNebulaText = ({progress, cardRect}) => {
 
                 pointerEvents: 'none',
 
-                /*
-                 * TEXT STARTS BEHIND THE CARDS.
-                 *
-                 * This is changed directly on the
-                 * DOM by the animation loop when the
-                 * cloud forms.
-                 */
                 zIndex: 20,
-
-                /*
-                 * Don't animate z-index.
-                 *
-                 * z-index is intentionally discrete:
-                 *
-                 * 1 = behind card
-                 * 3 = in front of card
-                 */
             }}
         >
             <NebulaBackground
@@ -1256,10 +1181,14 @@ const WorkNebulaText = ({progress, cardRect}) => {
                 rectangleStrengthRef={
                     rectangleStrengthRef
                 }
+
                 depthStrengthRef={
                     depthStrengthRef
                 }
-                cardRect={cardRect}
+
+                cardRect={
+                    cardRect
+                }
             />
         </Box>
     )
