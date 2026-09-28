@@ -249,6 +249,317 @@ const velocityFlowFragmentShader = `
 
     varying vec2 vUv;
 
+    /*
+ * ============================================================
+ * WORK CLOUD ORBIT
+ * ============================================================
+ *
+ * The same rounded-rectangle path used by
+ * WorkNebulaText.jsx.
+ *
+ * t = 0..1 around the complete perimeter.
+ */
+
+const float ORBIT_WIDTH =
+    15.9;
+
+const float ORBIT_HEIGHT =
+    6.35;
+
+const float ORBIT_RADIUS =
+    1.25;
+
+const float ORBIT_DEPTH =
+    1.55;
+
+float orbitPerimeter() {
+    float straightWidth =
+        ORBIT_WIDTH -
+        ORBIT_RADIUS * 2.0;
+
+    float straightHeight =
+        ORBIT_HEIGHT -
+        ORBIT_RADIUS * 2.0;
+
+    float cornerLength =
+        1.57079632679 *
+        ORBIT_RADIUS;
+
+    return
+        straightWidth * 2.0 +
+        straightHeight * 2.0 +
+        cornerLength * 4.0;
+}
+
+vec3 getOrbitPoint(
+    float orbitT
+) {
+    float halfWidth =
+        ORBIT_WIDTH *
+        0.5;
+
+    float halfHeight =
+        ORBIT_HEIGHT *
+        0.5;
+
+    float straightWidth =
+        ORBIT_WIDTH -
+        ORBIT_RADIUS * 2.0;
+
+    float straightHeight =
+        ORBIT_HEIGHT -
+        ORBIT_RADIUS * 2.0;
+
+    float cornerLength =
+        1.57079632679 *
+        ORBIT_RADIUS;
+
+    float distanceAlong =
+        fract(
+            orbitT
+        ) *
+        orbitPerimeter();
+
+    /*
+     * TOP
+     */
+    if (
+        distanceAlong <
+        straightWidth
+    ) {
+        float local =
+            distanceAlong /
+            straightWidth;
+
+        return vec3(
+            -halfWidth +
+            ORBIT_RADIUS +
+            local *
+            straightWidth,
+
+            halfHeight,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        straightWidth;
+
+    /*
+     * TOP-RIGHT
+     */
+    if (
+        distanceAlong <
+        cornerLength
+    ) {
+        float angle =
+            1.57079632679 -
+            distanceAlong /
+            ORBIT_RADIUS;
+
+        return vec3(
+            halfWidth -
+            ORBIT_RADIUS +
+            cos(angle) *
+            ORBIT_RADIUS,
+
+            halfHeight -
+            ORBIT_RADIUS +
+            sin(angle) *
+            ORBIT_RADIUS,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        cornerLength;
+
+    /*
+     * RIGHT
+     */
+    if (
+        distanceAlong <
+        straightHeight
+    ) {
+        float local =
+            distanceAlong /
+            straightHeight;
+
+        return vec3(
+            halfWidth,
+
+            halfHeight -
+            ORBIT_RADIUS -
+            local *
+            straightHeight,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        straightHeight;
+
+    /*
+     * BOTTOM-RIGHT
+     */
+    if (
+        distanceAlong <
+        cornerLength
+    ) {
+        float angle =
+            -distanceAlong /
+            ORBIT_RADIUS;
+
+        return vec3(
+            halfWidth -
+            ORBIT_RADIUS +
+            cos(angle) *
+            ORBIT_RADIUS,
+
+            -halfHeight +
+            ORBIT_RADIUS +
+            sin(angle) *
+            ORBIT_RADIUS,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        cornerLength;
+
+    /*
+     * BOTTOM
+     */
+    if (
+        distanceAlong <
+        straightWidth
+    ) {
+        float local =
+            distanceAlong /
+            straightWidth;
+
+        return vec3(
+            halfWidth -
+            ORBIT_RADIUS -
+            local *
+            straightWidth,
+
+            -halfHeight,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        straightWidth;
+
+    /*
+     * BOTTOM-LEFT
+     */
+    if (
+        distanceAlong <
+        cornerLength
+    ) {
+        float angle =
+            -1.57079632679 -
+            distanceAlong /
+            ORBIT_RADIUS;
+
+        return vec3(
+            -halfWidth +
+            ORBIT_RADIUS +
+            cos(angle) *
+            ORBIT_RADIUS,
+
+            -halfHeight +
+            ORBIT_RADIUS +
+            sin(angle) *
+            ORBIT_RADIUS,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        cornerLength;
+
+    /*
+     * LEFT
+     */
+    if (
+        distanceAlong <
+        straightHeight
+    ) {
+        float local =
+            distanceAlong /
+            straightHeight;
+
+        return vec3(
+            -halfWidth,
+
+            -halfHeight +
+            ORBIT_RADIUS +
+            local *
+            straightHeight,
+
+            0.0
+        );
+    }
+
+    distanceAlong -=
+        straightHeight;
+
+    /*
+     * TOP-LEFT
+     */
+    float angle =
+        3.14159265359 -
+        distanceAlong /
+        ORBIT_RADIUS;
+
+    return vec3(
+        -halfWidth +
+        ORBIT_RADIUS +
+        cos(angle) *
+        ORBIT_RADIUS,
+
+        halfHeight -
+        ORBIT_RADIUS +
+        sin(angle) *
+        ORBIT_RADIUS,
+
+        0.0
+    );
+}
+
+vec3 getOrbitTangent(
+    float orbitT
+) {
+    float epsilon =
+        0.0005;
+
+    vec3 previous =
+        getOrbitPoint(
+            orbitT -
+            epsilon
+        );
+
+    vec3 next =
+        getOrbitPoint(
+            orbitT +
+            epsilon
+        );
+
+    return normalize(
+        next -
+        previous
+    );
+}
+
     void main() {
         vec3 position =
             texture2D(
@@ -809,36 +1120,138 @@ const velocityFlowFragmentShader = `
  * it into a thin 3D edge.
  */
 
-float cloudSpinAngle =
-    -uTime *
-    0.035 *
-    cloudAmount;
+/*
+ * ------------------------------------------------
+ * PARTICLE ORBIT POSITION
+ * ------------------------------------------------
+ *
+ * Alpha contains:
+ *
+ * 0.10 + orbitT * 0.90
+ *
+ * so decode the particle's permanent
+ * position around the orbit.
+ */
 
-float cloudSpinCos =
-    cos(
-        cloudSpinAngle
+float baseOrbitT =
+    clamp(
+        (
+            cloudTargetSample.a -
+            0.10
+        ) /
+        0.90,
+
+        0.0,
+        1.0
     );
 
-float cloudSpinSin =
+/*
+ * Every particle moves independently around
+ * the same closed path.
+ *
+ * particleSpeed already exists in metadata:
+ *
+ * 0.72 -> 1.28
+ */
+float orbitSpeed =
+    0.020 *
+    particleSpeed;
+
+/*
+ * Move the particle forward around the loop.
+ */
+float currentOrbitT =
+    fract(
+        baseOrbitT +
+        uTime *
+        orbitSpeed
+    );
+
+vec3 orbitCenter =
+    getOrbitPoint(
+        currentOrbitT
+    );
+
+vec3 orbitTangent =
+    getOrbitTangent(
+        currentOrbitT
+    );
+
+/*
+ * ------------------------------------------------
+ * PRESERVE THE PARTICLE'S TUBE OFFSET
+ * ------------------------------------------------
+ *
+ * The static cloud texture contains the particle's
+ * original offset from the mathematical orbit.
+ *
+ * Calculate that offset once relative to its
+ * original orbit position.
+ */
+
+vec3 baseOrbitCenter =
+    getOrbitPoint(
+        baseOrbitT
+    );
+
+vec3 baseOffset =
+    cloudTargetSample.xyz -
+    baseOrbitCenter;
+
+/*
+ * Separate the depth component.
+ *
+ * The orbit itself has Z = 0.
+ * The particle's Z therefore remains its
+ * personal depth offset.
+ */
+vec3 currentOrbitTarget =
+    orbitCenter +
+    baseOffset;
+
+/*
+ * ------------------------------------------------
+ * DEPTH WAVE
+ * ------------------------------------------------
+ *
+ * The whole orbit moves through depth.
+ *
+ * This means:
+ *
+ * back
+ *  ↓
+ * side
+ *  ↓
+ * front
+ *  ↓
+ * side
+ *  ↓
+ * back
+ *
+ * rather than simply rotating a flat image.
+ */
+
+currentOrbitTarget.z +=
     sin(
-        cloudSpinAngle
-    );
+        currentOrbitT *
+        6.28318530718
+    ) *
+    ORBIT_DEPTH;
+
+/*
+ * Small particle-specific phase prevents
+ * the entire tube from looking synchronized.
+ */
+currentOrbitTarget.z +=
+    sin(
+        phase * 1.71 +
+        currentOrbitT *
+        12.0
+    ) *
+    0.18;
 
 vec3 rotatedCloudTarget =
-    cloudTargetSample.xyz;
-
-rotatedCloudTarget.xz =
-    vec2(
-        rotatedCloudTarget.x *
-            cloudSpinCos -
-        rotatedCloudTarget.z *
-            cloudSpinSin,
-
-        rotatedCloudTarget.x *
-            cloudSpinSin +
-        rotatedCloudTarget.z *
-            cloudSpinCos
-    );
+    currentOrbitTarget;
 
 vec3 target =
     mix(
@@ -1119,6 +1532,30 @@ float targetAvailable =
                         springAcceleration *
                         uTextStrength *
                         formationWeight;
+
+                        /*
+ * ------------------------------------
+ * ORBITAL FLOW
+ * ------------------------------------
+ *
+ * The spring keeps particles inside
+ * the orbital tube.
+ *
+ * The tangent makes them travel around
+ * the tube instead of simply sitting
+ * on it.
+ */
+
+float orbitFlowStrength =
+    0.0028 *
+    cloudAmount *
+    particleSpeed *
+    uTextStrength *
+    formationWeight;
+
+velocity +=
+    orbitTangent *
+    orbitFlowStrength;
 
                     /*
                      * ------------------------------------

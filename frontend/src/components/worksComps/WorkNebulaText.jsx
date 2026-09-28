@@ -335,26 +335,21 @@ const createCloudTargetTexture = () => {
             PARTICLE_COUNT * 4,
         )
 
-    /*
-     * Broad card-sized footprint.
-     *
-     * The aspect ratio remains wide enough to cover
-     * the Work area, but the actual boundary is
-     * deliberately much more organic than a rectangle.
-     */
-    const cloudWidth =
+    const orbitWidth =
         15.9
 
-    const cloudHeight =
+    const orbitHeight =
         6.35
 
-    /*
-     * About 92% of the existing particles become
-     * part of the cloud.
-     *
-     * The remaining ~8% have alpha = 0 and remain
-     * completely free-moving nebula particles.
-     */
+    const orbitCornerRadius =
+        1.25
+
+    const tubeThickness =
+        0.72
+
+    const orbitDepth =
+        1.55
+
     const CLOUD_PARTICLE_RATIO =
         0.95
 
@@ -395,150 +390,381 @@ const createCloudTargetTexture = () => {
     }
 
     /*
-     * Continuous low-frequency shape noise.
+     * ------------------------------------------------
+     * ROUNDED RECTANGLE PERIMETER
+     * ------------------------------------------------
      *
-     * The important difference from the old rectangle:
+     * Clockwise path:
      *
-     * We do NOT start with a rounded rectangle and
-     * merely disturb its corners.
+     * top
+     * top-right corner
+     * right
+     * bottom-right corner
+     * bottom
+     * bottom-left corner
+     * left
+     * top-left corner
      *
-     * Instead, the cloud boundary is produced from
-     * several overlapping spatial frequencies.
+     * t = 0..1
      */
-    const cloudField = (
-        x,
-        y,
+
+    const halfWidth =
+        orbitWidth * 0.5
+
+    const halfHeight =
+        orbitHeight * 0.5
+
+    const straightWidth =
+        orbitWidth -
+        orbitCornerRadius * 2
+
+    const straightHeight =
+        orbitHeight -
+        orbitCornerRadius * 2
+
+    const cornerLength =
+        Math.PI *
+        orbitCornerRadius *
+        0.5
+
+    const perimeter =
+        straightWidth * 2 +
+        straightHeight * 2 +
+        cornerLength * 4
+
+    const pointOnOrbit = (
+        orbitT,
     ) => {
-        const nx =
-            x /
+        let distance =
             (
-                cloudWidth *
-                0.5
-            )
+                orbitT -
+                Math.floor(
+                    orbitT,
+                )
+            ) *
+            perimeter
 
-        const ny =
-            y /
+        /*
+         * TOP
+         */
+        if (
+            distance <
+            straightWidth
+        ) {
+            const local =
+                distance /
+                straightWidth
+
+            return {
+                x:
+                    -halfWidth +
+                    orbitCornerRadius +
+                    local *
+                    straightWidth,
+
+                y:
+                    halfHeight,
+
+                tangentX:
+                    1,
+
+                tangentY:
+                    0,
+
+                normalX:
+                    0,
+
+                normalY:
+                    1,
+            }
+        }
+
+        distance -=
+            straightWidth
+
+        /*
+         * TOP-RIGHT CORNER
+         */
+        if (
+            distance <
+            cornerLength
+        ) {
+            const angle =
+                Math.PI * 0.5 -
+                (
+                    distance /
+                    orbitCornerRadius
+                )
+
+            return {
+                x:
+                    halfWidth -
+                    orbitCornerRadius +
+                    Math.cos(angle) *
+                    orbitCornerRadius,
+
+                y:
+                    halfHeight -
+                    orbitCornerRadius +
+                    Math.sin(angle) *
+                    orbitCornerRadius,
+
+                tangentX:
+                    Math.sin(angle),
+
+                tangentY:
+                    -Math.cos(angle),
+
+                normalX:
+                    Math.cos(angle),
+
+                normalY:
+                    Math.sin(angle),
+            }
+        }
+
+        distance -=
+            cornerLength
+
+        /*
+         * RIGHT
+         */
+        if (
+            distance <
+            straightHeight
+        ) {
+            const local =
+                distance /
+                straightHeight
+
+            return {
+                x:
+                    halfWidth,
+
+                y:
+                    halfHeight -
+                    orbitCornerRadius -
+                    local *
+                    straightHeight,
+
+                tangentX:
+                    0,
+
+                tangentY:
+                    -1,
+
+                normalX:
+                    1,
+
+                normalY:
+                    0,
+            }
+        }
+
+        distance -=
+            straightHeight
+
+        /*
+         * BOTTOM-RIGHT CORNER
+         */
+        if (
+            distance <
+            cornerLength
+        ) {
+            const angle =
+                0 -
+                (
+                    distance /
+                    orbitCornerRadius
+                )
+
+            return {
+                x:
+                    halfWidth -
+                    orbitCornerRadius +
+                    Math.cos(angle) *
+                    orbitCornerRadius,
+
+                y:
+                    -halfHeight +
+                    orbitCornerRadius +
+                    Math.sin(angle) *
+                    orbitCornerRadius,
+
+                tangentX:
+                    Math.sin(angle),
+
+                tangentY:
+                    -Math.cos(angle),
+
+                normalX:
+                    Math.cos(angle),
+
+                normalY:
+                    Math.sin(angle),
+            }
+        }
+
+        distance -=
+            cornerLength
+
+        /*
+         * BOTTOM
+         */
+        if (
+            distance <
+            straightWidth
+        ) {
+            const local =
+                distance /
+                straightWidth
+
+            return {
+                x:
+                    halfWidth -
+                    orbitCornerRadius -
+                    local *
+                    straightWidth,
+
+                y:
+                    -halfHeight,
+
+                tangentX:
+                    -1,
+
+                tangentY:
+                    0,
+
+                normalX:
+                    0,
+
+                normalY:
+                    -1,
+            }
+        }
+
+        distance -=
+            straightWidth
+
+        /*
+         * BOTTOM-LEFT CORNER
+         */
+        if (
+            distance <
+            cornerLength
+        ) {
+            const angle =
+                -Math.PI * 0.5 -
+                (
+                    distance /
+                    orbitCornerRadius
+                )
+
+            return {
+                x:
+                    -halfWidth +
+                    orbitCornerRadius +
+                    Math.cos(angle) *
+                    orbitCornerRadius,
+
+                y:
+                    -halfHeight +
+                    orbitCornerRadius +
+                    Math.sin(angle) *
+                    orbitCornerRadius,
+
+                tangentX:
+                    Math.sin(angle),
+
+                tangentY:
+                    -Math.cos(angle),
+
+                normalX:
+                    Math.cos(angle),
+
+                normalY:
+                    Math.sin(angle),
+            }
+        }
+
+        distance -=
+            cornerLength
+
+        /*
+         * LEFT
+         */
+        if (
+            distance <
+            straightHeight
+        ) {
+            const local =
+                distance /
+                straightHeight
+
+            return {
+                x:
+                    -halfWidth,
+
+                y:
+                    -halfHeight +
+                    orbitCornerRadius +
+                    local *
+                    straightHeight,
+
+                tangentX:
+                    0,
+
+                tangentY:
+                    1,
+
+                normalX:
+                    -1,
+
+                normalY:
+                    0,
+            }
+        }
+
+        distance -=
+            straightHeight
+
+        /*
+         * TOP-LEFT CORNER
+         */
+        const angle =
+            Math.PI -
             (
-                cloudHeight *
-                0.5
+                distance /
+                orbitCornerRadius
             )
-
-        /*
-         * Slight spatial warp prevents the field from
-         * having a clean mathematical symmetry.
-         */
-        const warpedX =
-            nx +
-            Math.sin(
-                ny * 2.7,
-            ) *
-            0.105
-
-        const warpedY =
-            ny +
-            Math.cos(
-                nx * 2.35,
-            ) *
-            0.075
-
-        /*
-         * Base body.
-         *
-         * Exponent below 2 makes the cloud broader and
-         * less ellipse-like while still keeping one
-         * continuous central mass.
-         */
-        const body =
-            Math.pow(
-                Math.abs(
-                    warpedX,
-                ),
-                1.62,
-            ) +
-            Math.pow(
-                Math.abs(
-                    warpedY,
-                ),
-                1.72,
-            )
-
-        /*
-         * Large-scale lumpy deformation.
-         *
-         * These are deliberately overlapping fields,
-         * not separate blobs.
-         */
-        const largeNoise =
-            Math.sin(
-                warpedX * 3.15 +
-                warpedY * 1.45,
-            ) *
-            0.22 +
-            Math.cos(
-                warpedX * 4.55 -
-                warpedY * 2.35,
-            ) *
-            0.16 +
-            Math.sin(
-                warpedX * 6.8 +
-                warpedY * 4.15,
-            ) *
-            0.095
-
-        /*
-         * Asymmetric directional deformation.
-         *
-         * This prevents the cloud from looking like a
-         * centered mathematical capsule.
-         */
-        const directionalNoise =
-            (
-                Math.sin(
-                    warpedY * 5.4 +
-                    warpedX * 1.7,
-                ) *
-                0.016
-            ) +
-            (
-                Math.cos(
-                    warpedX * 7.2 -
-                    warpedY * 3.1,
-                ) *
-                0.010
-            )
-
-        /*
-         * Edge threshold.
-         *
-         * Lower threshold in some areas creates
-         * protrusions and indentations.
-         */
-        const threshold =
-            1.0 +
-            largeNoise +
-            directionalNoise
 
         return {
-            value:
-                body -
-                threshold,
+            x:
+                -halfWidth +
+                orbitCornerRadius +
+                Math.cos(angle) *
+                orbitCornerRadius,
 
-            body,
-            nx,
-            ny,
+            y:
+                halfHeight -
+                orbitCornerRadius +
+                Math.sin(angle) *
+                orbitCornerRadius,
+
+            tangentX:
+                Math.sin(angle),
+
+            tangentY:
+                -Math.cos(angle),
+
+            normalX:
+                Math.cos(angle),
+
+            normalY:
+                Math.sin(angle),
         }
     }
 
-    /*
-     * Find a point inside the continuous organic field.
-     *
-     * We sample a large rectangular area and accept
-     * positions according to the distorted cloud field.
-     *
-     * This creates high particle density throughout the
-     * cloud instead of concentrating particles into a
-     * geometric outline.
-     */
     for (
         let particleIndex = 0;
         particleIndex <
@@ -549,19 +775,17 @@ const createCloudTargetTexture = () => {
             particleIndex * 4
 
         /*
-         * --------------------------------------------
-         * FREE PARTICLES
-         * --------------------------------------------
+         * Some particles remain part of the
+         * surrounding nebula.
          */
-
-        const cloudMembership =
+        const membership =
             randomFor(
                 particleIndex,
                 17,
             )
 
         if (
-            cloudMembership >
+            membership >
             CLOUD_PARTICLE_RATIO
         ) {
             data[index] =
@@ -579,276 +803,108 @@ const createCloudTargetTexture = () => {
             continue
         }
 
-        let x = 0
-        let y = 0
+        /*
+         * Every particle receives a permanent
+         * position along the orbit.
+         */
+        const orbitT =
+            randomFor(
+                particleIndex,
+                101,
+            )
+
+        const orbit =
+            pointOnOrbit(
+                orbitT,
+            )
 
         /*
-         * --------------------------------------------
-         * ORGANIC CLOUD SAMPLING
-         * --------------------------------------------
+         * Spread particles across the thickness
+         * of the orbital tube.
          */
-
-        let accepted =
-            false
-
-        for (
-            let attempt = 0;
-            attempt < 24;
-            attempt += 1
-        ) {
-            /*
-             * Broad candidate distribution.
-             */
-            let candidateX =
-                (
-                    randomFor(
-                        particleIndex,
-                        100 +
-                        attempt * 13,
-                    ) -
-                    0.5
-                ) *
-                cloudWidth
-
-            let candidateY =
-                (
-                    randomFor(
-                        particleIndex,
-                        200 +
-                        attempt * 17,
-                    ) -
-                    0.5
-                ) *
-                cloudHeight
-
-            /*
-             * Large-scale position warp.
-             *
-             * This bends the cloud instead of merely
-             * changing its outer border.
-             */
-            candidateX +=
-                Math.sin(
-                    candidateY * 1.35,
-                ) *
-                0.24
-
-            candidateY +=
-                Math.sin(
-                    candidateX * 1.05,
-                ) *
-                0.16
-
-            const field =
-                cloudField(
-                    candidateX,
-                    candidateY,
-                )
-
-            /*
-             * Interior particles are accepted very
-             * easily. Near the boundary acceptance becomes
-             * selective, producing a ragged particle edge.
-             */
-            const edgeNoise =
-                (
-                    Math.sin(
-                        candidateX * 2.7 +
-                        candidateY * 1.35 +
-                        particleIndex * 0.0007,
-                    ) *
-                    0.075
-                ) +
-                (
-                    Math.cos(
-                        candidateX * 4.8 -
-                        candidateY * 2.5 +
-                        particleIndex * 0.00031,
-                    ) *
-                    0.050
-                )
-
-            const acceptance =
-                field.value +
-                edgeNoise
-
-            /*
-             * Keep the center dense.
-             *
-             * Only the outer boundary becomes sparse.
-             */
-            const outsideDistance =
-                Math.max(
-                    0,
-                    acceptance,
-                )
-
-            const outerChance =
-                Math.exp(
-                    -outsideDistance *
-                    5.5,
-                )
-
-            const porousSample =
+        const tubeOffset =
+            (
                 randomFor(
                     particleIndex,
-                    900 +
-                    attempt * 29,
-                )
-
-            if (
-                acceptance <=
-                0 ||
-                porousSample <
-                outerChance *
-                0.34
-            ) {
-                x =
-                    candidateX
-
-                y =
-                    candidateY
-
-                accepted =
-                    true
-
-                break
-            }
-        }
+                    201,
+                ) -
+                0.5
+            ) *
+            2 *
+            tubeThickness
 
         /*
-         * Extremely unlikely fallback.
+         * The depth has two components:
          *
-         * This guarantees every cloud particle receives
-         * a valid destination without creating a separate
-         * geometric shape.
+         * 1. deterministic orbital depth
+         * 2. local thickness
          */
-        if (!accepted) {
-            const fallbackAngle =
-                randomFor(
-                    particleIndex,
-                    811,
-                ) *
+        const orbitalDepth =
+            Math.sin(
+                orbitT *
                 Math.PI *
-                2
+                2,
+            ) *
+            orbitDepth
 
-            const fallbackRadius =
-                Math.sqrt(
-                    randomFor(
-                        particleIndex,
-                        823,
-                    ),
-                )
-
-            x =
-                Math.cos(
-                    fallbackAngle,
-                ) *
-                (
-                    cloudWidth *
-                    0.30 *
-                    fallbackRadius
-                )
-
-            y =
-                Math.sin(
-                    fallbackAngle,
-                ) *
-                (
-                    cloudHeight *
-                    0.30 *
-                    fallbackRadius
-                )
-        }
+        const depthOffset =
+            (
+                randomFor(
+                    particleIndex,
+                    301,
+                ) -
+                0.5
+            ) *
+            0.75
 
         /*
-         * --------------------------------------------
-         * PARTICLE-LEVEL ORGANIC MOTION
-         * --------------------------------------------
-         *
-         * The target itself is static, but particles
-         * do not all land on identical mathematical
-         * coordinates. This gives the cloud a granular,
-         * turbulent surface.
+         * Small organic displacement prevents
+         * the orbit from becoming a mathematically
+         * perfect tube.
          */
-
-        const organicX =
+        const organic =
             (
-                Math.sin(
-                    particleIndex *
-                    0.0173 +
-                    y * 2.4,
-                ) *
-                0.075
-            ) +
-            (
-                Math.cos(
-                    particleIndex *
-                    0.0061 +
-                    x * 1.7,
-                ) *
-                0.045
-            )
-
-        const organicY =
-            (
-                Math.cos(
-                    particleIndex *
-                    0.0131 +
-                    x * 2.1,
-                ) *
-                0.065
-            ) +
-            (
-                Math.sin(
-                    particleIndex *
-                    0.0087 +
-                    y * 1.9,
-                ) *
-                0.040
-            )
-
-        /*
-         * Very small depth variation.
-         *
-         * This keeps the cloud volumetric rather than
-         * making it look like a flat bitmap.
-         */
-        const organicZ =
-            (
-                Math.sin(
-                    particleIndex *
-                    0.0217 +
-                    x * 0.31,
-                ) *
-                0.018
-            ) +
-            (
-                Math.cos(
-                    particleIndex *
-                    0.0134 +
-                    y * 0.47,
-                ) *
-                0.075
-            )
+                randomFor(
+                    particleIndex,
+                    401,
+                ) -
+                0.5
+            ) *
+            0.20
 
         data[index] =
-            x +
-            organicX
+            orbit.x +
+            orbit.normalX *
+            (
+                tubeOffset +
+                organic
+            )
 
         data[index + 1] =
-            y +
-            organicY
+            orbit.y +
+            orbit.normalY *
+            (
+                tubeOffset +
+                organic
+            )
 
         data[index + 2] =
-            organicZ
+            orbitalDepth +
+            depthOffset
 
         /*
-         * alpha = 1:
-         * this particle has a valid cloud destination.
+         * IMPORTANT:
+         *
+         * Alpha no longer simply means "1".
+         *
+         * It stores the particle's orbit position.
+         *
+         * 0 = invalid/free particle
+         * 0.10..1.0 = valid cloud + orbitT
          */
         data[index + 3] =
-            1
+            0.10 +
+            orbitT * 0.90
     }
 
     const texture =
