@@ -260,139 +260,65 @@ const velocityFlowFragmentShader = `
  * t = 0..1 around the complete perimeter.
  */
 
-/*
- * ============================================================
- * WORK CLOUD HELICAL SNAKE
- * ============================================================
- *
- * The card's long axis is X.
- *
- * The cloud is one continuous spring wrapped around
- * that axis approximately 4.5 times.
- *
- * X = position along the card
- *
- * Y/Z = circular position around the card
- *
- * The whole spring rotates around X over time.
- *
- * This creates:
- *
- * front
- *   ↓
- * side
- *   ↓
- * back
- *   ↓
- * side
- *   ↓
- * front
- *
- * while the snake continues along the entire
- * length of the card.
- */
-
-const float ORBIT_LENGTH =
+const float ORBIT_WIDTH =
     15.9;
 
+const float ORBIT_HEIGHT =
+    6.35;
+
 const float ORBIT_RADIUS =
-    3.70;
+    1.25;
 
-const float ORBIT_TURNS =
-    4.5;
+const float ORBIT_DEPTH =
+    1.55;
 
+float orbitPerimeter() {
+    float straightWidth =
+        ORBIT_WIDTH -
+        ORBIT_RADIUS * 2.0;
 
-/*
- * Return the centerline of the helical snake.
- *
- * orbitT:
- *
- * 0.0 = left end
- * 1.0 = right end
- *
- * rotation:
- *
- * shared angular rotation around the card's
- * long X axis.
- */
+    float straightHeight =
+        ORBIT_HEIGHT -
+        ORBIT_RADIUS * 2.0;
+
+    float cornerLength =
+        1.57079632679 *
+        ORBIT_RADIUS;
+
+    return
+        straightWidth * 2.0 +
+        straightHeight * 2.0 +
+        cornerLength * 4.0;
+}
+
 vec3 getOrbitPoint(
-        float orbitT,
-        float rotation
-    ) {
-    float x =
-        (
-            orbitT -
-            0.5
-        ) *
-        ORBIT_LENGTH;
-
-    float angle =
-        orbitT *
-        ORBIT_TURNS *
-        6.28318530718 +
-        rotation;
-
-    return vec3(
-        x,
-
-        cos(angle) *
-        ORBIT_RADIUS,
-
-        sin(angle) *
-        ORBIT_RADIUS
-    );
-}
-
-
-/*
- * Tangent of the helical centerline.
- *
- * This is used by the velocity field so particles
- * are pulled along the snake instead of merely
- * sitting on it.
- */
-vec3 getOrbitTangent(
-    float orbitT,
-    float rotation
+    float orbitT
 ) {
-    float epsilon =
-        0.0005;
+    float halfWidth =
+        ORBIT_WIDTH *
+        0.5;
 
-    float previousT =
-        clamp(
-            orbitT -
-            epsilon,
+    float halfHeight =
+        ORBIT_HEIGHT *
+        0.5;
 
-            0.0,
-            1.0
-        );
+    float straightWidth =
+        ORBIT_WIDTH -
+        ORBIT_RADIUS * 2.0;
 
-    float nextT =
-        clamp(
-            orbitT +
-            epsilon,
+    float straightHeight =
+        ORBIT_HEIGHT -
+        ORBIT_RADIUS * 2.0;
 
-            0.0,
-            1.0
-        );
+    float cornerLength =
+        1.57079632679 *
+        ORBIT_RADIUS;
 
-    vec3 previous =
-        getOrbitPoint(
-            previousT,
-            rotation
-        );
-
-    vec3 next =
-        getOrbitPoint(
-            nextT,
-            rotation
-        );
-
-    return normalize(
-        next -
-        previous
-    );
-}
+    float distanceAlong =
+        fract(
+            orbitT
+        ) *
+        orbitPerimeter();
 
     /*
      * TOP
@@ -1196,18 +1122,15 @@ vec3 getOrbitTangent(
 
 /*
  * ------------------------------------------------
- * PARTICLE HELICAL-SNAKE POSITION
+ * PARTICLE ORBIT POSITION
  * ------------------------------------------------
  *
- * Alpha stores the particle's permanent position
- * along the snake.
+ * Alpha contains:
  *
- * Unlike the old rectangle orbit, the particle
- * does NOT travel around a closed 2D perimeter.
+ * 0.10 + orbitT * 0.90
  *
- * Its X position remains fixed.
- *
- * The entire spring rotates around X.
+ * so decode the particle's permanent
+ * position around the orbit.
  */
 
 float baseOrbitT =
@@ -1222,118 +1145,113 @@ float baseOrbitT =
         1.0
     );
 
-
 /*
- * ------------------------------------------------
- * GLOBAL SPRING ROTATION
- * ------------------------------------------------
+ * Every particle moves independently around
+ * the same closed path.
  *
- * This is the actual "snake wrapped around the
- * card and rotating around it" movement.
+ * particleSpeed already exists in metadata:
  *
- * One shared angle rotates the entire helix.
- *
- * Because every particle has a different baseOrbitT,
- * the helix remains one continuous connected snake.
+ * 0.72 -> 1.28
  */
-
 float orbitSpeed =
-    0.026 *
+    0.020 *
     particleSpeed;
 
-float rotationAngle =
-    uTime *
-    orbitSpeed *
-    6.28318530718;
-
-
 /*
- * Current centerline position.
+ * Move the particle forward around the loop.
  */
+float currentOrbitT =
+    fract(
+        baseOrbitT +
+        uTime *
+        orbitSpeed
+    );
+
 vec3 orbitCenter =
     getOrbitPoint(
-        baseOrbitT,
-        rotationAngle
+        currentOrbitT
     );
 
-
-/*
- * Current tangent of the spring.
- */
 vec3 orbitTangent =
     getOrbitTangent(
-        baseOrbitT,
-        rotationAngle
+        currentOrbitT
     );
 
-
 /*
- * Original centerline position before rotation.
+ * ------------------------------------------------
+ * PRESERVE THE PARTICLE'S TUBE OFFSET
+ * ------------------------------------------------
+ *
+ * The static cloud texture contains the particle's
+ * original offset from the mathematical orbit.
+ *
+ * Calculate that offset once relative to its
+ * original orbit position.
  */
+
 vec3 baseOrbitCenter =
     getOrbitPoint(
-        baseOrbitT,
-        0.0
+        baseOrbitT
     );
 
-
-/*
- * Particle's original thickness offset.
- */
 vec3 baseOffset =
     cloudTargetSample.xyz -
     baseOrbitCenter;
 
-
 /*
- * ------------------------------------------------
- * ROTATE THE PARTICLE TUBE
- * ------------------------------------------------
+ * Separate the depth component.
  *
- * The centerline alone rotating is not enough.
- *
- * The particle thickness must rotate with it too,
- * otherwise the snake would rotate underneath a
- * stationary tube cross-section.
- *
- * X stays unchanged.
- *
- * Y/Z rotate around X.
+ * The orbit itself has Z = 0.
+ * The particle's Z therefore remains its
+ * personal depth offset.
  */
-
-float rotationCos =
-    cos(
-        rotationAngle
-    );
-
-float rotationSin =
-    sin(
-        rotationAngle
-    );
-
-vec3 rotatedOffset =
-    vec3(
-        baseOffset.x,
-
-        baseOffset.y *
-        rotationCos -
-        baseOffset.z *
-        rotationSin,
-
-        baseOffset.y *
-        rotationSin +
-        baseOffset.z *
-        rotationCos
-    );
-
-
-/*
- * Final moving cloud target.
- */
-vec3 rotatedCloudTarget =
+vec3 currentOrbitTarget =
     orbitCenter +
-    rotatedOffset;
+    baseOffset;
 
+/*
+ * ------------------------------------------------
+ * DEPTH WAVE
+ * ------------------------------------------------
+ *
+ * The whole orbit moves through depth.
+ *
+ * This means:
+ *
+ * back
+ *  ↓
+ * side
+ *  ↓
+ * front
+ *  ↓
+ * side
+ *  ↓
+ * back
+ *
+ * rather than simply rotating a flat image.
+ */
+
+currentOrbitTarget.z +=
+    sin(
+        currentOrbitT *
+        6.28318530718
+    ) *
+    ORBIT_DEPTH;
+
+/*
+ * Small particle-specific phase prevents
+ * the entire tube from looking synchronized.
+ */
+currentOrbitTarget.z +=
+    sin(
+        phase * 1.71 +
+        currentOrbitT *
+        12.0
+    ) *
+    0.18;
+
+vec3 rotatedCloudTarget =
+    currentOrbitTarget;
 
 vec3 target =
     mix(

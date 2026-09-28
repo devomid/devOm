@@ -329,63 +329,29 @@ const createTextTargetTexture = (
  * ----------------------------------------------------
  */
 
-
 const createCloudTargetTexture = () => {
     const data =
         new Float32Array(
             PARTICLE_COUNT * 4,
         )
 
-    /*
-     * ------------------------------------------------
-     * CONTINUOUS HELICAL PARTICLE SNAKE
-     * ------------------------------------------------
-     *
-     * The card's long axis is X.
-     *
-     * One continuous particle tube wraps around
-     * that axis approximately 4.5 times.
-     *
-     * It is NOT:
-     *
-     * - separate rings
-     * - a rectangle perimeter
-     * - independent circles
-     *
-     * It is one continuous spring:
-     *
-     *       ╭──╮
-     *      ╱    ╲
-     *     ╱      ╲
-     *     ╲      ╱
-     *      ╲    ╱
-     *       ╰──╯
-     *           ╲
-     *            ╭──╮
-     *           ╱    ╲
-     *
-     * The shader later rotates this entire helix
-     * around the X axis.
-     * ------------------------------------------------
-     */
-
-    const HELIX_LENGTH =
+    const orbitWidth =
         15.9
 
-    const HELIX_RADIUS =
-        3.70
+    const orbitHeight =
+        6.35
 
-    const HELIX_TURNS =
-        4.5
+    const orbitCornerRadius =
+        1.25
 
-    const TUBE_THICKNESS =
-        0.82
+    const tubeThickness =
+        0.72
+
+    const orbitDepth =
+        1.55
 
     const CLOUD_PARTICLE_RATIO =
         0.95
-
-    const TWO_PI =
-        Math.PI * 2
 
     const randomFor = (
         particleIndex,
@@ -423,6 +389,382 @@ const createCloudTargetTexture = () => {
         )
     }
 
+    /*
+     * ------------------------------------------------
+     * ROUNDED RECTANGLE PERIMETER
+     * ------------------------------------------------
+     *
+     * Clockwise path:
+     *
+     * top
+     * top-right corner
+     * right
+     * bottom-right corner
+     * bottom
+     * bottom-left corner
+     * left
+     * top-left corner
+     *
+     * t = 0..1
+     */
+
+    const halfWidth =
+        orbitWidth * 0.5
+
+    const halfHeight =
+        orbitHeight * 0.5
+
+    const straightWidth =
+        orbitWidth -
+        orbitCornerRadius * 2
+
+    const straightHeight =
+        orbitHeight -
+        orbitCornerRadius * 2
+
+    const cornerLength =
+        Math.PI *
+        orbitCornerRadius *
+        0.5
+
+    const perimeter =
+        straightWidth * 2 +
+        straightHeight * 2 +
+        cornerLength * 4
+
+    const pointOnOrbit = (
+        orbitT,
+    ) => {
+        let distance =
+            (
+                orbitT -
+                Math.floor(
+                    orbitT,
+                )
+            ) *
+            perimeter
+
+        /*
+         * TOP
+         */
+        if (
+            distance <
+            straightWidth
+        ) {
+            const local =
+                distance /
+                straightWidth
+
+            return {
+                x:
+                    -halfWidth +
+                    orbitCornerRadius +
+                    local *
+                    straightWidth,
+
+                y:
+                    halfHeight,
+
+                tangentX:
+                    1,
+
+                tangentY:
+                    0,
+
+                normalX:
+                    0,
+
+                normalY:
+                    1,
+            }
+        }
+
+        distance -=
+            straightWidth
+
+        /*
+         * TOP-RIGHT CORNER
+         */
+        if (
+            distance <
+            cornerLength
+        ) {
+            const angle =
+                Math.PI * 0.5 -
+                (
+                    distance /
+                    orbitCornerRadius
+                )
+
+            return {
+                x:
+                    halfWidth -
+                    orbitCornerRadius +
+                    Math.cos(angle) *
+                    orbitCornerRadius,
+
+                y:
+                    halfHeight -
+                    orbitCornerRadius +
+                    Math.sin(angle) *
+                    orbitCornerRadius,
+
+                tangentX:
+                    Math.sin(angle),
+
+                tangentY:
+                    -Math.cos(angle),
+
+                normalX:
+                    Math.cos(angle),
+
+                normalY:
+                    Math.sin(angle),
+            }
+        }
+
+        distance -=
+            cornerLength
+
+        /*
+         * RIGHT
+         */
+        if (
+            distance <
+            straightHeight
+        ) {
+            const local =
+                distance /
+                straightHeight
+
+            return {
+                x:
+                    halfWidth,
+
+                y:
+                    halfHeight -
+                    orbitCornerRadius -
+                    local *
+                    straightHeight,
+
+                tangentX:
+                    0,
+
+                tangentY:
+                    -1,
+
+                normalX:
+                    1,
+
+                normalY:
+                    0,
+            }
+        }
+
+        distance -=
+            straightHeight
+
+        /*
+         * BOTTOM-RIGHT CORNER
+         */
+        if (
+            distance <
+            cornerLength
+        ) {
+            const angle =
+                0 -
+                (
+                    distance /
+                    orbitCornerRadius
+                )
+
+            return {
+                x:
+                    halfWidth -
+                    orbitCornerRadius +
+                    Math.cos(angle) *
+                    orbitCornerRadius,
+
+                y:
+                    -halfHeight +
+                    orbitCornerRadius +
+                    Math.sin(angle) *
+                    orbitCornerRadius,
+
+                tangentX:
+                    Math.sin(angle),
+
+                tangentY:
+                    -Math.cos(angle),
+
+                normalX:
+                    Math.cos(angle),
+
+                normalY:
+                    Math.sin(angle),
+            }
+        }
+
+        distance -=
+            cornerLength
+
+        /*
+         * BOTTOM
+         */
+        if (
+            distance <
+            straightWidth
+        ) {
+            const local =
+                distance /
+                straightWidth
+
+            return {
+                x:
+                    halfWidth -
+                    orbitCornerRadius -
+                    local *
+                    straightWidth,
+
+                y:
+                    -halfHeight,
+
+                tangentX:
+                    -1,
+
+                tangentY:
+                    0,
+
+                normalX:
+                    0,
+
+                normalY:
+                    -1,
+            }
+        }
+
+        distance -=
+            straightWidth
+
+        /*
+         * BOTTOM-LEFT CORNER
+         */
+        if (
+            distance <
+            cornerLength
+        ) {
+            const angle =
+                -Math.PI * 0.5 -
+                (
+                    distance /
+                    orbitCornerRadius
+                )
+
+            return {
+                x:
+                    -halfWidth +
+                    orbitCornerRadius +
+                    Math.cos(angle) *
+                    orbitCornerRadius,
+
+                y:
+                    -halfHeight +
+                    orbitCornerRadius +
+                    Math.sin(angle) *
+                    orbitCornerRadius,
+
+                tangentX:
+                    Math.sin(angle),
+
+                tangentY:
+                    -Math.cos(angle),
+
+                normalX:
+                    Math.cos(angle),
+
+                normalY:
+                    Math.sin(angle),
+            }
+        }
+
+        distance -=
+            cornerLength
+
+        /*
+         * LEFT
+         */
+        if (
+            distance <
+            straightHeight
+        ) {
+            const local =
+                distance /
+                straightHeight
+
+            return {
+                x:
+                    -halfWidth,
+
+                y:
+                    -halfHeight +
+                    orbitCornerRadius +
+                    local *
+                    straightHeight,
+
+                tangentX:
+                    0,
+
+                tangentY:
+                    1,
+
+                normalX:
+                    -1,
+
+                normalY:
+                    0,
+            }
+        }
+
+        distance -=
+            straightHeight
+
+        /*
+         * TOP-LEFT CORNER
+         */
+        const angle =
+            Math.PI -
+            (
+                distance /
+                orbitCornerRadius
+            )
+
+        return {
+            x:
+                -halfWidth +
+                orbitCornerRadius +
+                Math.cos(angle) *
+                orbitCornerRadius,
+
+            y:
+                halfHeight -
+                orbitCornerRadius +
+                Math.sin(angle) *
+                orbitCornerRadius,
+
+            tangentX:
+                Math.sin(angle),
+
+            tangentY:
+                -Math.cos(angle),
+
+            normalX:
+                Math.cos(angle),
+
+            normalY:
+                Math.sin(angle),
+        }
+    }
+
     for (
         let particleIndex = 0;
         particleIndex <
@@ -433,8 +775,8 @@ const createCloudTargetTexture = () => {
             particleIndex * 4
 
         /*
-         * Keep a small percentage of the original
-         * nebula particles completely free.
+         * Some particles remain part of the
+         * surrounding nebula.
          */
         const membership =
             randomFor(
@@ -462,91 +804,65 @@ const createCloudTargetTexture = () => {
         }
 
         /*
-         * Permanent position along the snake.
-         *
-         * This is important:
-         *
-         * X never moves.
-         *
-         * The helix rotates around X later in the
-         * shader instead of particles jumping from
-         * one end of the card to the other.
+         * Every particle receives a permanent
+         * position along the orbit.
          */
-        const helixT =
+        const orbitT =
             randomFor(
                 particleIndex,
                 101,
             )
 
-        const x =
+        const orbit =
+            pointOnOrbit(
+                orbitT,
+            )
+
+        /*
+         * Spread particles across the thickness
+         * of the orbital tube.
+         */
+        const tubeOffset =
             (
-                helixT -
+                randomFor(
+                    particleIndex,
+                    201,
+                ) -
                 0.5
             ) *
-            HELIX_LENGTH
+            2 *
+            tubeThickness
 
         /*
-         * 4.5 complete wraps across the card.
-         */
-        const angle =
-            helixT *
-            HELIX_TURNS *
-            TWO_PI
-
-        /*
-         * Centerline of the spring.
-         */
-        const centerY =
-            Math.cos(
-                angle,
-            ) *
-            HELIX_RADIUS
-
-        const centerZ =
-            Math.sin(
-                angle,
-            ) *
-            HELIX_RADIUS
-
-        /*
-         * Give the snake real thickness.
+         * The depth has two components:
          *
-         * radialAngle chooses a random direction
-         * around the local circular cross-section.
+         * 1. deterministic orbital depth
+         * 2. local thickness
          */
-        const radialAngle =
-            randomFor(
-                particleIndex,
-                201,
+        const orbitalDepth =
+            Math.sin(
+                orbitT *
+                Math.PI *
+                2,
             ) *
-            TWO_PI
+            orbitDepth
 
-        const radialDistance =
-            Math.sqrt(
+        const depthOffset =
+            (
                 randomFor(
                     particleIndex,
                     301,
-                )
+                ) -
+                0.5
             ) *
-            TUBE_THICKNESS
-
-        const tubeY =
-            Math.cos(
-                radialAngle,
-            ) *
-            radialDistance
-
-        const tubeZ =
-            Math.sin(
-                radialAngle,
-            ) *
-            radialDistance
+            0.75
 
         /*
-         * Slight longitudinal variation prevents
-         * the tube from looking mechanically perfect.
+         * Small organic displacement prevents
+         * the orbit from becoming a mathematically
+         * perfect tube.
          */
-        const longitudinalJitter =
+        const organic =
             (
                 randomFor(
                     particleIndex,
@@ -554,55 +870,41 @@ const createCloudTargetTexture = () => {
                 ) -
                 0.5
             ) *
-            0.24
-
-        /*
-         * Additional organic displacement.
-         */
-        const organicY =
-            (
-                randomFor(
-                    particleIndex,
-                    501,
-                ) -
-                0.5
-            ) *
-            0.16
-
-        const organicZ =
-            (
-                randomFor(
-                    particleIndex,
-                    601,
-                ) -
-                0.5
-            ) *
-            0.16
+            0.20
 
         data[index] =
-            x +
-            longitudinalJitter
+            orbit.x +
+            orbit.normalX *
+            (
+                tubeOffset +
+                organic
+            )
 
         data[index + 1] =
-            centerY +
-            tubeY +
-            organicY
+            orbit.y +
+            orbit.normalY *
+            (
+                tubeOffset +
+                organic
+            )
 
         data[index + 2] =
-            centerZ +
-            tubeZ +
-            organicZ
+            orbitalDepth +
+            depthOffset
 
         /*
-         * Store the permanent longitudinal position.
+         * IMPORTANT:
          *
-         * 0.10..1.0 = cloud particle
-         * 0          = free particle
+         * Alpha no longer simply means "1".
+         *
+         * It stores the particle's orbit position.
+         *
+         * 0 = invalid/free particle
+         * 0.10..1.0 = valid cloud + orbitT
          */
         data[index + 3] =
             0.10 +
-            helixT *
-            0.90
+            orbitT * 0.90
     }
 
     const texture =
@@ -634,7 +936,6 @@ const createCloudTargetTexture = () => {
 
     return texture
 }
-
 
 const WorkNebulaText = ({progress, cardRect}) => {
     const [
