@@ -48,21 +48,21 @@ const clamp = (
 const CLOUD_FORM_START =
   0.20
 
+const CLOUD_ASSIST_START =
+  0.23
+
+const CLOUD_ASSIST_END =
+  0.34
+
 const CLOUD_HANDOFF =
   0.56
-
-/*
- * Small buffer around the edges of the transition.
- */
-const CLOUD_GUARD =
-  0.025
 
 /*
  * How long the user has to be still before we decide
  * they intentionally stopped.
  */
 const SCROLL_IDLE_TIME =
-  160
+  220
 
 /*
  * Approximate automatic scroll velocity.
@@ -542,13 +542,8 @@ const Works = () => {
 
     if (
       direction > 0 &&
-      localProgress >=
-      (
-        CLOUD_FORM_START +
-        CLOUD_GUARD
-      ) &&
-      localProgress <
-      CLOUD_HANDOFF
+      localProgress >= CLOUD_ASSIST_START &&
+      localProgress <= CLOUD_ASSIST_END
     ) {
       const targetProgress =
         cycleStart +
@@ -699,13 +694,15 @@ const Works = () => {
       },
     )
 
+    const handleResize = () => {
+      setProgress(
+        calculateProgress(),
+      )
+    }
+
     window.addEventListener(
       'resize',
-      () => {
-        setProgress(
-          calculateProgress(),
-        )
-      },
+      handleResize,
     )
 
     return () => {

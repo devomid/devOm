@@ -2476,108 +2476,6 @@ const createStateTarget = () => {
     )
 }
 
-const CardDepthProxy = ({
-    cardRect,
-    depthStrength = 0,
-}) => {
-    const meshRef = useRef(null)
-
-    const { size, camera } = useThree()
-
-    useFrame(() => {
-        if (!meshRef.current || !cardRect) return
-
-        const distance = camera.position.z
-
-        const visibleHeight =
-            2 *
-            distance *
-            Math.tan(
-                THREE.MathUtils.degToRad(
-                    camera.fov / 2,
-                ),
-            )
-
-        const visibleWidth =
-            visibleHeight *
-            camera.aspect
-
-        const centerX =
-            cardRect.left +
-            cardRect.width / 2
-
-        const centerY =
-            cardRect.top +
-            cardRect.height / 2
-
-        const worldX =
-            (
-                centerX / size.width -
-                0.5
-            ) *
-            visibleWidth
-
-        const worldY =
-            (
-                0.5 -
-                centerY / size.height
-            ) *
-            visibleHeight
-
-        const worldWidth =
-            (
-                cardRect.width /
-                size.width
-            ) *
-            visibleWidth
-
-        const worldHeight =
-            (
-                cardRect.height /
-                size.height
-            ) *
-            visibleHeight
-
-        const depthZ =
-            THREE.MathUtils.lerp(
-                -10,
-                0,
-                depthStrength,
-            )
-
-        meshRef.current.position.set(
-            worldX,
-            worldY,
-            depthZ,
-        )
-
-        meshRef.current.scale.set(
-            worldWidth,
-            worldHeight,
-            1,
-        )
-    })
-
-    const material = useMemo(
-        () =>
-            new THREE.MeshBasicMaterial({
-                colorWrite: false,
-                depthWrite: true,
-                depthTest: true,
-            }),
-        [],
-    )
-
-    return (
-        <mesh
-            ref={meshRef}
-            renderOrder={0}
-            material={material}
-        >
-            <planeGeometry args={[1, 1]} />
-        </mesh>
-    )
-}
 
 const NebulaParticles = ({
     textEnabled = false,
@@ -2585,7 +2483,6 @@ const NebulaParticles = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
-    depthStrengthRef = null,
     cardRect
 }) => {
 
@@ -3529,21 +3426,13 @@ const NebulaParticles = ({
     ])
 
     return (
-        <>
-            <CardDepthProxy
-                cardRect={cardRect}
-                depthStrength={
-                    depthStrengthRef?.current ?? 0
-                }
-            />
 
-            <points
-                ref={pointsRef}
-                geometry={particleGeometry}
-                material={particleMaterial}
-                frustumCulled={false}
-            />
-        </>
+        <points
+            ref={pointsRef}
+            geometry={particleGeometry}
+            material={particleMaterial}
+            frustumCulled={false}
+        />
     )
 }
 
@@ -3553,7 +3442,6 @@ const NebulaBackground = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
-    depthStrengthRef = null,
     cardRect
 }) => {
     const canvasRef = useRef(null)
@@ -3623,9 +3511,6 @@ const NebulaBackground = ({
 
                 rectangleStrengthRef={
                     rectangleStrengthRef
-                }
-                depthStrengthRef={
-                    depthStrengthRef
                 }
                 cardRect={cardRect}
             />
