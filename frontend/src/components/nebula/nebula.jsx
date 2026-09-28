@@ -2039,7 +2039,10 @@ const createStateTarget = () => {
     )
 }
 
-const CardDepthProxy = ({ cardRect }) => {
+const CardDepthProxy = ({
+    cardRect,
+    depthStrength = 0,
+}) => {
     const meshRef = useRef(null)
 
     const { size, camera } = useThree()
@@ -2098,10 +2101,17 @@ const CardDepthProxy = ({ cardRect }) => {
             ) *
             visibleHeight
 
+        const depthZ =
+            THREE.MathUtils.lerp(
+                -10,
+                0,
+                depthStrength,
+            )
+
         meshRef.current.position.set(
             worldX,
             worldY,
-            0.35,
+            depthZ,
         )
 
         meshRef.current.scale.set(
@@ -2140,10 +2150,10 @@ const NebulaParticles = ({
     rectangleStrengthRef = null,
     cardRect
 }) => {
-    
+
     const pointsRef =
         useRef(null)
-    
+
     const cardMaskRef = useRef(null)
 
     const simulationRef =
@@ -2285,7 +2295,7 @@ const NebulaParticles = ({
                 }),
             [],
         )
-    
+
     useEffect(() => {
         if (!cardRect) return
 
@@ -3084,6 +3094,9 @@ const NebulaParticles = ({
         <>
             <CardDepthProxy
                 cardRect={cardRect}
+                depthStrength={
+                    depthStrengthRef?.current ?? 0
+                }
             />
 
             <points
@@ -3102,6 +3115,7 @@ const NebulaBackground = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     rectangleStrengthRef = null,
+    depthStrengthRef = null,
     cardRect
 }) => {
     const canvasRef = useRef(null)
@@ -3149,7 +3163,7 @@ const NebulaBackground = ({
 
                 pointerEvents:
                     'none',
-            
+
             }}
         >
             <NebulaParticles
@@ -3171,6 +3185,9 @@ const NebulaBackground = ({
 
                 rectangleStrengthRef={
                     rectangleStrengthRef
+                }
+                depthStrengthRef={
+                    depthStrengthRef
                 }
                 cardRect={cardRect}
             />

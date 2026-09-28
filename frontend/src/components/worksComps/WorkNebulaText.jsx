@@ -897,6 +897,9 @@ const WorkNebulaText = ({progress, cardRect}) => {
 
     const rectangleStrengthRef =
         useRef(0)
+    
+    const depthStrengthRef =
+        useRef(0)
 
     const layerRef =
         useRef(null)
@@ -1052,6 +1055,18 @@ const WorkNebulaText = ({progress, cardRect}) => {
 
             rectangleStrengthRef.current =
                 cloudAmount
+            
+            const depthTarget =
+                progress >=
+                    cycleLength * 0.5
+                    ? 1
+                    : 0
+
+            depthStrengthRef.current +=
+                (
+                    depthTarget -
+                    depthStrengthRef.current
+                ) * 0.08
 
             /*
              * ----------------------------------------
@@ -1154,6 +1169,9 @@ const WorkNebulaText = ({progress, cardRect}) => {
 
                 rectangleStrengthRef={
                     rectangleStrengthRef
+                }
+                depthStrengthRef={
+                    depthStrengthRef
                 }
                 cardRect={cardRect}
             />
