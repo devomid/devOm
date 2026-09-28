@@ -1,4 +1,3 @@
-
 import {
     Box,
 } from '@mui/material'
@@ -18,42 +17,67 @@ const clamp = (
     ),
 )
 
+/*
+ * ----------------------------------------------------
+ * WORK / CLOUD TIMING
+ * ----------------------------------------------------
+ *
+ * Local progress inside one work cycle.
+ *
+ * 0.00 → text
+ * 0.50 → cloud peak
+ * 0.53 → card handoff
+ * 1.00 → next cycle
+ * ----------------------------------------------------
+ */
+
+const CARD_SWITCH_PROGRESS = 0.53
+
 const WorksTilesContainer = ({
     progress,
-    onCardLayout
+    onCardLayout,
 }) => {
-    const cardCount = works.length
+    const cardCount =
+        works.length
 
     const cycleLength =
-        1 / cardCount
-
-    /*
-     * Nebula cloud peaks happen at:
-     *
-     * 0.1
-     * 0.3
-     * 0.5
-     * 0.7
-     * 0.9
-     */
+        1 /
+        cardCount
 
     const cyclePosition =
-        progress / cycleLength
+        progress /
+        cycleLength
 
-    const activeIndex = clamp(
-        Math.floor(
-            cyclePosition + 0.5,
-        ) - 1,
-        0,
-        cardCount - 1,
-    )
+    /*
+     * The card changes only when the current cloud
+     * has passed its peak.
+     */
+    const activeIndex =
+        clamp(
+            Math.floor(
+                cyclePosition +
+                (
+                    1 -
+                    CARD_SWITCH_PROGRESS
+                ),
+            ) - 1,
+            0,
+            cardCount - 1,
+        )
 
+    /*
+     * The first card should not appear until the first
+     * cloud reaches its handoff point.
+     */
     const firstCardVisible =
         progress >=
-        cycleLength * 0.5
+        cycleLength *
+        CARD_SWITCH_PROGRESS
 
     const activeWork =
-        works[activeIndex]
+        works[
+        activeIndex
+        ]
 
     return (
         <Box
@@ -85,7 +109,9 @@ const WorksTilesContainer = ({
                     }
                     scale={1}
                     translateY={0}
-                    onCardLayout={onCardLayout}
+                    onCardLayout={
+                        onCardLayout
+                    }
                 />
             </Box>
         </Box>
