@@ -30,10 +30,10 @@ export default function HowIBuildCircle({
                     'translate(-50%, -50%)',
 
                 width:
-                    120,
+                    82,
 
                 height:
-                    120,
+                    82,
 
                 padding:
                     0,

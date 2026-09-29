@@ -14,9 +14,15 @@ import HOW_I_BUILD_STAGES
 import HowIBuildCircle
     from './cards/HowIBuildCircle'
 
+import {
+    HOW_I_BUILD_RING_COUNT,
+    HOW_I_BUILD_RING_Y,
+    getHowIBuildRingCenterX,
+} from './howIBuildRingGeometry'
+
 
 const REVEAL_DELAY =
-    400
+    700
 
 const BLOW_DURATION =
     180
@@ -26,15 +32,6 @@ const CAMERA_Z =
 
 const CAMERA_FOV =
     60
-
-const RING_Y =
-    -2.05
-
-const RING_SPACING =
-    1.95
-
-const RING_COUNT =
-    6
 
 
 export default function HowIBuildContainer({
@@ -65,9 +62,6 @@ export default function HowIBuildContainer({
      * ========================================================
      * CONTAINER SIZE
      * ========================================================
-     *
-     * This is the exact rectangle occupied by the Nebula
-     * Canvas.
      */
 
     useEffect(() => {
@@ -146,17 +140,9 @@ export default function HowIBuildContainer({
                     containerSize.height
                 )
 
-            const totalWidth =
-                (
-                    RING_COUNT -
-                    1
-                ) *
-                RING_SPACING
-
             return {
                 worldHeight,
                 worldWidth,
-                totalWidth,
             }
         }, [
             containerSize.width,
@@ -167,6 +153,11 @@ export default function HowIBuildContainer({
     /*
      * ========================================================
      * RING POSITIONS
+     *
+     * IMPORTANT:
+     *
+     * These are projected directly from the exact same
+     * world coordinates used by the nebula ring texture.
      * ========================================================
      */
 
@@ -182,19 +173,9 @@ export default function HowIBuildContainer({
                     index,
                 ) => {
                     const worldX =
-                        index *
-                            RING_SPACING -
-                        worldGeometry.totalWidth /
-                            2
-
-                    /*
-                     * Perspective camera projection.
-                     *
-                     * X:
-                     *
-                     * worldX 0
-                     * = exact horizontal center.
-                     */
+                        getHowIBuildRingCenterX(
+                            index,
+                        )
 
                     const x =
                         (
@@ -204,18 +185,10 @@ export default function HowIBuildContainer({
                         ) *
                         containerSize.width
 
-                    /*
-                     * Y:
-                     *
-                     * Ring world Y is -2.05,
-                     * therefore it appears below
-                     * the camera center.
-                     */
-
                     const y =
                         (
                             0.5 -
-                            RING_Y /
+                            HOW_I_BUILD_RING_Y /
                             worldGeometry.worldHeight
                         ) *
                         containerSize.height
@@ -246,7 +219,7 @@ export default function HowIBuildContainer({
             ) => {
                 const position =
                     ringPositions[
-                        index
+                    index
                     ]
 
                 if (
@@ -255,11 +228,6 @@ export default function HowIBuildContainer({
                 ) {
                     return
                 }
-
-                /*
-                 * These coordinates are LOCAL to the
-                 * Nebula Canvas.
-                 */
 
                 interactionRef.current = {
                     x:
@@ -320,7 +288,7 @@ export default function HowIBuildContainer({
         if (
             !ringReady ||
             ringPositions.length !==
-                HOW_I_BUILD_STAGES.length
+            HOW_I_BUILD_RING_COUNT
         ) {
             setVisibleCount(0)
 
@@ -350,7 +318,7 @@ export default function HowIBuildContainer({
                             )
                         },
                         index *
-                            REVEAL_DELAY,
+                        REVEAL_DELAY,
                     )
 
                 timers.push(
@@ -449,7 +417,7 @@ export default function HowIBuildContainer({
                     ) => {
                         const position =
                             ringPositions[
-                                index
+                            index
                             ]
 
                         return (

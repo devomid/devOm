@@ -5,6 +5,12 @@ import {
 
 import * as THREE from 'three'
 
+import {
+    HOW_I_BUILD_RING_COUNT,
+    HOW_I_BUILD_RING_Y,
+    getHowIBuildRingCenterX,
+} from './howIBuildRingGeometry'
+
 import NebulaBackground
     from '../nebula/nebula'
 
@@ -31,11 +37,9 @@ const TEXT_WORLD_HEIGHT =
 const TEXT_FORM_TIME =
     3
 
+
 const RING_DELAY =
     0.05
-
-const RING_COUNT =
-    6
 
 const PARTICLES_PER_RING =
     6000
@@ -45,16 +49,6 @@ const TEXT_PARTICLES_PER_RING =
 
 const FREE_PARTICLES_PER_RING =
     4000
-
-const TOTAL_RING_PARTICLES =
-    RING_COUNT *
-    PARTICLES_PER_RING
-
-const RING_Y =
-    -2.05
-
-const RING_SPACING =
-    1.95
 
 const RING_RADIUS =
     0.72
@@ -426,22 +420,15 @@ const createRingTargetTexture = (
     let freeCursor =
         0
 
-    const totalWidth =
-        (
-            RING_COUNT -
-            1
-        ) *
-        RING_SPACING
-
     for (
         let ring = 0;
-        ring < RING_COUNT;
+        ring < HOW_I_BUILD_RING_COUNT;
         ring += 1
     ) {
         const centerX =
-            ring *
-                RING_SPACING -
-            totalWidth / 2
+            getHowIBuildRingCenterX(
+                ring,
+            )
 
         const radius =
             RING_RADIUS +
@@ -535,7 +522,7 @@ const createRingTargetTexture = (
                 finalRadius
 
             data[index + 1] =
-                RING_Y +
+                HOW_I_BUILD_RING_Y +
                 Math.sin(angle) *
                 finalRadius
 
@@ -635,7 +622,7 @@ const createRingTargetTexture = (
                 )
 
             data[index + 1] =
-                RING_Y +
+                HOW_I_BUILD_RING_Y +
                 Math.sin(angle) *
                 finalRadius
 
@@ -708,10 +695,6 @@ const HowIBuildNebulaText = ({
                     ) {
                         setRingTargetTexture(
                             ringTexture,
-                        )
-
-                        setRingReady(
-                            true,
                         )
                     }
                 },
@@ -787,6 +770,12 @@ const HowIBuildNebulaText = ({
 
                 interactionRef={
                     interactionRef
+                }
+
+                onRingComplete={
+                    () => {
+                        setRingReady(true)
+                    }
                 }
             />
 
