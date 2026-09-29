@@ -2459,13 +2459,16 @@ const NebulaParticles = ({
                         true,
 
                     depthWrite:
-                        false,
+                        true,
 
                     depthTest:
-                        false,
+                        true,
 
                     blending:
                         THREE.NormalBlending,
+
+                    side:
+                        THREE.DoubleSide,
                 }),
             [],
         )
@@ -3631,6 +3634,7 @@ const NebulaParticles = ({
             geometry={particleGeometry}
             material={particleMaterial}
             frustumCulled={false}
+            renderOrder={10}
         />
     )
 }

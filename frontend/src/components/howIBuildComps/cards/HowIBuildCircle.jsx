@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box'
+import { glass } from '../../../design/glass';
 
 
 export default function HowIBuildCircle({
@@ -44,12 +45,11 @@ export default function HowIBuildCircle({
                 borderRadius:
                     '50%',
 
-                border:
-                    '1px solid rgba(255,255,255,0.45)',
+                border: glass.floating.border,
 
-                background:
-                    'rgba(255,255,255,0.04)',
-
+                background: glass.floating.background,
+                backdropFilter: glass.floating.backdropFilter,
+                boxShadow: glass.floating.shadow,
                 color:
                     '#ffffff',
 
