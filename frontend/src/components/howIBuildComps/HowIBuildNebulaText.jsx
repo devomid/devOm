@@ -8,6 +8,9 @@ import * as THREE from 'three'
 import NebulaBackground
     from '../nebula/nebula'
 
+import HowIBuildContainer
+    from './HowIBuildContainer'
+
 
 const TEXTURE_SIZE =
     512
@@ -25,12 +28,6 @@ const TEXT_WORLD_WIDTH =
 const TEXT_WORLD_HEIGHT =
     2.45
 
-/*
- * The existing nebula text formation takes
- * roughly this long to settle.
- *
- * Rings begin exactly one second after that.
- */
 const TEXT_FORM_TIME =
     3
 
@@ -40,14 +37,6 @@ const RING_DELAY =
 const RING_COUNT =
     6
 
-/*
- * Number of particles used by each ring.
- *
- * Each ring contains particles taken from:
- *
- * - existing text particles
- * - previously free particles
- */
 const PARTICLES_PER_RING =
     6000
 
@@ -127,10 +116,8 @@ const createTexture = (
  * ============================================================
  * TEXT TARGET
  * ============================================================
- *
- * This is the same target construction used by the existing
- * NebulaText components.
  */
+
 const createTextTargetTexture = (
     text,
 ) => {
@@ -264,12 +251,6 @@ const createTextTargetTexture = (
             particleIndex *
             4
 
-        /*
-         * These particles remain free.
-         *
-         * The shader already understands alpha=0
-         * as "no text target".
-         */
         if (
             normalizedHash >
             TEXT_PARTICLE_RATIO
@@ -380,21 +361,8 @@ const createTextTargetTexture = (
  * ============================================================
  * RING TARGET
  * ============================================================
- *
- * Start with the exact text target.
- *
- * Then:
- *
- * - take some particles that belonged to the text
- * - take some particles that were free
- * - give only those particles new targets
- *
- * Everything else remains untouched.
- *
- * There are NO extra particles.
- * There is NO second particle system.
- * There are NO DOM circles.
  */
+
 const createRingTargetTexture = (
     textTexture,
 ) => {
@@ -416,10 +384,6 @@ const createRingTargetTexture = (
     const freeParticles =
         []
 
-    /*
-     * Find the particles already belonging
-     * to the text and the particles that are free.
-     */
     for (
         let particleIndex = 0;
         particleIndex <
@@ -444,11 +408,6 @@ const createRingTargetTexture = (
         }
     }
 
-    /*
-     * Deterministically shuffle both groups.
-     *
-     * This keeps the result stable between renders.
-     */
     textParticles.sort(
         (a, b) =>
             hash(a * 3.17) -
@@ -467,10 +426,6 @@ const createRingTargetTexture = (
     let freeCursor =
         0
 
-    /*
-     * Six rings arranged horizontally underneath
-     * the text.
-     */
     const totalWidth =
         (
             RING_COUNT -
@@ -488,10 +443,6 @@ const createRingTargetTexture = (
                 RING_SPACING -
             totalWidth / 2
 
-        /*
-         * Slightly different radius per ring so
-         * they don't look mechanically identical.
-         */
         const radius =
             RING_RADIUS +
             (
@@ -504,10 +455,9 @@ const createRingTargetTexture = (
             0.10
 
         /*
-         * ----------------------------------------------------
          * TEXT PARTICLES
-         * ----------------------------------------------------
          */
+
         for (
             let particle = 0;
             particle <
@@ -536,9 +486,6 @@ const createRingTargetTexture = (
                 Math.PI *
                 2
 
-            /*
-             * Organic ring distortion.
-             */
             const noise1 =
                 Math.sin(
                     angle * 3 +
@@ -599,18 +546,14 @@ const createRingTargetTexture = (
                 ) *
                 0.13
 
-            /*
-             * Keep it active as a target.
-             */
             data[index + 3] =
                 1
         }
 
         /*
-         * ----------------------------------------------------
          * FREE PARTICLES
-         * ----------------------------------------------------
          */
+
         for (
             let particle = 0;
             particle <
@@ -703,10 +646,6 @@ const createRingTargetTexture = (
                 ) *
                 0.15
 
-            /*
-             * This is what turns a previously free
-             * nebula particle into a ring particle.
-             */
             data[index + 3] =
                 1
         }
@@ -718,7 +657,15 @@ const createRingTargetTexture = (
 }
 
 
-const HowIBuildNebulaText = ({ interactionRef }) => {
+/*
+ * ============================================================
+ * COMPONENT
+ * ============================================================
+ */
+
+const HowIBuildNebulaText = ({
+    interactionRef,
+}) => {
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -728,6 +675,11 @@ const HowIBuildNebulaText = ({ interactionRef }) => {
         ringTargetTexture,
         setRingTargetTexture,
     ] = useState(null)
+
+    const [
+        ringReady,
+        setRingReady,
+    ] = useState(false)
 
     useEffect(() => {
         const texture =
@@ -743,14 +695,6 @@ const HowIBuildNebulaText = ({ interactionRef }) => {
             texture,
         )
 
-        /*
-         * The existing NebulaBackground handles
-         * the actual particle formation.
-         *
-         * We simply wait until the text has settled,
-         * then wait one additional second and replace
-         * the target texture.
-         */
         const timer =
             window.setTimeout(
                 () => {
@@ -764,6 +708,10 @@ const HowIBuildNebulaText = ({ interactionRef }) => {
                     ) {
                         setRingTargetTexture(
                             ringTexture,
+                        )
+
+                        setRingReady(
+                            true,
                         )
                     }
                 },
@@ -783,6 +731,10 @@ const HowIBuildNebulaText = ({ interactionRef }) => {
 
             setRingTargetTexture(
                 null,
+            )
+
+            setRingReady(
+                false,
             )
         }
     }, [])
@@ -816,9 +768,6 @@ const HowIBuildNebulaText = ({ interactionRef }) => {
 
                 overflow:
                     'hidden',
-
-                pointerEvents:
-                    'none',
             }}
         >
             <NebulaBackground
@@ -835,7 +784,20 @@ const HowIBuildNebulaText = ({ interactionRef }) => {
                 textStrength={
                     1.0
                 }
-                interactionRef={interactionRef}
+
+                interactionRef={
+                    interactionRef
+                }
+            />
+
+            <HowIBuildContainer
+                interactionRef={
+                    interactionRef
+                }
+
+                ringReady={
+                    ringReady
+                }
             />
         </div>
     )

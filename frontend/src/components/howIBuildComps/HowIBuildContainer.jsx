@@ -13,6 +13,7 @@ import HOW_I_BUILD_STAGES
 import HowIBuildCircle
     from './cards/HowIBuildCircle'
 
+
 const REVEAL_DELAY =
     400
 
@@ -34,216 +35,311 @@ const RING_SPACING =
 const RING_COUNT =
     6
 
+
 export default function HowIBuildContainer({
     interactionRef,
+    ringReady,
 }) {
     const containerRef =
         useRef(null)
 
-const circleRefs =
-    useRef([])
+    const circleRefs =
+        useRef([])
 
-const blowTimerRef =
-    useRef(null)
+    const blowTimerRef =
+        useRef(null)
 
-const [
-    visibleCount,
-    setVisibleCount,
-] = useState(0)
+    const [
+        visibleCount,
+        setVisibleCount,
+    ] = useState(0)
 
 
-/*
- * ========================================================
- * WORLD -> SCREEN
- * ========================================================
- *
- * This is the exact inverse of the conversion already
- * used inside nebula.jsx for interactionRef.
- */
-const getCircleScreenPosition =
-    useCallback(
-        (
-            index,
-        ) => {
-            const container =
-                containerRef.current
+    /*
+     * ========================================================
+     * RING WORLD POSITION
+     * ========================================================
+     */
 
-            if (!container) {
-                return null
-            }
+    const getCircleScreenPosition =
+        useCallback(
+            (
+                index,
+            ) => {
+                const container =
+                    containerRef.current
 
-            const rect =
-                container.getBoundingClientRect()
+                if (!container) {
+                    return null
+                }
 
-            const width =
-                rect.width
+                const rect =
+                    container.getBoundingClientRect()
 
-            const height =
-                rect.height
+                const width =
+                    rect.width
 
-            if (
-                width <= 0 ||
-                height <= 0
-            ) {
-                return null
-            }
+                const height =
+                    rect.height
 
-            const fovRadians =
-                (
-                    CAMERA_FOV *
-                    Math.PI
-                ) /
-                180
+                if (
+                    width <= 0 ||
+                    height <= 0
+                ) {
+                    return null
+                }
 
-            const worldHeight =
-                2 *
-                CAMERA_Z *
-                Math.tan(
-                    fovRadians /
-                    2,
-                )
+                const fovRadians =
+                    (
+                        CAMERA_FOV *
+                        Math.PI
+                    ) /
+                    180
 
-            const worldWidth =
-                worldHeight *
-                (
-                    width /
+                const worldHeight =
+                    2 *
+                    CAMERA_Z *
+                    Math.tan(
+                        fovRadians /
+                        2,
+                    )
+
+                const worldWidth =
+                    worldHeight *
+                    (
+                        width /
+                        height
+                    )
+
+                const totalWidth =
+                    (
+                        RING_COUNT -
+                        1
+                    ) *
+                    RING_SPACING
+
+                const worldX =
+                    index *
+                        RING_SPACING -
+                    totalWidth /
+                        2
+
+                const screenX =
+                    (
+                        0.5 +
+                        worldX /
+                        worldWidth
+                    ) *
+                    width
+
+                const screenY =
+                    (
+                        0.5 -
+                        RING_Y /
+                        worldHeight
+                    ) *
                     height
+
+                return {
+                    x:
+                        screenX,
+
+                    y:
+                        screenY,
+                }
+            },
+            [],
+        )
+
+
+    /*
+     * ========================================================
+     * POSITION
+     * ========================================================
+     */
+
+    const positionCircles =
+        useCallback(
+            () => {
+                HOW_I_BUILD_STAGES.forEach(
+                    (
+                        stage,
+                        index,
+                    ) => {
+                        const circle =
+                            circleRefs.current[
+                                index
+                            ]
+
+                        if (!circle) {
+                            return
+                        }
+
+                        const position =
+                            getCircleScreenPosition(
+                                index,
+                            )
+
+                        if (!position) {
+                            return
+                        }
+
+                        circle.style.left =
+                            `${ position.x } px`
+
+                        circle.style.top =
+                            `${ position.y } px`
+                    },
                 )
+            },
+            [
+                getCircleScreenPosition,
+            ],
+        )
 
-            const totalWidth =
+
+    /*
+     * ========================================================
+     * BLOW
+     * ========================================================
+     */
+
+    const blowCircle =
+        useCallback(
+            (
+                index,
+            ) => {
+                const position =
+                    getCircleScreenPosition(
+                        index,
+                    )
+
+                if (
+                    !position ||
+                    !interactionRef
+                ) {
+                    return
+                }
+
+                interactionRef.current = {
+                    x:
+                        position.x,
+
+                    y:
+                        position.y,
+
+                    active:
+                        true,
+
+                    strength:
+                        1,
+                }
+
+                if (
+                    blowTimerRef.current
+                ) {
+                    window.clearTimeout(
+                        blowTimerRef.current,
+                    )
+                }
+
+                blowTimerRef.current =
+                    window.setTimeout(
+                        () => {
+                            interactionRef.current = {
+                                x:
+                                    position.x,
+
+                                y:
+                                    position.y,
+
+                                active:
+                                    false,
+
+                                strength:
+                                    0,
+                            }
+                        },
+                        BLOW_DURATION,
+                    )
+            },
+            [
+                getCircleScreenPosition,
+                interactionRef,
+            ],
+        )
+
+
+    /*
+     * ========================================================
+     * REVEAL
+     * ========================================================
+     *
+     * Nothing appears before ringReady.
+     *
+     * Once the ring target exists:
+     *
+     * 01 -> immediately
+     * 02 -> +400ms
+     * 03 -> +800ms
+     * ...
+     */
+
+    useEffect(() => {
+        if (!ringReady) {
+            setVisibleCount(0)
+
+            return undefined
+        }
+
+        const timers = []
+
+        HOW_I_BUILD_STAGES.forEach(
+            (
+                stage,
+                index,
+            ) => {
+                const timer =
+                    window.setTimeout(
+                        () => {
+                            setVisibleCount(
+                                index + 1,
+                            )
+
+                            window.requestAnimationFrame(
+                                () => {
+                                    positionCircles()
+
+                                    window.requestAnimationFrame(
+                                        () => {
+                                            blowCircle(
+                                                index,
+                                            )
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                        index *
+                            REVEAL_DELAY,
+                    )
+
+                timers.push(
+                    timer,
+                )
+            },
+        )
+
+        return () => {
+            timers.forEach(
                 (
-                    RING_COUNT -
-                    1
-                ) *
-                RING_SPACING
-
-            const worldX =
-                index *
-                    RING_SPACING -
-                totalWidth /
-                    2
-
-            /*
-             * Three.js camera:
-             *
-             * world Y + = screen up
-             * world Y - = screen down
-             */
-            const screenX =
-                (
-                    0.5 +
-                    worldX /
-                    worldWidth
-                ) *
-                width
-
-            const screenY =
-                (
-                    0.5 -
-                    RING_Y /
-                    worldHeight
-                ) *
-                height
-
-            return {
-                x:
-                    screenX,
-
-                y:
-                    screenY,
-            }
-        },
-        [],
-    )
-
-
-/*
- * ========================================================
- * POSITION ALL CIRCLES
- * ========================================================
- */
-const positionCircles =
-    useCallback(
-        () => {
-            HOW_I_BUILD_STAGES.forEach(
-                (
-                    stage,
-                    index,
+                    timer,
                 ) => {
-                    const circle =
-                        circleRefs.current[
-                            index
-                        ]
-
-                    if (!circle) {
-                        return
-                    }
-
-                    const position =
-                        getCircleScreenPosition(
-                            index,
-                        )
-
-                    if (!position) {
-                        return
-                    }
-
-                    circle.style.left =
-                        `${ position.x }px`
-
-                    circle.style.top =
-                        `${ position.y } px`
+                    window.clearTimeout(
+                        timer,
+                    )
                 },
             )
-        },
-        [
-            getCircleScreenPosition,
-        ],
-    )
-
-
-/*
- * ========================================================
- * BLOW PARTICLE RING
- * ========================================================
- */
-const blowCircle =
-    useCallback(
-        (
-            index,
-        ) => {
-            const container =
-                containerRef.current
-
-            if (
-                !container ||
-                !interactionRef
-            ) {
-                return
-            }
-
-            const position =
-                getCircleScreenPosition(
-                    index,
-                )
-
-            if (!position) {
-                return
-            }
-
-            interactionRef.current = {
-                x:
-                    position.x,
-
-                y:
-                    position.y,
-
-                active:
-                    true,
-
-                strength:
-                    1,
-            }
 
             if (
                 blowTimerRef.current
@@ -252,233 +348,141 @@ const blowCircle =
                     blowTimerRef.current,
                 )
             }
-
-            blowTimerRef.current =
-                window.setTimeout(
-                    () => {
-                        interactionRef.current = {
-                            x:
-                                position.x,
-
-                            y:
-                                position.y,
-
-                            active:
-                                false,
-
-                            strength:
-                                0,
-                        }
-                    },
-                    BLOW_DURATION,
-                )
-        },
-        [
-            getCircleScreenPosition,
-            interactionRef,
-        ],
-    )
-
-
-/*
- * ========================================================
- * REVEAL
- * ========================================================
- */
-useEffect(() => {
-    const timers = []
-
-    HOW_I_BUILD_STAGES.forEach(
-        (
-            stage,
-            index,
-        ) => {
-            const timer =
-                window.setTimeout(
-                    () => {
-                        setVisibleCount(
-                            index + 1,
-                        )
-
-                        /*
-                         * React has to render the circle
-                         * before we trigger its interaction.
-                         */
-                        window.requestAnimationFrame(
-                            () => {
-                                positionCircles()
-
-                                window.requestAnimationFrame(
-                                    () => {
-                                        blowCircle(
-                                            index,
-                                        )
-                                    },
-                                )
-                            },
-                        )
-                    },
-                    index *
-                        REVEAL_DELAY,
-                )
-
-            timers.push(
-                timer,
-            )
-        },
-    )
-
-    return () => {
-        timers.forEach(
-            (
-                timer,
-            ) => {
-                window.clearTimeout(
-                    timer,
-                )
-            },
-        )
-
-        if (
-            blowTimerRef.current
-        ) {
-            window.clearTimeout(
-                blowTimerRef.current,
-            )
         }
-    }
-}, [
-    blowCircle,
-    positionCircles,
-])
+    }, [
+        ringReady,
+        blowCircle,
+        positionCircles,
+    ])
 
 
-/*
- * ========================================================
- * RESIZE
- * ========================================================
- *
- * The particle camera changes its visible world width
- * with the viewport aspect ratio, so the DOM circles
- * must follow it.
- */
-useEffect(() => {
-    const handleResize =
-        () => {
-            positionCircles()
-        }
+    /*
+     * ========================================================
+     * RESIZE
+     * ========================================================
+     */
 
-    window.addEventListener(
-        'resize',
-        handleResize,
-    )
+    useEffect(() => {
+        const handleResize =
+            () => {
+                positionCircles()
+            }
 
-    positionCircles()
-
-    return () => {
-        window.removeEventListener(
+        window.addEventListener(
             'resize',
             handleResize,
         )
-    }
-}, [
-    positionCircles,
-])
 
+        positionCircles()
 
-/*
- * ========================================================
- * CLEANUP
- * ========================================================
- */
-useEffect(() => {
-    return () => {
-        if (
-            blowTimerRef.current
-        ) {
-            window.clearTimeout(
-                blowTimerRef.current,
+        return () => {
+            window.removeEventListener(
+                'resize',
+                handleResize,
             )
         }
+    }, [
+        positionCircles,
+    ])
 
-        if (
-            interactionRef?.current
-        ) {
-            interactionRef.current = {
-                x: 0,
-                y: 0,
-                active: false,
-                strength: 0,
+
+    /*
+     * ========================================================
+     * CLEANUP
+     * ========================================================
+     */
+
+    useEffect(() => {
+        return () => {
+            if (
+                blowTimerRef.current
+            ) {
+                window.clearTimeout(
+                    blowTimerRef.current,
+                )
+            }
+
+            if (
+                interactionRef?.current
+            ) {
+                interactionRef.current = {
+                    x: 0,
+                    y: 0,
+                    active: false,
+                    strength: 0,
+                }
             }
         }
-    }
-}, [
-    interactionRef,
-])
+    }, [
+        interactionRef,
+    ])
 
 
-return (
-    <Box
-        ref={
-            containerRef
-        }
-        sx={{
-            position:
-                'absolute',
+    return (
+        <Box
+            ref={
+                containerRef
+            }
+            sx={{
+                position:
+                    'absolute',
 
-            inset:
-                0,
+                inset:
+                    0,
 
-            width:
-                '100%',
+                width:
+                    '100%',
 
-            height:
-                '100%',
+                height:
+                    '100%',
 
-            pointerEvents:
-                'none',
+                pointerEvents:
+                    'none',
 
-            zIndex:
-                10,
-        }}
-    >
-        {
-            HOW_I_BUILD_STAGES.map(
-                (
-                    stage,
-                    index,
-                ) => (
-                    <HowIBuildCircle
-                        key={
-                            stage.id
-                        }
-                        stage={
-                            stage
-                        }
-                        visible={
-                            index <
-                            visibleCount
-                        }
-                        circleRef={
-                            (
-                                element,
-                            ) => {
-                                circleRefs.current[
-                                    index
-                                ] =
-                                    element
+                zIndex:
+                    10,
+            }}
+        >
+            {
+                HOW_I_BUILD_STAGES.map(
+                    (
+                        stage,
+                        index,
+                    ) => (
+                        <HowIBuildCircle
+                            key={
+                                stage.id
                             }
-                        }
-                        onClick={() => {
-                            blowCircle(
-                                index,
-                            )
-                        }}
-                    />
-                ),
-            )
-        }
-    </Box>
-)
 
+                            stage={
+                                stage
+                            }
+
+                            visible={
+                                index <
+                                visibleCount
+                            }
+
+                            circleRef={
+                                (
+                                    element,
+                                ) => {
+                                    circleRefs.current[
+                                        index
+                                    ] =
+                                        element
+                                }
+                            }
+
+                            onClick={() => {
+                                blowCircle(
+                                    index,
+                                )
+                            }}
+                        />
+                    ),
+                )
+            }
+        </Box>
+    )
 }
