@@ -463,7 +463,8 @@ const TilesContainer = () => {
      */
 
     const activeTileIndex =
-        progress < 1
+        progress > 0 &&
+            progress < 1
             ? Math.min(
                 builds.length - 1,
                 Math.floor(
@@ -497,6 +498,8 @@ const TilesContainer = () => {
 
             height:
                 TILE_SIZE,
+
+            progress,
         }
     } else {
         nebulaWipeState.current =

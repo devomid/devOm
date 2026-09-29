@@ -40,6 +40,7 @@ const particleVertexShader = `
     uniform sampler2D uPositionTexture;
 
     varying float vIntensity;
+    varying vec3 vParticlePosition;
 
     void main() {
         vIntensity = aIntensity;
@@ -49,6 +50,9 @@ const particleVertexShader = `
                 uPositionTexture,
                 aParticleUv
             ).xyz;
+
+        vParticlePosition =
+            particlePosition;
 
         vec4 mvPosition =
             modelViewMatrix *
@@ -246,6 +250,24 @@ const velocityFlowFragmentShader = `
     uniform float uInteractionStrength;
 
     uniform float uRectangleStrength;
+
+    /*
+     * ========================================================
+     * BUILD TILE WIPE / TEXT DISTURBANCE
+     *
+     * This is the original WhatIBuild behavior.
+     *
+     * The tile does NOT hide particles.
+     * The tile does NOT discard particles.
+     *
+     * It acts as a soft force field against the particles
+     * belonging to the current text target.
+     *
+     * The normal text spring remains active underneath it,
+     * which allows the text to reform naturally after the
+     * tile passes.
+     * ========================================================
+     */
 
     uniform vec2 uWipeCenter;
     uniform vec2 uWipeHalfSize;
@@ -885,6 +907,172 @@ const velocityFlowFragmentShader = `
         velocity.x *= 0.965;
         velocity.y *= 0.965;
         velocity.z *= 0.978;
+
+        /*
+         * ====================================================
+         * BUILD TILE / TEXT DISTURBANCE
+         * ====================================================
+         *
+         * This is the historical WhatIBuild wipe behavior.
+         *
+         * It is deliberately NOT a render mask.
+         * It does not discard particles.
+         *
+         * It pushes the particles belonging to the text
+         * target away from the moving build tile.
+         */
+
+        if (
+            uWipeStrength > 0.001 &&
+            uTextEnabled > 0.5
+        ) {
+            vec4 wipeTarget =
+                texture2D(
+                    uTextTargetTexture,
+                    vUv
+                );
+
+            if (
+                wipeTarget.a >
+                0.001
+            ) {
+                vec2 halfSize =
+                    max(
+                        uWipeHalfSize,
+                        vec2(
+                            0.001
+                        )
+                    );
+
+                vec2 delta =
+                    position.xy -
+                    uWipeCenter;
+
+                vec2 normalizedDelta =
+                    abs(delta) /
+                    halfSize;
+
+                float boxDistance =
+                    max(
+                        normalizedDelta.x,
+                        normalizedDelta.y
+                    );
+
+                float influence =
+                    1.0 -
+                    smoothstep(
+                        0.45,
+                        2.25,
+                        boxDistance
+                    );
+
+                float core =
+                    1.0 -
+                    smoothstep(
+                        0.38,
+                        1.12,
+                        boxDistance
+                    );
+
+                vec2 radialVector =
+                    vec2(
+                        delta.x /
+                        (
+                            halfSize.x *
+                            halfSize.x
+                        ),
+
+                        delta.y /
+                        (
+                            halfSize.y *
+                            halfSize.y
+                        )
+                    );
+
+                radialVector +=
+                    vec2(
+                        cos(phase),
+                        sin(phase)
+                    ) *
+                    0.025;
+
+                radialVector =
+                    normalize(
+                        radialVector
+                    );
+
+                vec2 tangent =
+                    vec2(
+                        -radialVector.y,
+                        radialVector.x
+                    );
+
+                vec2 wipeDirection =
+                    normalize(
+                        uWipeDirection +
+                        vec2(
+                            0.00001
+                        )
+                    );
+
+                vec2 disturbance =
+                    radialVector *
+                    (
+                        1.05 +
+                        core * 0.85
+                    );
+
+                disturbance +=
+                    wipeDirection *
+                    (
+                        0.52 +
+                        core * 0.44
+                    );
+
+                disturbance +=
+                    tangent *
+                    (
+                        sin(
+                            phase * 1.71 +
+                            uTime * 0.85
+                        ) *
+                        0.24
+                    );
+
+                float disturbanceStrength =
+                    uWipeStrength *
+                    influence *
+                    (
+                        0.92 +
+                        core * 0.68
+                    );
+
+                velocity.xy +=
+                    disturbance *
+                    disturbanceStrength *
+                    0.00420;
+
+                float depthImpulse =
+                    (
+                        0.16 +
+                        0.10 *
+                        sin(
+                            phase +
+                            uTime * 0.71
+                        )
+                    ) *
+                    disturbanceStrength;
+
+                velocity.z +=
+                    depthImpulse *
+                    0.00078 *
+                    (
+                        position.z >= 0.0
+                            ? 1.0
+                            : -1.0
+                    );
+            }
+        }
 
         /*
          * ====================================================
@@ -2294,18 +2482,6 @@ const NebulaParticles = ({
     const previousWipeRef =
         useRef(null)
 
-    /*
-     * This stores the previous target texture identity.
-     *
-     * First texture:
-     *     null -> HOW I BUILD text
-     *
-     * Second texture:
-     *     HOW I BUILD text -> ring texture
-     *
-     * Only the second transition should trigger
-     * onRingComplete.
-     */
     const previousTargetTextureRef =
         useRef(null)
 
@@ -2571,20 +2747,6 @@ const NebulaParticles = ({
      * ========================================================
      * RING FORMATION COMPLETION
      * ========================================================
-     *
-     * Texture sequence:
-     *
-     *     null
-     *       ↓
-     *     HOW I BUILD text texture
-     *       ↓
-     *     ring texture
-     *
-     * We ignore the first transition.
-     *
-     * When the ring texture arrives, we wait
-     * RING_FORM_DURATION milliseconds before telling
-     * HowIBuildContainer that the rings are ready.
      */
 
     useEffect(
@@ -2598,9 +2760,6 @@ const NebulaParticles = ({
             const previousTexture =
                 previousTargetTextureRef.current
 
-            /*
-             * Store the first texture and do nothing.
-             */
             if (
                 !previousTexture
             ) {
@@ -2610,9 +2769,6 @@ const NebulaParticles = ({
                 return undefined
             }
 
-            /*
-             * Same texture = no new transition.
-             */
             if (
                 previousTexture ===
                 textTargetTexture
@@ -2620,11 +2776,6 @@ const NebulaParticles = ({
                 return undefined
             }
 
-            /*
-             * A new target texture means the
-             * HOW I BUILD text target has been replaced
-             * by the ring target.
-             */
             previousTargetTextureRef.current =
                 textTargetTexture
 
@@ -2864,6 +3015,12 @@ const NebulaParticles = ({
                             value:
                                 0.0,
                         },
+
+                        /*
+                         * ------------------------------------------------
+                         * BUILD TILE WIPE
+                         * ------------------------------------------------
+                         */
 
                         uWipeCenter: {
                             value:
@@ -3245,14 +3402,21 @@ const NebulaParticles = ({
             /*
              * =================================================
              * BUILD TILE -> WORLD SPACE WIPE
+             *
+             * This is the historical WhatIBuild behavior.
+             *
+             * IMPORTANT:
+             *
+             * This does NOT modify particle rendering.
+             * This does NOT discard particles.
+             *
+             * It feeds the tile position into the GPU velocity
+             * shader as a soft moving force field.
              * =================================================
              */
 
             const wipe =
                 nebulaWipeState.current
-
-            const wipeUniforms =
-                velocityMaterial.uniforms
 
             if (
                 wipe
@@ -3330,19 +3494,49 @@ const NebulaParticles = ({
                     worldHeight *
                     0.5
 
-                wipeUniforms
+                /*
+                 * ------------------------------------------------
+                 * WIPE CENTER
+                 * ------------------------------------------------
+                 */
+
+                velocityMaterial
+                    .uniforms
                     .uWipeCenter
                     .value.set(
                         worldCenterX,
                         worldCenterY,
                     )
 
-                wipeUniforms
+                /*
+                 * ------------------------------------------------
+                 * WIPE SIZE
+                 * ------------------------------------------------
+                 */
+
+                velocityMaterial
+                    .uniforms
                     .uWipeHalfSize
                     .value.set(
                         worldHalfWidth,
                         worldHalfHeight,
                     )
+
+                /*
+                 * ------------------------------------------------
+                 * WIPE MOVEMENT DIRECTION
+                 *
+                 * Only derive movement from the same tile.
+                 * When the active tile changes, we don't invent
+                 * a direction from one tile to another.
+                 * ------------------------------------------------
+                 */
+
+                let wipeDirectionX =
+                    0.0
+
+                let wipeDirectionY =
+                    0.0
 
                 const previousWipe =
                     previousWipeRef.current
@@ -3362,7 +3556,7 @@ const NebulaParticles = ({
                         previousWipe.height /
                         2
 
-                    const previousWorldX =
+                    const previousWorldCenterX =
                         (
                             previousCenterX /
                             viewportWidth -
@@ -3370,7 +3564,7 @@ const NebulaParticles = ({
                         ) *
                         worldWidth
 
-                    const previousWorldY =
+                    const previousWorldCenterY =
                         (
                             0.5 -
                             previousCenterY /
@@ -3378,56 +3572,65 @@ const NebulaParticles = ({
                         ) *
                         worldHeight
 
-                    const movementX =
+                    wipeDirectionX =
                         worldCenterX -
-                        previousWorldX
+                        previousWorldCenterX
 
-                    const movementY =
+                    wipeDirectionY =
                         worldCenterY -
-                        previousWorldY
+                        previousWorldCenterY
 
                     const movementLength =
                         Math.sqrt(
-                            movementX *
-                            movementX +
-                            movementY *
-                            movementY,
+                            wipeDirectionX *
+                            wipeDirectionX +
+                            wipeDirectionY *
+                            wipeDirectionY
                         )
 
                     if (
                         movementLength >
                         0.00001
                     ) {
-                        wipeUniforms
-                            .uWipeDirection
-                            .value.set(
-                                movementX /
-                                movementLength,
+                        wipeDirectionX /=
+                            movementLength
 
-                                movementY /
-                                movementLength,
-                            )
+                        wipeDirectionY /=
+                            movementLength
                     } else {
-                        wipeUniforms
-                            .uWipeDirection
-                            .value.set(
-                                0,
-                                0,
-                            )
+                        wipeDirectionX =
+                            0.0
+
+                        wipeDirectionY =
+                            0.0
                     }
-                } else {
-                    wipeUniforms
-                        .uWipeDirection
-                        .value.set(
-                            0,
-                            0,
-                        )
                 }
 
-                wipeUniforms
+                velocityMaterial
+                    .uniforms
+                    .uWipeDirection
+                    .value.set(
+                        wipeDirectionX,
+                        wipeDirectionY,
+                    )
+
+                /*
+                 * ------------------------------------------------
+                 * WIPE STRENGTH
+                 * ------------------------------------------------
+                 */
+
+                velocityMaterial
+                    .uniforms
                     .uWipeStrength
                     .value =
                     1.0
+
+                /*
+                 * ------------------------------------------------
+                 * STORE CURRENT WIPE
+                 * ------------------------------------------------
+                 */
 
                 previousWipeRef.current = {
                     index:
@@ -3446,12 +3649,20 @@ const NebulaParticles = ({
                         wipe.height,
                 }
             } else {
-                wipeUniforms
+                /*
+                 * ------------------------------------------------
+                 * NO ACTIVE TILE
+                 * ------------------------------------------------
+                 */
+
+                velocityMaterial
+                    .uniforms
                     .uWipeStrength
                     .value =
                     0.0
 
-                wipeUniforms
+                velocityMaterial
+                    .uniforms
                     .uWipeDirection
                     .value.set(
                         0,
