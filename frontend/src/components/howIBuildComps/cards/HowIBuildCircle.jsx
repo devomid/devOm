@@ -1,86 +1,135 @@
-import {
-    forwardRef,
-} from 'react'
+import Box from '@mui/material/Box'
 
-const HowIBuildCircle = forwardRef(
-    (
-        {
-            stage,
-            visible,
-            active,
-            onPointerEnter,
-            onPointerLeave,
-            onFocus,
-            onBlur,
-            onPointerDown,
-        },
-        ref,
-    ) => {
-        return (
-            <button
-                ref={ref}
-                type="button"
-                className={[
-                    'how-i-build-circle',
-                    visible
-                        ? 'how-i-build-circle--visible'
-                        : '',
-                    active
-                        ? 'how-i-build-circle--active'
-                        : '',
-                ].join(' ')}
-                onPointerEnter={
-                    onPointerEnter
-                }
-                onPointerLeave={
-                    onPointerLeave
-                }
-                onFocus={
-                    onFocus
-                }
-                onBlur={
-                    onBlur
-                }
-                onPointerDown={
-                    onPointerDown
-                }
-                tabIndex={
-                    visible
-                        ? 0
-                        : -1
-                }
-                aria-hidden={
-                    !visible
-                }
-            > <span
-                className="how-i-build-circle__number"
+export default function HowIBuildCircle({
+    stage,
+    visible,
+    circleRef,
+    onClick,
+}) {
+    return (
+        <Box
+            ref={
+                circleRef
+            }
+            component="button"
+            type="button"
+            onClick={
+                onClick
+            }
+            sx={{
+                position:
+                    'absolute',
+
+            /*
+             * Position is supplied by the parent.
+             */
+            transform:
+                'translate(-50%, -50%)',
+
+            width:
+                120,
+
+            height:
+                120,
+
+            padding:
+                0,
+
+            borderRadius:
+                '50%',
+
+            border:
+                '1px solid rgba(255,255,255,0.45)',
+
+            background:
+                'rgba(255,255,255,0.04)',
+
+            color:
+                '#ffffff',
+
+            display:
+                'flex',
+
+            alignItems:
+                'center',
+
+            justifyContent:
+                'center',
+
+            cursor:
+                'pointer',
+
+            opacity:
+                visible
+                    ? 1
+                    : 0,
+
+            pointerEvents:
+                visible
+                    ? 'auto'
+                    : 'none',
+
+            transition:
+                'opacity 350ms ease',
+
+            zIndex:
+                20,
+        }}
+    >
+        <Box
+            sx={{
+                display:
+                    'flex',
+
+                flexDirection:
+                    'column',
+
+                alignItems:
+                    'center',
+
+                justifyContent:
+                    'center',
+
+                gap:
+                    '4px',
+
+                pointerEvents:
+                    'none',
+            }}
+        >
+            <Box
+                component="span"
+                sx={{
+                    fontSize:
+                        11,
+
+                    opacity:
+                        0.55,
+                }}
             >
-                    {
-                        stage.number
-                    } </span>
+                {
+                    stage.number
+                }
+            </Box>
 
-                <span
-                    className="how-i-build-circle__title"
-                >
-                    {
-                        stage.title
-                    }
-                </span>
+            <Box
+                component="span"
+                sx={{
+                    fontSize:
+                        13,
 
-                <span
-                    className="how-i-build-circle__description"
-                >
-                    {
-                        stage.description
-                    }
-                </span>
-            </button>
-        )
-    },
+                    fontWeight:
+                        700,
 
+                    letterSpacing:
+                        '0.08em',
+                }}
+            >
+                {
+                    stage.title
+                }
+            </Box>
+        </Box>
+    </Box>
 )
-
-HowIBuildCircle.displayName =
-'HowIBuildCircle'
-
-export default HowIBuildCircle
+            }
