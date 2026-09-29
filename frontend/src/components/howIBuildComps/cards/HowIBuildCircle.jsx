@@ -4,15 +4,12 @@ import Box from '@mui/material/Box'
 export default function HowIBuildCircle({
     stage,
     visible,
-    circleRef,
+    left,
+    top,
     onClick,
 }) {
     return (
         <Box
-            ref={
-                circleRef
-            }
-
             component="button"
 
             type="button"
@@ -22,13 +19,12 @@ export default function HowIBuildCircle({
             }
 
             sx={{
-                /*
-                 * The parent calculates the exact ring
-                 * position and writes left/top.
-                 */
-
                 position:
                     'absolute',
+
+                left,
+
+                top,
 
                 transform:
                     'translate(-50%, -50%)',

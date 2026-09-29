@@ -20,20 +20,11 @@ export default function HowIBuild() {
         <main
             className="how-i-build"
             style={{
-                position:
-                    'relative',
-
-                width:
-                    '100%',
-
-                height:
-                    '100svh',
-
-                minHeight:
-                    '100svh',
-
-                overflow:
-                    'hidden',
+                position: 'relative',
+                width: '100%',
+                height: '100svh',
+                minHeight: '100svh',
+                overflow: 'hidden',
             }}
         >
             <HowIBuildNebulaText

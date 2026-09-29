@@ -1,7 +1,7 @@
 import {
     useCallback,
     useEffect,
-    useLayoutEffect,
+    useMemo,
     useRef,
     useState,
 } from 'react'
@@ -44,9 +44,6 @@ export default function HowIBuildContainer({
     const containerRef =
         useRef(null)
 
-    const circleRefs =
-        useRef([])
-
     const blowTimerRef =
         useRef(null)
 
@@ -55,159 +52,185 @@ export default function HowIBuildContainer({
         setVisibleCount,
     ] = useState(0)
 
-
-    /*
-     * ========================================================
-     * RING WORLD -> DOM POSITION
-     * ========================================================
-     *
-     * The Nebula Canvas and this DOM container occupy the
-     * exact same rectangle.
-     *
-     * Therefore we use the container's actual dimensions,
-     * NOT window.innerWidth / window.innerHeight.
-     */
-
-    const getRingPosition =
-        useCallback(
-            (
-                index,
-            ) => {
-                const container =
-                    containerRef.current
-
-                if (!container) {
-                    return null
-                }
-
-                const width =
-                    container.clientWidth
-
-                const height =
-                    container.clientHeight
-
-                if (
-                    width <= 0 ||
-                    height <= 0
-                ) {
-                    return null
-                }
-
-                const fovRadians =
-                    (
-                        CAMERA_FOV *
-                        Math.PI
-                    ) /
-                    180
-
-                const worldHeight =
-                    2 *
-                    CAMERA_Z *
-                    Math.tan(
-                        fovRadians /
-                        2,
-                    )
-
-                const worldWidth =
-                    worldHeight *
-                    (
-                        width /
-                        height
-                    )
-
-                const totalWidth =
-                    (
-                        RING_COUNT -
-                        1
-                    ) *
-                    RING_SPACING
-
-                const worldX =
-                    index *
-                        RING_SPACING -
-                    totalWidth /
-                        2
-
-                /*
-                 * Three.js perspective projection:
-                 *
-                 * world X = 0
-                 * -> screen center
-                 *
-                 * world Y = 0
-                 * -> screen center
-                 */
-
-                const x =
-                    (
-                        0.5 +
-                        worldX /
-                        worldWidth
-                    ) *
-                    width
-
-                const y =
-                    (
-                        0.5 -
-                        RING_Y /
-                        worldHeight
-                    ) *
-                    height
-
-                return {
-                    x,
-                    y,
-                }
-            },
-            [],
-        )
+    const [
+        containerSize,
+        setContainerSize,
+    ] = useState({
+        width: 0,
+        height: 0,
+    })
 
 
     /*
      * ========================================================
-     * POSITION DOM CIRCLES
+     * CONTAINER SIZE
      * ========================================================
+     *
+     * This is the exact rectangle occupied by the Nebula
+     * Canvas.
      */
 
-    const positionCircles =
-        useCallback(
+    useEffect(() => {
+        const container =
+            containerRef.current
+
+        if (!container) {
+            return undefined
+        }
+
+        const updateSize =
             () => {
-                HOW_I_BUILD_STAGES.forEach(
-                    (
-                        stage,
-                        index,
-                    ) => {
-                        const circle =
-                            circleRefs
-                                .current[
-                                    index
-                                ]
+                const rect =
+                    container.getBoundingClientRect()
 
-                        if (!circle) {
-                            return
-                        }
+                setContainerSize({
+                    width:
+                        rect.width,
 
-                        const position =
-                            getRingPosition(
-                                index,
-                            )
+                    height:
+                        rect.height,
+                })
+            }
 
-                        if (!position) {
-                            return
-                        }
+        updateSize()
 
-                        circle.style.left =
-                            `${ position.x } px`
+        const observer =
+            new ResizeObserver(
+                updateSize,
+            )
 
-                        circle.style.top =
-                            `${ position.y } px`
-                    },
-                )
-            },
-            [
-                getRingPosition,
-            ],
+        observer.observe(
+            container,
         )
+
+        return () => {
+            observer.disconnect()
+        }
+    }, [])
+
+
+    /*
+     * ========================================================
+     * WORLD GEOMETRY
+     * ========================================================
+     */
+
+    const worldGeometry =
+        useMemo(() => {
+            if (
+                containerSize.width <= 0 ||
+                containerSize.height <= 0
+            ) {
+                return null
+            }
+
+            const fovRadians =
+                (
+                    CAMERA_FOV *
+                    Math.PI
+                ) /
+                180
+
+            const worldHeight =
+                2 *
+                CAMERA_Z *
+                Math.tan(
+                    fovRadians /
+                    2,
+                )
+
+            const worldWidth =
+                worldHeight *
+                (
+                    containerSize.width /
+                    containerSize.height
+                )
+
+            const totalWidth =
+                (
+                    RING_COUNT -
+                    1
+                ) *
+                RING_SPACING
+
+            return {
+                worldHeight,
+                worldWidth,
+                totalWidth,
+            }
+        }, [
+            containerSize.width,
+            containerSize.height,
+        ])
+
+
+    /*
+     * ========================================================
+     * RING POSITIONS
+     * ========================================================
+     */
+
+    const ringPositions =
+        useMemo(() => {
+            if (!worldGeometry) {
+                return []
+            }
+
+            return HOW_I_BUILD_STAGES.map(
+                (
+                    stage,
+                    index,
+                ) => {
+                    const worldX =
+                        index *
+                            RING_SPACING -
+                        worldGeometry.totalWidth /
+                            2
+
+                    /*
+                     * Perspective camera projection.
+                     *
+                     * X:
+                     *
+                     * worldX 0
+                     * = exact horizontal center.
+                     */
+
+                    const x =
+                        (
+                            0.5 +
+                            worldX /
+                            worldGeometry.worldWidth
+                        ) *
+                        containerSize.width
+
+                    /*
+                     * Y:
+                     *
+                     * Ring world Y is -2.05,
+                     * therefore it appears below
+                     * the camera center.
+                     */
+
+                    const y =
+                        (
+                            0.5 -
+                            RING_Y /
+                            worldGeometry.worldHeight
+                        ) *
+                        containerSize.height
+
+                    return {
+                        x,
+                        y,
+                    }
+                },
+            )
+        }, [
+            worldGeometry,
+            containerSize.width,
+            containerSize.height,
+        ])
 
 
     /*
@@ -222,9 +245,9 @@ export default function HowIBuildContainer({
                 index,
             ) => {
                 const position =
-                    getRingPosition(
-                        index,
-                    )
+                    ringPositions[
+                        index
+                    ]
 
                 if (
                     !position ||
@@ -234,13 +257,8 @@ export default function HowIBuildContainer({
                 }
 
                 /*
-                 * IMPORTANT:
-                 *
-                 * These coordinates are LOCAL to the Nebula
-                 * canvas/container.
-                 *
-                 * That is the same coordinate system used
-                 * by NebulaBackground.
+                 * These coordinates are LOCAL to the
+                 * Nebula Canvas.
                  */
 
                 interactionRef.current = {
@@ -286,45 +304,10 @@ export default function HowIBuildContainer({
                     )
             },
             [
-                getRingPosition,
+                ringPositions,
                 interactionRef,
             ],
         )
-
-
-    /*
-     * ========================================================
-     * INITIAL / RESIZE POSITIONING
-     * ========================================================
-     */
-
-    useLayoutEffect(() => {
-        positionCircles()
-    }, [
-        positionCircles,
-    ])
-
-
-    useEffect(() => {
-        const handleResize =
-            () => {
-                positionCircles()
-            }
-
-        window.addEventListener(
-            'resize',
-            handleResize,
-        )
-
-        return () => {
-            window.removeEventListener(
-                'resize',
-                handleResize,
-            )
-        }
-    }, [
-        positionCircles,
-    ])
 
 
     /*
@@ -334,7 +317,11 @@ export default function HowIBuildContainer({
      */
 
     useEffect(() => {
-        if (!ringReady) {
+        if (
+            !ringReady ||
+            ringPositions.length !==
+                HOW_I_BUILD_STAGES.length
+        ) {
             setVisibleCount(0)
 
             return undefined
@@ -350,34 +337,14 @@ export default function HowIBuildContainer({
                 const timer =
                     window.setTimeout(
                         () => {
-                            /*
-                             * Make the circle visible.
-                             */
-
                             setVisibleCount(
                                 index + 1,
                             )
 
-                            /*
-                             * Position it against
-                             * the actual particle ring.
-                             */
-
                             window.requestAnimationFrame(
                                 () => {
-                                    positionCircles()
-
-                                    /*
-                                     * Then blow the
-                                     * corresponding ring.
-                                     */
-
-                                    window.requestAnimationFrame(
-                                        () => {
-                                            blowCircle(
-                                                index,
-                                            )
-                                        },
+                                    blowCircle(
+                                        index,
                                     )
                                 },
                             )
@@ -413,7 +380,7 @@ export default function HowIBuildContainer({
         }
     }, [
         ringReady,
-        positionCircles,
+        ringPositions.length,
         blowCircle,
     ])
 
@@ -451,6 +418,9 @@ export default function HowIBuildContainer({
             ref={
                 containerRef
             }
+
+            className="how-i-build-nebula-container"
+
             sx={{
                 position:
                     'absolute',
@@ -476,40 +446,47 @@ export default function HowIBuildContainer({
                     (
                         stage,
                         index,
-                    ) => (
-                        <HowIBuildCircle
-                            key={
-                                stage.id
-                            }
+                    ) => {
+                        const position =
+                            ringPositions[
+                                index
+                            ]
 
-                            stage={
-                                stage
-                            }
-
-                            visible={
-                                index <
-                                visibleCount
-                            }
-
-                            circleRef={
-                                (
-                                    element,
-                                ) => {
-                                    circleRefs
-                                        .current[
-                                            index
-                                        ] =
-                                        element
+                        return (
+                            <HowIBuildCircle
+                                key={
+                                    stage.id
                                 }
-                            }
 
-                            onClick={() => {
-                                blowCircle(
-                                    index,
-                                )
-                            }}
-                        />
-                    ),
+                                stage={
+                                    stage
+                                }
+
+                                visible={
+                                    index <
+                                    visibleCount
+                                }
+
+                                left={
+                                    position
+                                        ? position.x
+                                        : 0
+                                }
+
+                                top={
+                                    position
+                                        ? position.y
+                                        : 0
+                                }
+
+                                onClick={() => {
+                                    blowCircle(
+                                        index,
+                                    )
+                                }}
+                            />
+                        )
+                    },
                 )
             }
         </Box>
