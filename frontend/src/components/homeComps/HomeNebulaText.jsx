@@ -1,758 +1,366 @@
 import {
     useEffect,
-    useRef,
-    useState,
-} from 'react'
-
+    useMemo,
+} from 'react';
 import {
-    Box,
     Typography,
-} from '@mui/material'
+} from '@mui/material';
+import * as THREE from 'three';
 
-import * as THREE from 'three'
+import NebulaBackground from '../nebula/nebula';
 
-import NebulaBackground
-    from '../nebula/nebula'
+const TEXT_LINE_1 = 'Every little idea is';
+const TEXT_LINE_2 = 'like a small particle.';
 
+const TEXTURE_SIZE = 512;
+const PARTICLE_COUNT = TEXTURE_SIZE * TEXTURE_SIZE;
 
-const TEXT =
-    'Every little idea is like a small particle.'
+const TEXT_PARTICLE_RATIO = 0.66;
 
-const TEXTURE_SIZE =
-    512
+const TEXT_CANVAS_WIDTH = 1600;
+const TEXT_CANVAS_HEIGHT = 520;
 
-const PARTICLE_COUNT =
-    TEXTURE_SIZE *
-    TEXTURE_SIZE
+const TEXT_WORLD_WIDTH = 9.0;
+const TEXT_WORLD_HEIGHT = 2.9;
 
-const TEXT_PARTICLE_RATIO =
-    0.58
+const TARGET_JITTER_XY = 0.003;
+const TARGET_JITTER_Z = 0.008;
 
-const CAMERA_Z =
-    10
-
-const CAMERA_FOV =
-    60
-
-
-const createTexture = (
-    data,
-) => {
-    const texture =
-        new THREE.DataTexture(
-            data,
-            TEXTURE_SIZE,
-            TEXTURE_SIZE,
-            THREE.RGBAFormat,
-            THREE.FloatType,
-        )
-
-    texture.minFilter =
-        THREE.NearestFilter
-
-    texture.magFilter =
-        THREE.NearestFilter
-
-    texture.wrapS =
-        THREE.ClampToEdgeWrapping
-
-    texture.wrapT =
-        THREE.ClampToEdgeWrapping
-
-    texture.generateMipmaps =
-        false
-
-    texture.needsUpdate =
-        true
-
-    return texture
-}
-
-
-const parsePixelValue = (
-    value,
-) => {
-    if (
-        !value ||
-        value === 'normal'
-    ) {
-        return 0
-    }
-
-    const parsed =
-        Number.parseFloat(
-            value,
-        )
-
-    return Number.isFinite(
-        parsed,
-    )
-        ? parsed
-        : 0
-}
-
-
-const drawLetterSpacedText = ({
-    context,
+function drawLetterSpacedText(
+    ctx,
     text,
     centerX,
     baselineY,
-    letterSpacing,
-}) => {
-    if (
-        !text
-    ) {
-        return
-    }
+    font,
+    letterSpacing
+) {
+    ctx.font = font;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
 
-    if (
-        Math.abs(
-            letterSpacing,
-        ) <
-        0.01
-    ) {
-        context.textAlign =
-            'center'
+    const characters = [...text];
 
-        context.fillText(
-            text,
-            centerX,
-            baselineY,
-        )
-
-        return
-    }
-
-    const characters =
-        Array.from(
-            text,
-        )
-
-    const widths =
-        characters.map(
-            character =>
-                context.measureText(
-                    character,
-                ).width,
-        )
+    const widths = characters.map((character) =>
+        ctx.measureText(character).width
+    );
 
     const totalWidth =
         widths.reduce(
-            (
-                total,
-                width,
-            ) =>
-                total +
-                width,
-            0,
+            (sum, width) => sum + width,
+            0
         ) +
-        letterSpacing *
-        Math.max(
-            characters.length - 1,
-            0,
-        )
+        Math.max(0, characters.length - 1) *
+        letterSpacing;
 
-    let cursor =
-        centerX -
-        totalWidth / 2
+    let x = centerX - totalWidth / 2;
 
-    context.textAlign =
-        'left'
+    characters.forEach((character, index) => {
+        ctx.fillText(character, x, baselineY);
 
-    characters.forEach(
-        (
-            character,
-            index,
-        ) => {
-            context.fillText(
-                character,
-                cursor,
-                baselineY,
-            )
-
-            cursor +=
-                widths[index] +
-                letterSpacing
-        },
-    )
+        x +=
+            widths[index] +
+            letterSpacing;
+    });
 }
 
+function createTextTargetTexture() {
+    const canvas = document.createElement('canvas');
 
-const createTextTargetTexture = (
-    element,
-) => {
-    if (
-        !element
-    ) {
-        return null
+    canvas.width = TEXT_CANVAS_WIDTH;
+    canvas.height = TEXT_CANVAS_HEIGHT;
+
+    const ctx = canvas.getContext('2d', {
+        willReadFrequently: true,
+    });
+
+    if (!ctx) {
+        return null;
     }
 
-    const rect =
-        element.getBoundingClientRect()
+    ctx.clearRect(
+        0,
+        0,
+        TEXT_CANVAS_WIDTH,
+        TEXT_CANVAS_HEIGHT
+    );
 
-    if (
-        rect.width <= 0 ||
-        rect.height <= 0
-    ) {
-        return null
-    }
+    ctx.fillStyle = '#ffffff';
 
-    const computed =
-        window.getComputedStyle(
-            element,
-        )
+    const fontSize = 170;
 
-    const viewportWidth =
-        window.innerWidth
-
-    const viewportHeight =
-        window.innerHeight
-
-    const visibleWorldHeight =
-        2 *
-        CAMERA_Z *
-        Math.tan(
-            THREE.MathUtils.degToRad(
-                CAMERA_FOV / 2,
-            ),
-        )
-
-    const worldUnitsPerPixel =
-        visibleWorldHeight /
-        viewportHeight
-
-    const fontSize =
-        parsePixelValue(
-            computed.fontSize,
-        )
-
-    const fontWeight =
-        computed.fontWeight ||
-        '400'
-
-    const fontStyle =
-        computed.fontStyle ||
-        'normal'
-
-    const fontFamily =
-        computed.fontFamily ||
-        '"Neue Montreal", sans-serif'
+    const font =
+        `550 ${fontSize}px ` +
+        `"Neue Montreal", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
-        parsePixelValue(
-            computed.letterSpacing,
-        )
-
-    const lineHeight =
-        computed.lineHeight ===
-            'normal'
-            ? fontSize * 1.2
-            : parsePixelValue(
-                computed.lineHeight,
-            )
-
-    const canvas =
-        document.createElement(
-            'canvas',
-        )
-
-    canvas.width =
-        Math.max(
-            1,
-            Math.ceil(
-                viewportWidth,
-            ),
-        )
-
-    canvas.height =
-        Math.max(
-            1,
-            Math.ceil(
-                viewportHeight,
-            ),
-        )
-
-    const context =
-        canvas.getContext(
-            '2d',
-        )
-
-    if (
-        !context
-    ) {
-        return null
-    }
-
-    context.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-    )
-
-    context.fillStyle =
-        '#ffffff'
-
-    context.font =
-        `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`
-
-    context.textBaseline =
-        'middle'
+        fontSize * 0.018;
 
     const centerX =
-        rect.left +
-        rect.width / 2
+        TEXT_CANVAS_WIDTH / 2;
 
     const centerY =
-        rect.top +
-        rect.height / 2
-
-    drawLetterSpacedText({
-        context,
-        text:
-            TEXT,
-        centerX,
-        baselineY:
-            centerY +
-            (
-                lineHeight -
-                fontSize
-            ) * 0.02,
-        letterSpacing,
-    })
-
-    const image =
-        context.getImageData(
-            0,
-            0,
-            canvas.width,
-            canvas.height,
-        )
-
-    const candidates =
-        []
+        TEXT_CANVAS_HEIGHT / 2;
 
     /*
-     * Keep target generation reasonably cheap
-     * on large displays.
+     * Two-line layout
+     *
+     * Every little idea is
+     * like a small particle.
      */
-    const sampleStep =
-        Math.max(
-            1,
-            Math.ceil(
-                Math.max(
-                    viewportWidth,
-                    viewportHeight,
-                ) /
-                2200,
-            ),
-        )
+
+    const lineGap = fontSize * 0.18;
+
+    const lineOffset =
+        (fontSize + lineGap) / 2;
+
+    const baselineCorrection =
+        fontSize * 0.34;
+
+    const firstLineBaseline =
+        centerY -
+        lineOffset +
+        baselineCorrection;
+
+    const secondLineBaseline =
+        centerY +
+        lineOffset +
+        baselineCorrection;
+
+    drawLetterSpacedText(
+        ctx,
+        TEXT_LINE_1,
+        centerX,
+        firstLineBaseline,
+        font,
+        letterSpacing
+    );
+
+    drawLetterSpacedText(
+        ctx,
+        TEXT_LINE_2,
+        centerX,
+        secondLineBaseline,
+        font,
+        letterSpacing
+    );
+
+    const imageData = ctx.getImageData(
+        0,
+        0,
+        TEXT_CANVAS_WIDTH,
+        TEXT_CANVAS_HEIGHT
+    );
+
+    const pixels = imageData.data;
+
+    const targetData =
+        new Float32Array(
+            PARTICLE_COUNT * 4
+        );
+
+    const candidates = [];
 
     for (
         let y = 0;
-        y < canvas.height;
-        y += sampleStep
+        y < TEXT_CANVAS_HEIGHT;
+        y += 1
     ) {
         for (
             let x = 0;
-            x < canvas.width;
-            x += sampleStep
+            x < TEXT_CANVAS_WIDTH;
+            x += 1
         ) {
             const pixelIndex =
-                (
-                    y *
-                    canvas.width +
-                    x
-                ) *
-                4
+                (y * TEXT_CANVAS_WIDTH + x) *
+                4;
 
             const alpha =
-                image.data[
-                pixelIndex + 3
-                ]
+                pixels[pixelIndex + 3];
 
-            if (
-                alpha >
-                100
-            ) {
+            if (alpha > 100) {
                 candidates.push({
                     x,
                     y,
-                })
+                    alpha,
+                });
             }
         }
     }
 
-    if (
-        candidates.length === 0
-    ) {
-        return null
-    }
-
-    const data =
-        new Float32Array(
+    const requiredTextParticles =
+        Math.floor(
             PARTICLE_COUNT *
-            4,
-        )
-
-    for (
-        let particleIndex = 0;
-        particleIndex <
-        PARTICLE_COUNT;
-        particleIndex += 1
-    ) {
-        const textureIndex =
-            particleIndex *
-            4
-
-        const hash =
-            (
-                particleIndex *
-                1664525 +
-                1013904223
-            ) >>>
-            0
-
-        const normalizedHash =
-            hash /
-            4294967295
-
-        /*
-         * The remaining particles stay part
-         * of the normal free nebula field.
-         */
-        if (
-            normalizedHash >
             TEXT_PARTICLE_RATIO
+        );
+
+    /*
+     * Distribute the particles evenly
+     * across the actual text pixels.
+     */
+    for (
+        let i = 0;
+        i < PARTICLE_COUNT;
+        i += 1
+    ) {
+        const offset = i * 4;
+
+        if (
+            i < requiredTextParticles &&
+            candidates.length > 0
         ) {
-            data[
-                textureIndex + 3
-            ] = 0
+            const candidateIndex =
+                Math.floor(
+                    (i /
+                        requiredTextParticles) *
+                    candidates.length
+                );
 
-            continue
+            const particle =
+                candidates[
+                Math.min(
+                    candidateIndex,
+                    candidates.length - 1
+                )
+                ];
+
+            const normalizedX =
+                particle.x /
+                TEXT_CANVAS_WIDTH;
+
+            const normalizedY =
+                particle.y /
+                TEXT_CANVAS_HEIGHT;
+
+            const worldX =
+                (normalizedX - 0.5) *
+                TEXT_WORLD_WIDTH;
+
+            const worldY =
+                (0.5 - normalizedY) *
+                TEXT_WORLD_HEIGHT;
+
+            targetData[offset] =
+                worldX +
+                (Math.random() - 0.5) *
+                TARGET_JITTER_XY;
+
+            targetData[offset + 1] =
+                worldY +
+                (Math.random() - 0.5) *
+                TARGET_JITTER_XY;
+
+            targetData[offset + 2] =
+                (Math.random() - 0.5) *
+                TARGET_JITTER_Z;
+
+            targetData[offset + 3] =
+                particle.alpha / 255;
+        } else {
+            targetData[offset] = 0;
+            targetData[offset + 1] = 0;
+            targetData[offset + 2] = 0;
+            targetData[offset + 3] = 0;
         }
-
-        const candidateIndex =
-            (
-                particleIndex *
-                15731 +
-                789221
-            ) %
-            candidates.length
-
-        const candidate =
-            candidates[
-            candidateIndex
-            ]
-
-        const worldX =
-            (
-                candidate.x -
-                viewportWidth / 2
-            ) *
-            worldUnitsPerPixel
-
-        const worldY =
-            (
-                viewportHeight / 2 -
-                candidate.y
-            ) *
-            worldUnitsPerPixel
-
-        const variation =
-            particleIndex *
-            0.0137
-
-        data[
-            textureIndex
-        ] =
-            worldX +
-            Math.sin(
-                variation *
-                1.71,
-            ) *
-            0.008
-
-        data[
-            textureIndex + 1
-        ] =
-            worldY +
-            Math.cos(
-                variation *
-                1.43,
-            ) *
-            0.008
-
-        data[
-            textureIndex + 2
-        ] =
-            Math.sin(
-                variation *
-                0.91,
-            ) *
-            0.025
-
-        data[
-            textureIndex + 3
-        ] =
-            1
     }
 
-    return createTexture(
-        data,
-    )
+    const texture =
+        new THREE.DataTexture(
+            targetData,
+            TEXTURE_SIZE,
+            TEXTURE_SIZE,
+            THREE.RGBAFormat,
+            THREE.FloatType
+        );
+
+    texture.needsUpdate = true;
+
+    texture.magFilter =
+        THREE.NearestFilter;
+
+    texture.minFilter =
+        THREE.NearestFilter;
+
+    texture.wrapS =
+        THREE.ClampToEdgeWrapping;
+
+    texture.wrapT =
+        THREE.ClampToEdgeWrapping;
+
+    return texture;
 }
 
+export default function HomeNebulaText() {
+    const textTargetTexture =
+        useMemo(
+            () =>
+                createTextTargetTexture(),
+            []
+        );
 
-const HomeNebulaText = () => {
-    const typographyRef =
-        useRef(null)
-
-    const [
-        textTargetTexture,
-        setTextTargetTexture,
-    ] = useState(null)
-
-    useEffect(
-        () => {
-            let cancelled =
-                false
-
-            let resizeObserver =
-                null
-
-            const rebuild =
-                () => {
-                    if (
-                        cancelled ||
-                        !typographyRef.current
-                    ) {
-                        return
-                    }
-
-                    const texture =
-                        createTextTargetTexture(
-                            typographyRef.current,
-                        )
-
-                    if (
-                        !texture
-                    ) {
-                        return
-                    }
-
-                    setTextTargetTexture(
-                        previous => {
-                            previous?.dispose()
-
-                            return texture
-                        },
-                    )
-                }
-
-            const start =
-                async () => {
-                    if (
-                        document.fonts
-                    ) {
-                        try {
-                            await document.fonts.ready
-                        } catch {
-                            /*
-                             * Continue using whatever
-                             * font is currently available.
-                             */
-                        }
-                    }
-
-                    if (
-                        cancelled
-                    ) {
-                        return
-                    }
-
-                    rebuild()
-
-                    resizeObserver =
-                        new ResizeObserver(
-                            () => {
-                                rebuild()
-                            },
-                        )
-
-                    if (
-                        typographyRef.current
-                    ) {
-                        resizeObserver.observe(
-                            typographyRef.current,
-                        )
-                    }
-                }
-
-            start()
-
-            window.addEventListener(
-                'resize',
-                rebuild,
-            )
-
-            return () => {
-                cancelled =
-                    true
-
-                resizeObserver?.disconnect()
-
-                window.removeEventListener(
-                    'resize',
-                    rebuild,
-                )
-
-                setTextTargetTexture(
-                    previous => {
-                        previous?.dispose()
-
-                        return null
-                    },
-                )
-            }
-        },
-        [],
-    )
+    useEffect(() => {
+        return () => {
+            textTargetTexture?.dispose();
+        };
+    }, [textTargetTexture]);
 
     return (
-        <Box
-            sx={{
-                position:
-                    'absolute',
-
-                inset:
-                    0,
-
-                width:
-                    '100%',
-
-                height:
-                    '100%',
-
-                pointerEvents:
-                    'none',
-
-                display:
-                    'flex',
-
-                alignItems:
-                    'center',
-
-                justifyContent:
-                    'center',
-
-                zIndex:
-                    2,
-            }}
-        >
-            {/*
-             * This Typography is intentionally invisible.
-             *
-             * It is the exact geometric reference used to
-             * create the particle target.
-             */}
-            <Typography
-                ref={
-                    typographyRef
-                }
-                component="div"
-                sx={{
-                    position:
-                        'absolute',
-
-                    left:
-                        '50%',
-
-                    top:
-                        '50%',
-
-                    transform:
-                        'translate(-50%, -50%)',
-
-                    margin:
-                        0,
-
-                    padding:
-                        0,
-
-                    width:
-                        'min(90vw, 1200px)',
-
-                    textAlign:
-                        'center',
-
-                    whiteSpace:
-                        'nowrap',
-
-                    fontFamily:
-                        '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
-
-                    fontSize:
-                        'clamp(2rem, 4.2vw, 4.8rem)',
-
-                    fontWeight:
-                        500,
-
-                    lineHeight:
-                        1.05,
-
-                    letterSpacing:
-                        '-0.045em',
-
-                    color:
-                        'transparent',
-
-                    opacity:
-                        0,
-
-                    pointerEvents:
-                        'none',
+        <>
+            <div
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2,
                 }}
             >
-                {TEXT}
-            </Typography>
+                <Typography
+                    component="div"
+                    sx={{
+                        width:
+                            'min(90vw, 1200px)',
 
-            <Box
-                sx={{
-                    position:
-                        'absolute',
+                        textAlign: 'center',
 
-                    inset:
-                        0,
+                        fontFamily:
+                            '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
 
-                    width:
-                        '100%',
+                        fontSize:
+                            'clamp(1.85rem, 3.15vw, 4rem)',
 
-                    height:
-                        '100%',
+                        fontWeight: 550,
 
-                    pointerEvents:
-                        'none',
-                }}
-            >
-                <NebulaBackground
-                    textEnabled={
-                        Boolean(
-                            textTargetTexture,
-                        )
-                    }
+                        lineHeight: 1.12,
 
-                    textTargetTexture={
+                        letterSpacing:
+                            '0.018em',
+
+                        color: 'transparent',
+
+                        userSelect: 'none',
+
+                        whiteSpace: 'normal',
+                    }}
+                >
+                    {TEXT_LINE_1}
+                    <br />
+                    {TEXT_LINE_2}
+                </Typography>
+            </div>
+
+            <NebulaBackground
+                textEnabled={
+                    Boolean(
                         textTargetTexture
-                    }
-
-                    textStrength={
-                        1.0
-                    }
-                />
-            </Box>
-        </Box>
-    )
+                    )
+                }
+                textTargetTexture={
+                    textTargetTexture
+                }
+                textStrength={5.2}
+            />
+        </>
+    );
 }
-
-export default HomeNebulaText
