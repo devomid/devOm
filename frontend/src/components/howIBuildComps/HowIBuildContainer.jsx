@@ -623,8 +623,6 @@ export default function HowIBuildContainer({
 
                 pointerEvents: 'none',
 
-                perspective: '1000px',
-                transformStyle: 'preserve-3d',
             }}
         >
             {

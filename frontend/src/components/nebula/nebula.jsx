@@ -2462,7 +2462,7 @@ const NebulaParticles = ({
                         false,
 
                     depthTest:
-                        true,
+                        false,
 
                     blending:
                         THREE.NormalBlending,

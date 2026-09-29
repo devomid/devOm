@@ -74,9 +74,6 @@ export default function HowIBuildCircle({
                 transition:
                     'opacity 350ms ease',
 
-                zIndex:
-                    20,
-
                 boxSizing:
                     'border-box',
             }}
