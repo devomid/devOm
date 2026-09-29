@@ -1,7 +1,5 @@
 import {
-    forwardRef,
     useEffect,
-    useImperativeHandle,
     useRef,
     useState,
 } from 'react'
@@ -16,10 +14,9 @@ import * as THREE from 'three'
 import NebulaBackground
     from '../nebula/nebula'
 
-import {
-    nebulaWipeState,
-} from '../whatibuildComps/nebulaWipe'
 
+const TEXT =
+    'Every little idea is like a small particle.'
 
 const TEXTURE_SIZE =
     512
@@ -181,13 +178,11 @@ const drawLetterSpacedText = ({
 }
 
 
-const createTextTargetTexture = ({
+const createTextTargetTexture = (
     element,
-    lines,
-}) => {
+) => {
     if (
-        !element ||
-        !lines?.length
+        !element
     ) {
         return null
     }
@@ -213,17 +208,6 @@ const createTextTargetTexture = ({
     const viewportHeight =
         window.innerHeight
 
-    /*
-     * The shared nebula camera is:
-     *
-     * position z = 10
-     * FOV = 60
-     *
-     * We use the exact same projection here so the
-     * particle target occupies the same screen geometry
-     * as the MUI Typography.
-     */
-
     const visibleWorldHeight =
         2 *
         CAMERA_Z *
@@ -236,10 +220,6 @@ const createTextTargetTexture = ({
     const worldUnitsPerPixel =
         visibleWorldHeight /
         viewportHeight
-
-    /*
-     * Use the actual browser-computed MUI typography.
-     */
 
     const fontSize =
         parsePixelValue(
@@ -271,12 +251,6 @@ const createTextTargetTexture = ({
                 computed.lineHeight,
             )
 
-    /*
-     * Render at viewport resolution so the resulting
-     * particle coordinates can be mapped directly back
-     * to the Three.js camera.
-     */
-
     const canvas =
         document.createElement(
             'canvas',
@@ -303,7 +277,9 @@ const createTextTargetTexture = ({
             '2d',
         )
 
-    if (!context) {
+    if (
+        !context
+    ) {
         return null
     }
 
@@ -323,11 +299,6 @@ const createTextTargetTexture = ({
     context.textBaseline =
         'middle'
 
-    /*
-     * Typography's real bounding box is used as the
-     * exact particle target position.
-     */
-
     const centerX =
         rect.left +
         rect.width / 2
@@ -336,36 +307,19 @@ const createTextTargetTexture = ({
         rect.top +
         rect.height / 2
 
-    const totalTextHeight =
-        lineHeight *
-        lines.length
-
-    const firstLineCenterY =
-        centerY -
-        totalTextHeight / 2 +
-        lineHeight / 2
-
-    lines.forEach(
-        (
-            line,
-            index,
-        ) => {
-            const lineY =
-                firstLineCenterY +
-                index *
-                lineHeight
-
-            drawLetterSpacedText({
-                context,
-                text:
-                    line,
-                centerX,
-                baselineY:
-                    lineY,
-                letterSpacing,
-            })
-        },
-    )
+    drawLetterSpacedText({
+        context,
+        text:
+            TEXT,
+        centerX,
+        baselineY:
+            centerY +
+            (
+                lineHeight -
+                fontSize
+            ) * 0.02,
+        letterSpacing,
+    })
 
     const image =
         context.getImageData(
@@ -375,22 +329,13 @@ const createTextTargetTexture = ({
             canvas.height,
         )
 
-    const data =
-        new Float32Array(
-            PARTICLE_COUNT *
-            4,
-        )
-
     const candidates =
         []
 
     /*
-     * Do not inspect every pixel at extremely large
-     * desktop resolutions. A small sampling step keeps
-     * the target generation inexpensive while retaining
-     * enough geometry for the 262k-particle system.
+     * Keep target generation reasonably cheap
+     * on large displays.
      */
-
     const sampleStep =
         Math.max(
             1,
@@ -399,7 +344,7 @@ const createTextTargetTexture = ({
                     viewportWidth,
                     viewportHeight,
                 ) /
-                1600,
+                2200,
             ),
         )
 
@@ -444,6 +389,12 @@ const createTextTargetTexture = ({
         return null
     }
 
+    const data =
+        new Float32Array(
+            PARTICLE_COUNT *
+            4,
+        )
+
     for (
         let particleIndex = 0;
         particleIndex <
@@ -459,12 +410,17 @@ const createTextTargetTexture = ({
                 particleIndex *
                 1664525 +
                 1013904223
-            ) >>> 0
+            ) >>>
+            0
 
         const normalizedHash =
             hash /
             4294967295
 
+        /*
+         * The remaining particles stay part
+         * of the normal free nebula field.
+         */
         if (
             normalizedHash >
             TEXT_PARTICLE_RATIO
@@ -512,7 +468,8 @@ const createTextTargetTexture = ({
         ] =
             worldX +
             Math.sin(
-                variation * 1.71,
+                variation *
+                1.71,
             ) *
             0.008
 
@@ -521,7 +478,8 @@ const createTextTargetTexture = ({
         ] =
             worldY +
             Math.cos(
-                variation * 1.43,
+                variation *
+                1.43,
             ) *
             0.008
 
@@ -529,13 +487,15 @@ const createTextTargetTexture = ({
             textureIndex + 2
         ] =
             Math.sin(
-                variation * 0.91,
+                variation *
+                0.91,
             ) *
             0.025
 
         data[
             textureIndex + 3
-        ] = 1
+        ] =
+            1
     }
 
     return createTexture(
@@ -544,418 +504,219 @@ const createTextTargetTexture = ({
 }
 
 
-const HomeNebulaText = forwardRef(
-    (
-        {
-            text,
-            lines = null,
+const HomeNebulaText = () => {
+    const typographyRef =
+        useRef(null)
 
-            typographySx = {},
+    const [
+        textTargetTexture,
+        setTextTargetTexture,
+    ] = useState(null)
 
-            showTypography = false,
+    useEffect(
+        () => {
+            let cancelled =
+                false
 
-            typographyOpacity = 0,
+            let resizeObserver =
+                null
 
-            nebulaEnabled = true,
+            const rebuild =
+                () => {
+                    if (
+                        cancelled ||
+                        !typographyRef.current
+                    ) {
+                        return
+                    }
 
-            textStrength = 1,
-
-            disturbance = false,
-
-            disturbanceDirection =
-            'right',
-
-            zIndex = 3,
-
-            onTypographyReady = null,
-        },
-        ref,
-    ) => {
-        const typographyRef =
-            useRef(null)
-
-        const [
-            textTargetTexture,
-            setTextTargetTexture,
-        ] = useState(null)
-
-        const wipeIndexRef =
-            useRef(
-                Math.random(),
-            )
-
-        const animationFrameRef =
-            useRef(null)
-
-        const resizeObserverRef =
-            useRef(null)
-
-        const disturbanceStartRef =
-            useRef(null)
-
-        const lastDisturbanceRef =
-            useRef(false)
-
-        const actualLines =
-            lines ||
-            [text]
-
-        useImperativeHandle(
-            ref,
-            () => ({
-                getElement:
-                    () =>
-                        typographyRef.current,
-            }),
-            [],
-        )
-
-        /*
-         * ----------------------------------------------------
-         * TEXTURE CREATION
-         * ----------------------------------------------------
-         */
-
-        useEffect(
-            () => {
-                let cancelled =
-                    false
-
-                const rebuild =
-                    () => {
-                        if (
-                            cancelled ||
-                            !typographyRef.current
-                        ) {
-                            return
-                        }
-
-                        const texture =
-                            createTextTargetTexture({
-                                element:
-                                    typographyRef.current,
-                                lines:
-                                    actualLines,
-                            })
-
-                        if (
-                            !texture
-                        ) {
-                            return
-                        }
-
-                        setTextTargetTexture(
-                            previous => {
-                                previous?.dispose()
-
-                                return texture
-                            },
+                    const texture =
+                        createTextTargetTexture(
+                            typographyRef.current,
                         )
 
-                        if (
-                            onTypographyReady
-                        ) {
-                            onTypographyReady()
-                        }
+                    if (
+                        !texture
+                    ) {
+                        return
                     }
-
-                const start =
-                    async () => {
-                        if (
-                            document.fonts
-                        ) {
-                            try {
-                                await document.fonts.ready
-                            } catch {
-                                // Continue with the browser's
-                                // currently available font.
-                            }
-                        }
-
-                        if (
-                            cancelled
-                        ) {
-                            return
-                        }
-
-                        rebuild()
-
-                        const observer =
-                            new ResizeObserver(
-                                () => {
-                                    rebuild()
-                                },
-                            )
-
-                        if (
-                            typographyRef.current
-                        ) {
-                            observer.observe(
-                                typographyRef.current,
-                            )
-                        }
-
-                        resizeObserverRef.current =
-                            observer
-                    }
-
-                start()
-
-                return () => {
-                    cancelled =
-                        true
-
-                    resizeObserverRef.current?.disconnect()
-
-                    resizeObserverRef.current =
-                        null
 
                     setTextTargetTexture(
                         previous => {
                             previous?.dispose()
 
-                            return null
+                            return texture
                         },
                     )
                 }
-            },
-            [
-                actualLines.join('|'),
-                onTypographyReady,
-            ],
-        )
 
-        /*
-         * ----------------------------------------------------
-         * WIND / DISTURBANCE
-         * ----------------------------------------------------
-         */
-
-        useEffect(
-            () => {
-                if (
-                    !disturbance ||
-                    !typographyRef.current
-                ) {
-                    lastDisturbanceRef.current =
-                        false
-
+            const start =
+                async () => {
                     if (
-                        animationFrameRef.current
+                        document.fonts
                     ) {
-                        cancelAnimationFrame(
-                            animationFrameRef.current,
-                        )
-
-                        animationFrameRef.current =
-                            null
+                        try {
+                            await document.fonts.ready
+                        } catch {
+                            /*
+                             * Continue using whatever
+                             * font is currently available.
+                             */
+                        }
                     }
 
-                    nebulaWipeState.current =
-                        null
+                    if (
+                        cancelled
+                    ) {
+                        return
+                    }
 
-                    return undefined
+                    rebuild()
+
+                    resizeObserver =
+                        new ResizeObserver(
+                            () => {
+                                rebuild()
+                            },
+                        )
+
+                    if (
+                        typographyRef.current
+                    ) {
+                        resizeObserver.observe(
+                            typographyRef.current,
+                        )
+                    }
                 }
 
-                if (
-                    lastDisturbanceRef.current
-                ) {
-                    return undefined
-                }
+            start()
 
-                lastDisturbanceRef.current =
+            window.addEventListener(
+                'resize',
+                rebuild,
+            )
+
+            return () => {
+                cancelled =
                     true
 
-                const rect =
-                    typographyRef.current.getBoundingClientRect()
+                resizeObserver?.disconnect()
 
-                const width =
-                    Math.max(
-                        rect.width *
-                        0.72,
-                        180,
-                    )
+                window.removeEventListener(
+                    'resize',
+                    rebuild,
+                )
 
-                const height =
-                    Math.max(
-                        rect.height *
-                        1.15,
-                        100,
-                    )
+                setTextTargetTexture(
+                    previous => {
+                        previous?.dispose()
 
-                const viewportWidth =
-                    window.innerWidth
+                        return null
+                    },
+                )
+            }
+        },
+        [],
+    )
 
-                const direction =
-                    disturbanceDirection ===
-                        'left'
-                        ? -1
-                        : 1
+    return (
+        <Box
+            sx={{
+                position:
+                    'absolute',
 
-                const startX =
-                    direction > 0
-                        ? -width * 1.15
-                        : viewportWidth +
-                        width * 0.15
+                inset:
+                    0,
 
-                const endX =
-                    direction > 0
-                        ? viewportWidth +
-                        width * 0.15
-                        : -width * 1.15
+                width:
+                    '100%',
 
-                const startY =
-                    rect.top +
-                    rect.height / 2 -
-                    height / 2
+                height:
+                    '100%',
 
-                const distance =
-                    Math.abs(
-                        endX -
-                        startX,
-                    )
+                pointerEvents:
+                    'none',
 
-                const duration =
-                    1050
+                display:
+                    'flex',
 
-                const startedAt =
-                    performance.now()
+                alignItems:
+                    'center',
 
-                disturbanceStartRef.current =
-                    startedAt
+                justifyContent:
+                    'center',
 
-                const animate =
-                    now => {
-                        const elapsed =
-                            now -
-                            startedAt
-
-                        const progress =
-                            Math.min(
-                                elapsed /
-                                duration,
-                                1,
-                            )
-
-                        const eased =
-                            1 -
-                            Math.pow(
-                                1 -
-                                progress,
-                                3,
-                            )
-
-                        const x =
-                            startX +
-                            (
-                                endX -
-                                startX
-                            ) *
-                            eased
-
-                        nebulaWipeState.current =
-                        {
-                            index:
-                                wipeIndexRef.current,
-
-                            x,
-
-                            y:
-                                startY,
-
-                            width,
-
-                            height,
-                        }
-
-                        if (
-                            progress <
-                            1
-                        ) {
-                            animationFrameRef.current =
-                                requestAnimationFrame(
-                                    animate,
-                                )
-
-                            return
-                        }
-
-                        nebulaWipeState.current =
-                            null
-
-                        animationFrameRef.current =
-                            null
-                    }
-
-                /*
-                 * Force a first frame so the wipe state
-                 * exists immediately.
-                 */
-
-                nebulaWipeState.current =
-                {
-                    index:
-                        wipeIndexRef.current,
-
-                    x:
-                        startX,
-
-                    y:
-                        startY,
-
-                    width,
-
-                    height,
+                zIndex:
+                    2,
+            }}
+        >
+            {/*
+             * This Typography is intentionally invisible.
+             *
+             * It is the exact geometric reference used to
+             * create the particle target.
+             */}
+            <Typography
+                ref={
+                    typographyRef
                 }
+                component="div"
+                sx={{
+                    position:
+                        'absolute',
 
-                animationFrameRef.current =
-                    requestAnimationFrame(
-                        animate,
-                    )
+                    left:
+                        '50%',
 
-                return () => {
-                    if (
-                        animationFrameRef.current
-                    ) {
-                        cancelAnimationFrame(
-                            animationFrameRef.current,
-                        )
+                    top:
+                        '50%',
 
-                        animationFrameRef.current =
-                            null
-                    }
+                    transform:
+                        'translate(-50%, -50%)',
 
-                    nebulaWipeState.current =
-                        null
-                }
-            },
-            [
-                disturbance,
-                disturbanceDirection,
-            ],
-        )
+                    margin:
+                        0,
 
-        useEffect(
-            () => {
-                return () => {
-                    if (
-                        animationFrameRef.current
-                    ) {
-                        cancelAnimationFrame(
-                            animationFrameRef.current,
-                        )
-                    }
+                    padding:
+                        0,
 
-                    nebulaWipeState.current =
-                        null
+                    width:
+                        'min(90vw, 1200px)',
 
-                    textTargetTexture?.dispose()
-                }
-            },
-            [],
-        )
+                    textAlign:
+                        'center',
 
-        return (
+                    whiteSpace:
+                        'nowrap',
+
+                    fontFamily:
+                        '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
+
+                    fontSize:
+                        'clamp(2rem, 4.2vw, 4.8rem)',
+
+                    fontWeight:
+                        500,
+
+                    lineHeight:
+                        1.05,
+
+                    letterSpacing:
+                        '-0.045em',
+
+                    color:
+                        'transparent',
+
+                    opacity:
+                        0,
+
+                    pointerEvents:
+                        'none',
+                }}
+            >
+                {TEXT}
+            </Typography>
+
             <Box
                 sx={{
                     position:
@@ -972,77 +733,26 @@ const HomeNebulaText = forwardRef(
 
                     pointerEvents:
                         'none',
-
-                    zIndex,
                 }}
             >
-                <Typography
-                    ref={
-                        typographyRef
+                <NebulaBackground
+                    textEnabled={
+                        Boolean(
+                            textTargetTexture,
+                        )
                     }
-                    component="div"
-                    sx={{
-                        position:
-                            'absolute',
 
-                        left:
-                            '50%',
+                    textTargetTexture={
+                        textTargetTexture
+                    }
 
-                        top:
-                            '50%',
-
-                        transform:
-                            'translate(-50%, -50%)',
-
-                        margin:
-                            0,
-
-                        padding:
-                            0,
-
-                        whiteSpace:
-                            'pre-line',
-
-                        textAlign:
-                            'center',
-
-                        opacity:
-                            typographyOpacity,
-
-                        pointerEvents:
-                            'none',
-
-                        ...typographySx,
-                    }}
-                >
-                    {actualLines.join(
-                        '\n',
-                    )}
-                </Typography>
-
-                {nebulaEnabled && (
-                    <NebulaBackground
-                        textEnabled={
-                            Boolean(
-                                textTargetTexture,
-                            )
-                        }
-
-                        textTargetTexture={
-                            textTargetTexture
-                        }
-
-                        textStrength={
-                            textStrength
-                        }
-                    />
-                )}
+                    textStrength={
+                        1.0
+                    }
+                />
             </Box>
-        )
-    },
-)
-
-HomeNebulaText.displayName =
-    'HomeNebulaText'
+        </Box>
+    )
+}
 
 export default HomeNebulaText
