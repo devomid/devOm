@@ -24,6 +24,8 @@ const TEXTURE_CAPACITY =
     TEXTURE_SIZE *
     TEXTURE_SIZE
 
+const RING_FORM_DURATION = 1800
+
 /*
  * ============================================================
  * PARTICLE RENDER SHADERS
@@ -241,7 +243,7 @@ const velocityFlowFragmentShader = `
     uniform float uTextStrength;
 
     uniform vec2 uInteractionCenter;
-uniform float uInteractionStrength;
+    uniform float uInteractionStrength;
 
     uniform float uRectangleStrength;
 
@@ -1190,11 +1192,6 @@ uniform float uInteractionStrength;
                             distanceToTarget
                         );
 
-                    /*
-                     * IMPORTANT:
-                     * This was "ffloat" in the original.
-                     */
-
                     float transitionRelease =
                         smoothstep(
                             0.08,
@@ -1295,13 +1292,6 @@ uniform float uInteractionStrength;
                         windPulse *
                         0.00115 *
                         particleSpeed;
-
-                    /*
-                     * Camera is at +Z.
-                     *
-                     * Negative Z = behind.
-                     * Positive Z = front.
-                     */
 
                     velocity.z +=
                         windStrength;
@@ -1789,59 +1779,60 @@ uniform float uInteractionStrength;
                     }
                 }
             }
-                /*
- * =================================================
- * CONTACTS POINTER / TOUCH DISTURBANCE
- * =================================================
- */
 
-if (
-    uInteractionStrength >
-    0.0001 &&
-    textTargetSample.a >
-    0.001
-) {
-    vec2 interactionOffset =
-        position.xy -
-        uInteractionCenter;
+            /*
+             * =================================================
+             * CONTACTS POINTER / TOUCH DISTURBANCE
+             * =================================================
+             */
 
-    float interactionDistance =
-        length(
-            interactionOffset
-        );
+            if (
+                uInteractionStrength >
+                0.0001 &&
+                textTargetSample.a >
+                0.001
+            ) {
+                vec2 interactionOffset =
+                    position.xy -
+                    uInteractionCenter;
 
-    float interactionInfluence =
-        1.0 -
-        smoothstep(
-            0.0,
-            4.8,
-            interactionDistance
-        );
+                float interactionDistance =
+                    length(
+                        interactionOffset
+                    );
 
-    vec2 interactionDirection =
-        interactionDistance >
-        0.0001
-            ? normalize(
-                interactionOffset
-            )
-            : vec2(
-                0.0,
-                0.0
-            );
+                float interactionInfluence =
+                    1.0 -
+                    smoothstep(
+                        0.0,
+                        4.8,
+                        interactionDistance
+                    );
 
-    float push =
-        interactionInfluence *
-        uInteractionStrength;
+                vec2 interactionDirection =
+                    interactionDistance >
+                    0.0001
+                        ? normalize(
+                            interactionOffset
+                        )
+                        : vec2(
+                            0.0,
+                            0.0
+                        );
 
-    velocity.xy +=
-        interactionDirection *
-        push *
-        0.012;
+                float push =
+                    interactionInfluence *
+                    uInteractionStrength;
 
-    velocity.z +=
-        push *
-        0.0035;
-}
+                velocity.xy +=
+                    interactionDirection *
+                    push *
+                    0.012;
+
+                velocity.z +=
+                    push *
+                    0.0035;
+            }
         }
 
         gl_FragColor =
@@ -2292,6 +2283,7 @@ const NebulaParticles = ({
     rectangleStrengthRef = null,
     cardRect = null,
     interactionRef = null,
+    onRingComplete = null,
 }) => {
     const pointsRef =
         useRef(null)
@@ -2300,6 +2292,24 @@ const NebulaParticles = ({
         useRef(null)
 
     const previousWipeRef =
+        useRef(null)
+
+    /*
+     * This stores the previous target texture identity.
+     *
+     * First texture:
+     *     null -> HOW I BUILD text
+     *
+     * Second texture:
+     *     HOW I BUILD text -> ring texture
+     *
+     * Only the second transition should trigger
+     * onRingComplete.
+     */
+    const previousTargetTextureRef =
+        useRef(null)
+
+    const ringCompletionTimerRef =
         useRef(null)
 
     const {
@@ -2530,10 +2540,6 @@ const NebulaParticles = ({
                 ) *
                 visibleHeight
 
-            /*
-             * Kept intentionally as debug information.
-             */
-
             console.log(
                 '[DEBUG] card world rect:',
                 {
@@ -2555,6 +2561,109 @@ const NebulaParticles = ({
             cardRect,
             camera,
             size,
+        ],
+    )
+
+    /*
+     * ========================================================
+     * RING FORMATION COMPLETION
+     * ========================================================
+     *
+     * Texture sequence:
+     *
+     *     null
+     *       ↓
+     *     HOW I BUILD text texture
+     *       ↓
+     *     ring texture
+     *
+     * We ignore the first transition.
+     *
+     * When the ring texture arrives, we wait
+     * RING_FORM_DURATION milliseconds before telling
+     * HowIBuildContainer that the rings are ready.
+     */
+
+    useEffect(
+        () => {
+            if (
+                !textTargetTexture
+            ) {
+                return undefined
+            }
+
+            const previousTexture =
+                previousTargetTextureRef.current
+
+            /*
+             * Store the first texture and do nothing.
+             */
+            if (
+                !previousTexture
+            ) {
+                previousTargetTextureRef.current =
+                    textTargetTexture
+
+                return undefined
+            }
+
+            /*
+             * Same texture = no new transition.
+             */
+            if (
+                previousTexture ===
+                textTargetTexture
+            ) {
+                return undefined
+            }
+
+            /*
+             * A new target texture means the
+             * HOW I BUILD text target has been replaced
+             * by the ring target.
+             */
+            previousTargetTextureRef.current =
+                textTargetTexture
+
+            if (
+                ringCompletionTimerRef.current
+            ) {
+                window.clearTimeout(
+                    ringCompletionTimerRef.current,
+                )
+            }
+
+            ringCompletionTimerRef.current =
+                window.setTimeout(
+                    () => {
+                        ringCompletionTimerRef.current =
+                            null
+
+                        if (
+                            onRingComplete
+                        ) {
+                            onRingComplete()
+                        }
+                    },
+                    RING_FORM_DURATION,
+                )
+
+            return () => {
+                if (
+                    ringCompletionTimerRef.current
+                ) {
+                    window.clearTimeout(
+                        ringCompletionTimerRef.current,
+                    )
+
+                    ringCompletionTimerRef.current =
+                        null
+                }
+            }
+        },
+        [
+            textTargetTexture,
+            onRingComplete,
         ],
     )
 
@@ -2741,11 +2850,16 @@ const NebulaParticles = ({
                         },
 
                         uInteractionCenter: {
-                            value: new THREE.Vector2(0, 0),
+                            value:
+                                new THREE.Vector2(
+                                    0,
+                                    0,
+                                ),
                         },
 
                         uInteractionStrength: {
-                            value: 0.0,
+                            value:
+                                0.0,
                         },
 
                         uWipeCenter: {
@@ -3041,12 +3155,13 @@ const NebulaParticles = ({
                     cloudAmount,
                     0.0,
                     1.0,
-            )
+                )
+
             /*
- * =================================================
- * CONTACTS POINTER / TOUCH -> WORLD SPACE
- * =================================================
- */
+             * =================================================
+             * CONTACTS POINTER / TOUCH -> WORLD SPACE
+             * =================================================
+             */
 
             const interaction =
                 interactionRef?.current
@@ -3447,18 +3562,6 @@ const NebulaParticles = ({
              * ------------------------------------------------
              * PING-PONG STATE
              * ------------------------------------------------
-             *
-             * Position:
-             *
-             * current = positionB
-             *
-             * next source = positionB
-             *
-             * Velocity:
-             *
-             * current = velocityA
-             *
-             * next source = velocityA
              */
 
             simulation.positionA =
@@ -3495,6 +3598,17 @@ const NebulaParticles = ({
     useEffect(
         () => {
             return () => {
+                if (
+                    ringCompletionTimerRef.current
+                ) {
+                    window.clearTimeout(
+                        ringCompletionTimerRef.current,
+                    )
+
+                    ringCompletionTimerRef.current =
+                        null
+                }
+
                 particleGeometry.dispose()
 
                 particleMaterial.dispose()
@@ -3529,6 +3643,7 @@ const NebulaBackground = ({
     rectangleStrengthRef = null,
     cardRect = null,
     interactionRef = null,
+    onRingComplete = null,
 }) => {
     return (
         <Canvas
@@ -3581,13 +3696,37 @@ const NebulaBackground = ({
             }}
         >
             <NebulaParticles
-                textEnabled={textEnabled}
-                textTargetTexture={textTargetTexture}
-                cloudTargetTexture={cloudTargetTexture}
-                textStrength={textStrength}
-                rectangleStrengthRef={rectangleStrengthRef}
-                cardRect={cardRect}
-                interactionRef={interactionRef}
+                textEnabled={
+                    textEnabled
+                }
+
+                textTargetTexture={
+                    textTargetTexture
+                }
+
+                cloudTargetTexture={
+                    cloudTargetTexture
+                }
+
+                textStrength={
+                    textStrength
+                }
+
+                rectangleStrengthRef={
+                    rectangleStrengthRef
+                }
+
+                cardRect={
+                    cardRect
+                }
+
+                interactionRef={
+                    interactionRef
+                }
+
+                onRingComplete={
+                    onRingComplete
+                }
             />
         </Canvas>
     )

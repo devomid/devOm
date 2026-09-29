@@ -70,11 +70,7 @@ export default function HowIBuildCircle({
                         ? 1
                         : 0,
 
-                pointerEvents:
-                    visible
-                        ? 'auto'
-                        : 'none',
-
+                pointerEvents: 'auto',
                 transition:
                     'opacity 350ms ease',
 

@@ -34,6 +34,79 @@ const CAMERA_FOV =
     60
 
 
+const CARD_START_Z =
+    -18
+
+const CARD_END_Z =
+    -3
+
+const CARD_START_SCALE =
+    0
+
+const CARD_OVERSHOOT_SCALE =
+    1.14
+
+const CARD_END_SCALE =
+    1
+
+const CARD_ENTRANCE_DURATION =
+    1100
+
+
+const getExplosiveScale =
+    (
+        progress,
+    ) => {
+        if (
+            progress <
+            0.72
+        ) {
+            const t =
+                progress /
+                0.72
+
+            const eased =
+                1 -
+                Math.pow(
+                    1 - t,
+                    3,
+                )
+
+            return (
+                CARD_START_SCALE +
+                (
+                    CARD_OVERSHOOT_SCALE -
+                    CARD_START_SCALE
+                ) *
+                eased
+            )
+        }
+
+        const t =
+            (
+                progress -
+                0.72
+            ) /
+            0.28
+
+        const eased =
+            1 -
+            Math.pow(
+                1 - t,
+                2,
+            )
+
+        return (
+            CARD_OVERSHOOT_SCALE -
+            (
+                CARD_OVERSHOOT_SCALE -
+                CARD_END_SCALE
+            ) *
+            eased
+        )
+    }
+
+
 export default function HowIBuildContainer({
     interactionRef,
     ringReady,
@@ -43,6 +116,9 @@ export default function HowIBuildContainer({
 
     const blowTimerRef =
         useRef(null)
+
+    const entranceFrameRefs =
+        useRef({})
 
     const [
         visibleCount,
@@ -57,12 +133,6 @@ export default function HowIBuildContainer({
         height: 0,
     })
 
-
-    /*
-     * ========================================================
-     * CONTAINER SIZE
-     * ========================================================
-     */
 
     useEffect(() => {
         const container =
@@ -102,12 +172,6 @@ export default function HowIBuildContainer({
         }
     }, [])
 
-
-    /*
-     * ========================================================
-     * WORLD GEOMETRY
-     * ========================================================
-     */
 
     const worldGeometry =
         useMemo(() => {
@@ -149,17 +213,6 @@ export default function HowIBuildContainer({
             containerSize.height,
         ])
 
-
-    /*
-     * ========================================================
-     * RING POSITIONS
-     *
-     * IMPORTANT:
-     *
-     * These are projected directly from the exact same
-     * world coordinates used by the nebula ring texture.
-     * ========================================================
-     */
 
     const ringPositions =
         useMemo(() => {
@@ -205,12 +258,6 @@ export default function HowIBuildContainer({
             containerSize.height,
         ])
 
-
-    /*
-     * ========================================================
-     * BLOW
-     * ========================================================
-     */
 
     const blowCircle =
         useCallback(
@@ -278,11 +325,132 @@ export default function HowIBuildContainer({
         )
 
 
-    /*
-     * ========================================================
-     * REVEAL
-     * ========================================================
-     */
+    const animateCardEntrance =
+        useCallback(
+            (
+                element,
+            ) => {
+                if (!element) {
+                    return
+                }
+
+                const index =
+                    element.dataset
+                        .howIBuildCardIndex
+
+                const previousFrame =
+                    entranceFrameRefs
+                        .current[
+                    index
+                    ]
+
+                if (
+                    previousFrame
+                ) {
+                    window.cancelAnimationFrame(
+                        previousFrame,
+                    )
+                }
+
+                const startTime =
+                    performance.now()
+
+
+                const animate =
+                    (
+                        now,
+                    ) => {
+                        const elapsed =
+                            now -
+                            startTime
+
+                        const rawProgress =
+                            Math.min(
+                                1,
+                                elapsed /
+                                CARD_ENTRANCE_DURATION,
+                            )
+
+
+                        const z =
+                            CARD_START_Z +
+                            (
+                                CARD_END_Z -
+                                CARD_START_Z
+                            ) *
+                            (
+                                1 -
+                                Math.pow(
+                                    1 -
+                                    rawProgress,
+                                    3,
+                                )
+                            )
+
+
+                        const scale =
+                            getExplosiveScale(
+                                rawProgress,
+                            )
+
+
+                        element.style.transform =
+                            `
+                                translate3d(
+                                    -50%,
+                                    -50%,
+                                    ${z}px
+                                )
+                                scale(
+                                    ${scale}
+                                )
+                            `
+
+
+                        if (
+                            rawProgress <
+                            1
+                        ) {
+                            entranceFrameRefs
+                                .current[
+                                index
+                            ] =
+                                window.requestAnimationFrame(
+                                    animate,
+                                )
+                        } else {
+                            entranceFrameRefs
+                                .current[
+                                index
+                            ] =
+                                null
+
+                            element.style.transform =
+                                `
+                                    translate3d(
+                                        -50%,
+                                        -50%,
+                                        ${CARD_END_Z}px
+                                    )
+                                    scale(
+                                        ${CARD_END_SCALE}
+                                    )
+                                `
+                        }
+                    }
+
+
+                entranceFrameRefs
+                    .current[
+                    index
+                ] =
+                    window.requestAnimationFrame(
+                        animate,
+                    )
+            },
+            [],
+        )
+
 
     useEffect(() => {
         if (
@@ -290,12 +458,16 @@ export default function HowIBuildContainer({
             ringPositions.length !==
             HOW_I_BUILD_RING_COUNT
         ) {
-            setVisibleCount(0)
+            setVisibleCount(
+                0,
+            )
 
             return undefined
         }
 
+
         const timers = []
+
 
         HOW_I_BUILD_STAGES.forEach(
             (
@@ -309,8 +481,23 @@ export default function HowIBuildContainer({
                                 index + 1,
                             )
 
+
                             window.requestAnimationFrame(
                                 () => {
+                                    const card =
+                                        document.querySelector(
+                                            `[data-how-i-build-card-index="${index}"]`,
+                                        )
+
+                                    if (
+                                        card
+                                    ) {
+                                        animateCardEntrance(
+                                            card,
+                                        )
+                                    }
+
+
                                     blowCircle(
                                         index,
                                     )
@@ -321,11 +508,13 @@ export default function HowIBuildContainer({
                         REVEAL_DELAY,
                     )
 
+
                 timers.push(
                     timer,
                 )
             },
         )
+
 
         return () => {
             timers.forEach(
@@ -337,6 +526,28 @@ export default function HowIBuildContainer({
                     )
                 },
             )
+
+
+            Object.values(
+                entranceFrameRefs.current,
+            ).forEach(
+                (
+                    frame,
+                ) => {
+                    if (
+                        frame
+                    ) {
+                        window.cancelAnimationFrame(
+                            frame,
+                        )
+                    }
+                },
+            )
+
+
+            entranceFrameRefs.current =
+                {}
+
 
             if (
                 blowTimerRef.current
@@ -350,14 +561,9 @@ export default function HowIBuildContainer({
         ringReady,
         ringPositions.length,
         blowCircle,
+        animateCardEntrance,
     ])
 
-
-    /*
-     * ========================================================
-     * CLEANUP
-     * ========================================================
-     */
 
     useEffect(() => {
         return () => {
@@ -368,6 +574,28 @@ export default function HowIBuildContainer({
                     blowTimerRef.current,
                 )
             }
+
+
+            Object.values(
+                entranceFrameRefs.current,
+            ).forEach(
+                (
+                    frame,
+                ) => {
+                    if (
+                        frame
+                    ) {
+                        window.cancelAnimationFrame(
+                            frame,
+                        )
+                    }
+                },
+            )
+
+
+            entranceFrameRefs.current =
+                {}
+
 
             interactionRef.current = {
                 x: 0,
@@ -383,30 +611,20 @@ export default function HowIBuildContainer({
 
     return (
         <Box
-            ref={
-                containerRef
-            }
-
+            ref={containerRef}
             className="how-i-build-nebula-container"
-
             sx={{
-                position:
-                    'absolute',
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
 
-                inset:
-                    0,
+                zIndex: 1,
 
-                width:
-                    '100%',
+                pointerEvents: 'none',
 
-                height:
-                    '100%',
-
-                pointerEvents:
-                    'none',
-
-                zIndex:
-                    10,
+                perspective: '1000px',
+                transformStyle: 'preserve-3d',
             }}
         >
             {
@@ -420,39 +638,87 @@ export default function HowIBuildContainer({
                             index
                             ]
 
+
                         return (
-                            <HowIBuildCircle
+                            <Box
                                 key={
                                     stage.id
                                 }
 
-                                stage={
-                                    stage
+                                data-how-i-build-card-index={
+                                    index
                                 }
 
-                                visible={
-                                    index <
-                                    visibleCount
-                                }
+                                sx={{
+                                    position:
+                                        'absolute',
 
-                                left={
-                                    position
-                                        ? position.x
-                                        : 0
-                                }
+                                    left:
+                                        position
+                                            ? position.x
+                                            : 0,
 
-                                top={
-                                    position
-                                        ? position.y
-                                        : 0
-                                }
+                                    top:
+                                        position
+                                            ? position.y
+                                            : 0,
 
-                                onClick={() => {
-                                    blowCircle(
-                                        index,
-                                    )
+                                    width:
+                                        'fit-content',
+
+                                    height:
+                                        'fit-content',
+
+                                    pointerEvents:
+                                        'none',
+
+                                    transform:
+                                        `
+                                            translate3d(
+                                                -50%,
+                                                -50%,
+                                                ${CARD_START_Z}px
+                                            )
+                                            scale(
+                                                ${CARD_START_SCALE}
+                                            )
+                                        `,
+
+                                    transformOrigin:
+                                        'center center',
+
+                                    transformStyle:
+                                        'preserve-3d',
+
+                                    zIndex:
+                                        0,
                                 }}
-                            />
+                            >
+                                <HowIBuildCircle
+                                    stage={
+                                        stage
+                                    }
+
+                                    visible={
+                                        index <
+                                        visibleCount
+                                    }
+
+                                    left={
+                                        0
+                                    }
+
+                                    top={
+                                        0
+                                    }
+
+                                    onClick={() => {
+                                        blowCircle(
+                                            index,
+                                        )
+                                    }}
+                                />
+                            </Box>
                         )
                     },
                 )

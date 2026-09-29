@@ -37,9 +37,11 @@ const TEXT_WORLD_HEIGHT =
 const TEXT_FORM_TIME =
     3
 
-
 const RING_DELAY =
     0.05
+
+const RING_FORM_TIME =
+    4500
 
 const PARTICLES_PER_RING =
     6000
@@ -60,7 +62,7 @@ const hash = (
     const x =
         Math.sin(
             value *
-                12.9898 +
+            12.9898 +
             78.233,
         ) *
         43758.5453123
@@ -197,7 +199,7 @@ const createTextTargetTexture = (
 
             const alpha =
                 image.data[
-                    pixelIndex + 3
+                pixelIndex + 3
                 ]
 
             if (
@@ -232,7 +234,7 @@ const createTextTargetTexture = (
         const particleHash =
             (
                 particleIndex *
-                    1664525 +
+                1664525 +
                 1013904223
             ) >>>
             0
@@ -259,14 +261,14 @@ const createTextTargetTexture = (
         const candidateIndex =
             (
                 particleIndex *
-                    15731 +
+                15731 +
                 789221
             ) %
             candidates.length
 
         const candidate =
             candidates[
-                candidateIndex
+            candidateIndex
             ]
 
         const variation =
@@ -304,21 +306,21 @@ const createTextTargetTexture = (
         const jitterX =
             Math.sin(
                 variation *
-                    1.71,
+                1.71,
             ) *
             0.008
 
         const jitterY =
             Math.cos(
                 variation *
-                    1.43,
+                1.43,
             ) *
             0.008
 
         const jitterZ =
             Math.sin(
                 variation *
-                    0.91,
+                0.91,
             ) *
             0.025
 
@@ -422,7 +424,8 @@ const createRingTargetTexture = (
 
     for (
         let ring = 0;
-        ring < HOW_I_BUILD_RING_COUNT;
+        ring <
+        HOW_I_BUILD_RING_COUNT;
         ring += 1
     ) {
         const centerX =
@@ -435,7 +438,7 @@ const createRingTargetTexture = (
             (
                 hash(
                     ring *
-                        31.71,
+                    31.71,
                 ) -
                 0.5
             ) *
@@ -460,7 +463,7 @@ const createRingTargetTexture = (
 
             const particleIndex =
                 textParticles[
-                    textCursor
+                textCursor
                 ]
 
             textCursor += 1
@@ -509,7 +512,7 @@ const createRingTargetTexture = (
 
             const finalRadius =
                 radius *
-                    irregularity +
+                irregularity +
                 thickness
 
             const index =
@@ -556,7 +559,7 @@ const createRingTargetTexture = (
 
             const particleIndex =
                 freeParticles[
-                    freeCursor
+                freeCursor
                 ]
 
             freeCursor += 1
@@ -606,7 +609,7 @@ const createRingTargetTexture = (
 
             const finalRadius =
                 radius *
-                    irregularity +
+                irregularity +
                 thickness
 
             const index =
@@ -696,6 +699,25 @@ const HowIBuildNebulaText = ({
                         setRingTargetTexture(
                             ringTexture,
                         )
+
+                        /*
+                         * The ring transition starts
+                         * exactly here.
+                         *
+                         * Do NOT set ringReady here.
+                         *
+                         * ringReady is deliberately delayed
+                         * by the same amount as the nebula
+                         * ring formation.
+                         */
+                        window.setTimeout(
+                            () => {
+                                setRingReady(
+                                    true,
+                                )
+                            },
+                            RING_FORM_TIME,
+                        )
                     }
                 },
                 (
@@ -737,53 +759,47 @@ const HowIBuildNebulaText = ({
     return (
         <div
             style={{
-                position:
-                    'absolute',
-
-                inset:
-                    0,
-
-                width:
-                    '100%',
-
-                height:
-                    '100%',
-
-                overflow:
-                    'hidden',
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                overflow: 'hidden',
             }}
         >
-            <NebulaBackground
-                textEnabled={
-                    Boolean(
-                        activeTargetTexture,
-                    )
-                }
-
-                textTargetTexture={
-                    activeTargetTexture
-                }
-
-                textStrength={
-                    1.0
-                }
-
-                interactionRef={
-                    interactionRef
-                }
-
-                onRingComplete={
-                    () => {
-                        setRingReady(true)
+            {/* PARTICLES — ALWAYS ABOVE THE CARDS */}
+            <div
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                }}
+            >
+                <NebulaBackground
+                    textEnabled={
+                        Boolean(
+                            activeTargetTexture,
+                        )
                     }
-                }
-            />
+                    textTargetTexture={
+                        activeTargetTexture
+                    }
+                    textStrength={
+                        1.0
+                    }
+                    interactionRef={
+                        interactionRef
+                    }
+                />
+            </div>
 
+            {/* CARDS — ALWAYS BEHIND PARTICLES */}
             <HowIBuildContainer
                 interactionRef={
                     interactionRef
                 }
-
                 ringReady={
                     ringReady
                 }
