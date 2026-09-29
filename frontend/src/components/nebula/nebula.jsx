@@ -251,6 +251,9 @@ const velocityFlowFragmentShader = `
 
     uniform float uRectangleStrength;
 
+    uniform float uHomeWindActive;
+
+
     /*
      * ========================================================
      * BUILD TILE WIPE / TEXT DISTURBANCE
@@ -1072,6 +1075,115 @@ const velocityFlowFragmentShader = `
                             : -1.0
                     );
             }
+        }
+
+        /*
+         * ====================================================
+         * HOME TEXT WIND
+         *
+         * Activated only by HomeNebulaText.
+         * The text target is disabled at the same moment,
+         * so the particles cannot reform while being blown.
+         * ====================================================
+         */
+
+        if (
+            uHomeWindActive > 0.5
+        ) {
+            /*
+             * Main wind direction:
+             * strongly toward the right.
+             */
+            float windTime =
+                max(
+                    0.0,
+                    uTime - 6.0
+                );
+
+            float windRamp =
+                smoothstep(
+                    0.0,
+                    0.22,
+                    windTime
+                );
+
+            /*
+             * Particle-specific turbulence.
+             */
+            float turbulenceX =
+                sin(
+                    phase * 2.17 +
+                    position.y * 0.74 +
+                    position.z * 0.41 +
+                    windTime * 1.85
+                );
+
+            float turbulenceY =
+                cos(
+                    phase * 1.63 +
+                    position.x * 0.61 -
+                    position.z * 0.53 -
+                    windTime * 1.47
+                );
+
+            float turbulenceZ =
+                sin(
+                    phase * 2.71 +
+                    position.x * 0.48 +
+                    position.y * 0.72 +
+                    windTime * 1.22
+                );
+
+            /*
+             * Strong horizontal push.
+             */
+            velocity.x +=
+                0.0050 *
+                particleSpeed *
+                windRamp;
+
+            /*
+             * Turbulent vertical breakup.
+             */
+            velocity.y +=
+                turbulenceY *
+                0.0022 *
+                particleSpeed *
+                windRamp;
+
+            /*
+             * Depth movement makes the cloud
+             * feel like it is being carried away
+             * rather than sliding as a flat layer.
+             */
+            velocity.z +=
+                turbulenceZ *
+                0.0015 *
+                particleSpeed *
+                windRamp;
+
+            /*
+             * Cross-current.
+             */
+            velocity.x +=
+                turbulenceX *
+                0.0015 *
+                particleSpeed *
+                windRamp;
+
+            /*
+             * Additional vertical shear based
+             * on horizontal position.
+             */
+            velocity.y +=
+                sin(
+                    position.x * 1.15 +
+                    phase * 1.91 +
+                    windTime * 1.1
+                ) *
+                0.0012 *
+                particleSpeed *
+                windRamp;
         }
 
         /*
@@ -2468,6 +2580,7 @@ const NebulaParticles = ({
     textTargetTexture = null,
     cloudTargetTexture = null,
     textStrength = 0.0,
+    homeWindActive = false,
     rectangleStrengthRef = null,
     cardRect = null,
     interactionRef = null,
@@ -2968,6 +3081,10 @@ const NebulaParticles = ({
                                 null,
                         },
 
+                        uHomeWindActive: {
+                            value: 0.0,
+                        },
+
                         uVelocityTexture: {
                             value:
                                 null,
@@ -3306,6 +3423,14 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
+            
+            velocityMaterial
+                .uniforms
+                .uHomeWindActive
+                .value =
+                homeWindActive
+                    ? 1.0
+                    : 0.0
 
             velocityMaterial
                 .uniforms
@@ -3855,6 +3980,7 @@ const NebulaBackground = ({
     textTargetTexture = null,
     cloudTargetTexture = null,
     textStrength = 0.0,
+    homeWindActive = false,
     rectangleStrengthRef = null,
     cardRect = null,
     interactionRef = null,
@@ -3925,6 +4051,10 @@ const NebulaBackground = ({
 
                 textStrength={
                     textStrength
+                }
+
+                homeWindActive={
+                    homeWindActive
                 }
 
                 rectangleStrengthRef={
