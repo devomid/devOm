@@ -1,16 +1,25 @@
-import { Box } from '@mui/material'
-import { Link } from 'react-router-dom'
 import {
-    useScroll,
+    useEffect,
+} from 'react'
+
+import {
+    Box,
+} from '@mui/material'
+
+import {
     useMotionValueEvent,
+    useScroll,
 } from 'framer-motion'
 
-import HeroSectionCard from '../components/homeComps/HeroSectionCard'
-import NebulaBackground from '../components/nebula/nebula'
-import WhatIBuildCard from '../components/homeComps/WhatIbuildCard';
-import HowIBuildCard from '../components/homeComps/HowIbuildCard';
-import WorksCard from '../components/homeComps/WorksCard';
-import ContactsCard from '../components/homeComps/ContactsCard';
+import HomeIntro
+    from '../components/homeComps/HomeIntro'
+
+import HomeContact
+    from '../components/homeComps/HomeContacts'
+
+import NebulaBackground
+    from '../components/nebula/nebula'
+
 
 const Home = ({
     homeRef,
@@ -20,7 +29,9 @@ const Home = ({
     const {
         scrollYProgress,
     } = useScroll({
-        target: homeRef,
+        target:
+            homeRef,
+
         offset: [
             'start start',
             'end end',
@@ -30,28 +41,76 @@ const Home = ({
     useMotionValueEvent(
         scrollYProgress,
         'change',
-        (latest) => {
+        latest => {
             scrollProgress.set(
                 latest,
             )
         },
     )
 
+    useEffect(
+        () => {
+            return () => {
+                scrollProgress.set(
+                    0,
+                )
+            }
+        },
+        [
+            scrollProgress,
+        ],
+    )
+
     return (
         <Box
-            ref={homeRef}
+            ref={
+                homeRef
+            }
             sx={{
-                position: 'relative',
-                height: '500vh',
+                position:
+                    'relative',
+
+                minHeight:
+                    '220vh',
+
+                width:
+                    '100%',
             }}
         >
+            {/*
+             * ------------------------------------------------
+             * SHARED NEBULA BACKGROUND
+             * ------------------------------------------------
+             *
+             * This is the exact same shared particle
+             * system already used by the project.
+             *
+             * Nothing inside nebula.jsx is changed for Home.
+             * ------------------------------------------------
+             */}
+
             <Box
                 sx={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 0,
-                    pointerEvents: 'none',
-                    overflow: 'hidden',
+                    position:
+                        'fixed',
+
+                    inset:
+                        0,
+
+                    width:
+                        '100%',
+
+                    height:
+                        '100vh',
+
+                    zIndex:
+                        0,
+
+                    pointerEvents:
+                        'none',
+
+                    overflow:
+                        'hidden',
                 }}
             >
                 <NebulaBackground
@@ -61,86 +120,166 @@ const Home = ({
                 />
             </Box>
 
+            {/*
+             * ------------------------------------------------
+             * INTRO / HERO
+             * ------------------------------------------------
+             */}
+
             <Box
                 sx={{
-                    position: 'relative',
-                    zIndex: 1,
+                    position:
+                        'sticky',
+
+                    top:
+                        0,
+
+                    width:
+                        '100%',
+
+                    height:
+                        '100vh',
+
+                    overflow:
+                        'hidden',
+
+                    zIndex:
+                        1,
                 }}
             >
-                <Box
-                    sx={{
-                        position: 'sticky',
-                        top: 0,
-                        height: '100vh',
-                        overflow: 'hidden',
-                    }}
-                >
-                    <HeroSectionCard />
-                </Box>
+                <HomeIntro
+                    onComplete={
+                        () => { }
+                    }
+                />
+
+                {/*
+                 * Scroll indicator.
+                 *
+                 * It becomes visible only after the intro
+                 * has finished in the final implementation.
+                 * Kept structurally separate so its animation
+                 * can be refined without touching the
+                 * particle system.
+                 */}
 
                 <Box
-                    component={Link}
-                    to="/whatibuild"
                     sx={{
-                        position: 'sticky',
-                        top: 0,
-                        height: '100vh',
-                        overflow: 'hidden',
-                        display: 'block',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                    }}
-                >
-                    <WhatIBuildCard />
-                </Box>
+                        position:
+                            'absolute',
 
-                <Box
-                    component={Link}
-                    to="/works"
-                    sx={{
-                        position: 'sticky',
-                        top: 0,
-                        height: '100vh',
-                        overflow: 'hidden',
-                        display: 'block',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                    }}
-                >
-                    <WorksCard />
-                </Box>
+                        left:
+                            '50%',
 
-                <Box
-                    component={Link}
-                    to="/howibuild"
-                    sx={{
-                        position: 'sticky',
-                        top: 0,
-                        height: '100vh',
-                        overflow: 'hidden',
-                        display: 'block',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                    }}
-                >
-                    <HowIBuildCard />
-                </Box>
+                        bottom:
+                        {
+                            xs: 28,
+                            md: 36,
+                        },
 
-                <Box
-                    component={Link}
-                    to="/contacts"
-                    sx={{
-                        position: 'sticky',
-                        top: 0,
-                        height: '100vh',
-                        overflow: 'hidden',
-                        display: 'block',
-                        textDecoration: 'none',
-                        color: 'inherit',
+                        transform:
+                            'translateX(-50%)',
+
+                        width:
+                            28,
+
+                        height:
+                            42,
+
+                        display:
+                            'flex',
+
+                        alignItems:
+                            'center',
+
+                        justifyContent:
+                            'center',
+
+                        opacity:
+                            1,
+
+                        pointerEvents:
+                            'none',
+
+                        zIndex:
+                            10,
                     }}
                 >
-                    <ContactsCard />
+                    <Box
+                        sx={{
+                            width:
+                                1,
+
+                            height:
+                                30,
+
+                            backgroundColor:
+                                'currentColor',
+
+                            opacity:
+                                0.45,
+
+                            position:
+                                'relative',
+
+                            '&::after': {
+                                content:
+                                    '""',
+
+                                position:
+                                    'absolute',
+
+                                left:
+                                    '50%',
+
+                                bottom:
+                                    -2,
+
+                                width:
+                                    7,
+
+                                height:
+                                    7,
+
+                                borderRight:
+                                    '1px solid currentColor',
+
+                                borderBottom:
+                                    '1px solid currentColor',
+
+                                transform:
+                                    'translateX(-50%) rotate(45deg)',
+                            },
+                        }}
+                    />
                 </Box>
+            </Box>
+
+            {/*
+             * ------------------------------------------------
+             * CONTACT
+             * ------------------------------------------------
+             */}
+
+            <Box
+                sx={{
+                    position:
+                        'relative',
+
+                    zIndex:
+                        3,
+
+                    minHeight:
+                        '100vh',
+
+                    display:
+                        'flex',
+
+                    alignItems:
+                        'center',
+                }}
+            >
+                <HomeContact />
             </Box>
         </Box>
     )
