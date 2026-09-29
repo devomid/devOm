@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box'
 
+
 export default function HowIBuildCircle({
     stage,
     visible,
@@ -11,78 +12,53 @@ export default function HowIBuildCircle({
             ref={
                 circleRef
             }
+
             component="button"
+
             type="button"
+
             onClick={
                 onClick
             }
+
             sx={{
+                /*
+                 * The parent calculates the exact ring
+                 * position and writes left/top.
+                 */
+
                 position:
                     'absolute',
 
-            /*
-             * Position is supplied by the parent.
-             */
-            transform:
-                'translate(-50%, -50%)',
+                transform:
+                    'translate(-50%, -50%)',
 
-            width:
-                120,
+                width:
+                    120,
 
-            height:
-                120,
+                height:
+                    120,
 
-            padding:
-                0,
+                padding:
+                    0,
 
-            borderRadius:
-                '50%',
+                margin:
+                    0,
 
-            border:
-                '1px solid rgba(255,255,255,0.45)',
+                borderRadius:
+                    '50%',
 
-            background:
-                'rgba(255,255,255,0.04)',
+                border:
+                    '1px solid rgba(255,255,255,0.45)',
 
-            color:
-                '#ffffff',
+                background:
+                    'rgba(255,255,255,0.04)',
 
-            display:
-                'flex',
+                color:
+                    '#ffffff',
 
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
-
-            cursor:
-                'pointer',
-
-            opacity:
-                visible
-                    ? 1
-                    : 0,
-
-            pointerEvents:
-                visible
-                    ? 'auto'
-                    : 'none',
-
-            transition:
-                'opacity 350ms ease',
-
-            zIndex:
-                20,
-        }}
-    >
-        <Box
-            sx={{
                 display:
                     'flex',
-
-                flexDirection:
-                    'column',
 
                 alignItems:
                     'center',
@@ -90,46 +66,83 @@ export default function HowIBuildCircle({
                 justifyContent:
                     'center',
 
-                gap:
-                    '4px',
+                cursor:
+                    'pointer',
+
+                opacity:
+                    visible
+                        ? 1
+                        : 0,
 
                 pointerEvents:
-                    'none',
+                    visible
+                        ? 'auto'
+                        : 'none',
+
+                transition:
+                    'opacity 350ms ease',
+
+                zIndex:
+                    20,
+
+                boxSizing:
+                    'border-box',
             }}
         >
             <Box
-                component="span"
                 sx={{
-                    fontSize:
-                        11,
+                    display:
+                        'flex',
 
-                    opacity:
-                        0.55,
+                    flexDirection:
+                        'column',
+
+                    alignItems:
+                        'center',
+
+                    justifyContent:
+                        'center',
+
+                    gap:
+                        '4px',
+
+                    pointerEvents:
+                        'none',
                 }}
             >
-                {
-                    stage.number
-                }
-            </Box>
+                <Box
+                    component="span"
+                    sx={{
+                        fontSize:
+                            11,
 
-            <Box
-                component="span"
-                sx={{
-                    fontSize:
-                        13,
+                        opacity:
+                            0.55,
+                    }}
+                >
+                    {
+                        stage.number
+                    }
+                </Box>
 
-                    fontWeight:
-                        700,
+                <Box
+                    component="span"
+                    sx={{
+                        fontSize:
+                            13,
 
-                    letterSpacing:
-                        '0.08em',
-                }}
-            >
-                {
-                    stage.title
-                }
+                        fontWeight:
+                            700,
+
+                        letterSpacing:
+                            '0.08em',
+                    }}
+                >
+                    {
+                        stage.title
+                    }
+                </Box>
             </Box>
         </Box>
-    </Box>
-)
-            }
+    )
+}

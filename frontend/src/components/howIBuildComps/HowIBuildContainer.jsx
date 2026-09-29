@@ -1,6 +1,7 @@
 import {
     useCallback,
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
 } from 'react'
@@ -20,6 +21,12 @@ const REVEAL_DELAY =
 const BLOW_DURATION =
     180
 
+const CAMERA_Z =
+    10
+
+const CAMERA_FOV =
+    60
+
 const RING_Y =
     -2.05
 
@@ -29,17 +36,17 @@ const RING_SPACING =
 const RING_COUNT =
     6
 
-const CAMERA_Z =
-    10
-
-const CAMERA_FOV =
-    60
-
 
 export default function HowIBuildContainer({
     interactionRef,
     ringReady,
 }) {
+    const containerRef =
+        useRef(null)
+
+    const circleRefs =
+        useRef([])
+
     const blowTimerRef =
         useRef(null)
 
@@ -51,24 +58,33 @@ export default function HowIBuildContainer({
 
     /*
      * ========================================================
-     * PARTICLE RING -> SCREEN POSITION
+     * RING WORLD -> DOM POSITION
      * ========================================================
      *
-     * This is ONLY used for the particle blow.
+     * The Nebula Canvas and this DOM container occupy the
+     * exact same rectangle.
      *
-     * The DOM circles themselves are positioned by CSS.
+     * Therefore we use the container's actual dimensions,
+     * NOT window.innerWidth / window.innerHeight.
      */
 
-    const getRingScreenPosition =
+    const getRingPosition =
         useCallback(
             (
                 index,
             ) => {
+                const container =
+                    containerRef.current
+
+                if (!container) {
+                    return null
+                }
+
                 const width =
-                    window.innerWidth
+                    container.clientWidth
 
                 const height =
-                    window.innerHeight
+                    container.clientHeight
 
                 if (
                     width <= 0 ||
@@ -112,25 +128,85 @@ export default function HowIBuildContainer({
                     totalWidth /
                         2
 
-                return {
-                    x:
-                        (
-                            0.5 +
-                            worldX /
-                            worldWidth
-                        ) *
-                        width,
+                /*
+                 * Three.js perspective projection:
+                 *
+                 * world X = 0
+                 * -> screen center
+                 *
+                 * world Y = 0
+                 * -> screen center
+                 */
 
-                    y:
-                        (
-                            0.5 -
-                            RING_Y /
-                            worldHeight
-                        ) *
-                        height,
+                const x =
+                    (
+                        0.5 +
+                        worldX /
+                        worldWidth
+                    ) *
+                    width
+
+                const y =
+                    (
+                        0.5 -
+                        RING_Y /
+                        worldHeight
+                    ) *
+                    height
+
+                return {
+                    x,
+                    y,
                 }
             },
             [],
+        )
+
+
+    /*
+     * ========================================================
+     * POSITION DOM CIRCLES
+     * ========================================================
+     */
+
+    const positionCircles =
+        useCallback(
+            () => {
+                HOW_I_BUILD_STAGES.forEach(
+                    (
+                        stage,
+                        index,
+                    ) => {
+                        const circle =
+                            circleRefs
+                                .current[
+                                    index
+                                ]
+
+                        if (!circle) {
+                            return
+                        }
+
+                        const position =
+                            getRingPosition(
+                                index,
+                            )
+
+                        if (!position) {
+                            return
+                        }
+
+                        circle.style.left =
+                            `${ position.x } px`
+
+                        circle.style.top =
+                            `${ position.y } px`
+                    },
+                )
+            },
+            [
+                getRingPosition,
+            ],
         )
 
 
@@ -146,15 +222,26 @@ export default function HowIBuildContainer({
                 index,
             ) => {
                 const position =
-                    getRingScreenPosition(
+                    getRingPosition(
                         index,
                     )
 
                 if (
-                    !position
+                    !position ||
+                    !interactionRef
                 ) {
                     return
                 }
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * These coordinates are LOCAL to the Nebula
+                 * canvas/container.
+                 *
+                 * That is the same coordinate system used
+                 * by NebulaBackground.
+                 */
 
                 interactionRef.current = {
                     x:
@@ -199,10 +286,45 @@ export default function HowIBuildContainer({
                     )
             },
             [
-                getRingScreenPosition,
+                getRingPosition,
                 interactionRef,
             ],
         )
+
+
+    /*
+     * ========================================================
+     * INITIAL / RESIZE POSITIONING
+     * ========================================================
+     */
+
+    useLayoutEffect(() => {
+        positionCircles()
+    }, [
+        positionCircles,
+    ])
+
+
+    useEffect(() => {
+        const handleResize =
+            () => {
+                positionCircles()
+            }
+
+        window.addEventListener(
+            'resize',
+            handleResize,
+        )
+
+        return () => {
+            window.removeEventListener(
+                'resize',
+                handleResize,
+            )
+        }
+    }, [
+        positionCircles,
+    ])
 
 
     /*
@@ -228,19 +350,34 @@ export default function HowIBuildContainer({
                 const timer =
                     window.setTimeout(
                         () => {
+                            /*
+                             * Make the circle visible.
+                             */
+
                             setVisibleCount(
                                 index + 1,
                             )
 
                             /*
-                             * Blow the matching particle
-                             * ring when the DOM circle appears.
+                             * Position it against
+                             * the actual particle ring.
                              */
 
                             window.requestAnimationFrame(
                                 () => {
-                                    blowCircle(
-                                        index,
+                                    positionCircles()
+
+                                    /*
+                                     * Then blow the
+                                     * corresponding ring.
+                                     */
+
+                                    window.requestAnimationFrame(
+                                        () => {
+                                            blowCircle(
+                                                index,
+                                            )
+                                        },
                                     )
                                 },
                             )
@@ -276,6 +413,7 @@ export default function HowIBuildContainer({
         }
     }, [
         ringReady,
+        positionCircles,
         blowCircle,
     ])
 
@@ -310,6 +448,9 @@ export default function HowIBuildContainer({
 
     return (
         <Box
+            ref={
+                containerRef
+            }
             sx={{
                 position:
                     'absolute',
@@ -328,88 +469,49 @@ export default function HowIBuildContainer({
 
                 zIndex:
                     10,
-
-                display:
-                    'flex',
-
-                flexDirection:
-                    'column',
-
-                alignItems:
-                    'center',
-
-                /*
-                 * The nebula text occupies the upper part
-                 * of the page. Put the six DOM circles below it.
-                 */
-
-                justifyContent:
-                    'flex-start',
-
-                paddingTop:
-                    '42vh',
-
-                boxSizing:
-                    'border-box',
             }}
         >
-            <Box
-                sx={{
-                    width:
-                        '100%',
+            {
+                HOW_I_BUILD_STAGES.map(
+                    (
+                        stage,
+                        index,
+                    ) => (
+                        <HowIBuildCircle
+                            key={
+                                stage.id
+                            }
 
-                    display:
-                        'grid',
+                            stage={
+                                stage
+                            }
 
-                    gridTemplateColumns:
-                        'repeat(6, 1fr)',
+                            visible={
+                                index <
+                                visibleCount
+                            }
 
-                    alignItems:
-                        'center',
-
-                    justifyItems:
-                        'center',
-
-                    pointerEvents:
-                        'none',
-
-                    padding:
-                        '0 4vw',
-
-                    boxSizing:
-                        'border-box',
-                }}
-            >
-                {
-                    HOW_I_BUILD_STAGES.map(
-                        (
-                            stage,
-                            index,
-                        ) => (
-                            <HowIBuildCircle
-                                key={
-                                    stage.id
+                            circleRef={
+                                (
+                                    element,
+                                ) => {
+                                    circleRefs
+                                        .current[
+                                            index
+                                        ] =
+                                        element
                                 }
+                            }
 
-                                stage={
-                                    stage
-                                }
-
-                                visible={
-                                    index <
-                                    visibleCount
-                                }
-
-                                onClick={() => {
-                                    blowCircle(
-                                        index,
-                                    )
-                                }}
-                            />
-                        ),
-                    )
-                }
-            </Box>
+                            onClick={() => {
+                                blowCircle(
+                                    index,
+                                )
+                            }}
+                        />
+                    ),
+                )
+            }
         </Box>
     )
 }
