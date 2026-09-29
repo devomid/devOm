@@ -135,19 +135,27 @@ const POST_WIND_WAIT =
  * DEVOM TIMING
  * ============================================================
  *
- * The old 700ms formation was too short.
+ * The 100% devOm formation is intentionally very fast.
  *
- * Give the particles 1.6 seconds to gather.
+ * All particles should gather almost immediately so the
+ * transition feels cinematic and dramatic rather than
+ * slowly assembling.
  *
- * Then hold the 65% state for 5 seconds.
+ * After that:
+ *
+ * 100% -> 65%
+ *
+ * The 65% devOm state remains on screen for a long hold so
+ * devOm has enough visual importance as the identity of the
+ * website.
  * ============================================================
  */
 
 const DEVOM_FORM_DURATION =
-    1600;
+    650;
 
 const DEVOM_HOLD_DURATION =
-    5000;
+    9000;
 
 /*
  * ============================================================
@@ -942,7 +950,12 @@ export default function HomeNebulaText() {
                         window.setTimeout(
                             () => {
                                 /*
+                                 * ====================================================
                                  * 100% PARTICLES
+                                 * ====================================================
+                                 *
+                                 * The full particle field now gathers
+                                 * into devOm extremely quickly.
                                  */
 
                                 setCurrentTargetTexture(
@@ -957,6 +970,9 @@ export default function HomeNebulaText() {
                                  * ====================================================
                                  * 100% -> 65%
                                  * ====================================================
+                                 *
+                                 * Happens after the rapid cinematic
+                                 * formation.
                                  */
 
                                 devOmReduceTimer =
@@ -968,7 +984,7 @@ export default function HomeNebulaText() {
 
                                             /*
                                              * ====================================================
-                                             * HOLD
+                                             * LONG DEVOM HOLD
                                              * ====================================================
                                              */
 
