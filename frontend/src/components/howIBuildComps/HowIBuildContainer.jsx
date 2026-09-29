@@ -20,12 +20,6 @@ const REVEAL_DELAY =
 const BLOW_DURATION =
     180
 
-const CAMERA_Z =
-    10
-
-const CAMERA_FOV =
-    60
-
 const RING_Y =
     -2.05
 
@@ -35,17 +29,17 @@ const RING_SPACING =
 const RING_COUNT =
     6
 
+const CAMERA_Z =
+    10
+
+const CAMERA_FOV =
+    60
+
 
 export default function HowIBuildContainer({
     interactionRef,
     ringReady,
 }) {
-    const containerRef =
-        useRef(null)
-
-    const circleRefs =
-        useRef([])
-
     const blowTimerRef =
         useRef(null)
 
@@ -57,30 +51,24 @@ export default function HowIBuildContainer({
 
     /*
      * ========================================================
-     * RING WORLD POSITION
+     * PARTICLE RING -> SCREEN POSITION
      * ========================================================
+     *
+     * This is ONLY used for the particle blow.
+     *
+     * The DOM circles themselves are positioned by CSS.
      */
 
-    const getCircleScreenPosition =
+    const getRingScreenPosition =
         useCallback(
             (
                 index,
             ) => {
-                const container =
-                    containerRef.current
-
-                if (!container) {
-                    return null
-                }
-
-                const rect =
-                    container.getBoundingClientRect()
-
                 const width =
-                    rect.width
+                    window.innerWidth
 
                 const height =
-                    rect.height
+                    window.innerHeight
 
                 if (
                     width <= 0 ||
@@ -124,77 +112,25 @@ export default function HowIBuildContainer({
                     totalWidth /
                         2
 
-                const screenX =
-                    (
-                        0.5 +
-                        worldX /
-                        worldWidth
-                    ) *
-                    width
-
-                const screenY =
-                    (
-                        0.5 -
-                        RING_Y /
-                        worldHeight
-                    ) *
-                    height
-
                 return {
                     x:
-                        screenX,
+                        (
+                            0.5 +
+                            worldX /
+                            worldWidth
+                        ) *
+                        width,
 
                     y:
-                        screenY,
+                        (
+                            0.5 -
+                            RING_Y /
+                            worldHeight
+                        ) *
+                        height,
                 }
             },
             [],
-        )
-
-
-    /*
-     * ========================================================
-     * POSITION
-     * ========================================================
-     */
-
-    const positionCircles =
-        useCallback(
-            () => {
-                HOW_I_BUILD_STAGES.forEach(
-                    (
-                        stage,
-                        index,
-                    ) => {
-                        const circle =
-                            circleRefs.current[
-                                index
-                            ]
-
-                        if (!circle) {
-                            return
-                        }
-
-                        const position =
-                            getCircleScreenPosition(
-                                index,
-                            )
-
-                        if (!position) {
-                            return
-                        }
-
-                        circle.style.left =
-                            `${ position.x } px`
-
-                        circle.style.top =
-                            `${ position.y } px`
-                    },
-                )
-            },
-            [
-                getCircleScreenPosition,
-            ],
         )
 
 
@@ -210,13 +146,12 @@ export default function HowIBuildContainer({
                 index,
             ) => {
                 const position =
-                    getCircleScreenPosition(
+                    getRingScreenPosition(
                         index,
                     )
 
                 if (
-                    !position ||
-                    !interactionRef
+                    !position
                 ) {
                     return
                 }
@@ -264,7 +199,7 @@ export default function HowIBuildContainer({
                     )
             },
             [
-                getCircleScreenPosition,
+                getRingScreenPosition,
                 interactionRef,
             ],
         )
@@ -274,15 +209,6 @@ export default function HowIBuildContainer({
      * ========================================================
      * REVEAL
      * ========================================================
-     *
-     * Nothing appears before ringReady.
-     *
-     * Once the ring target exists:
-     *
-     * 01 -> immediately
-     * 02 -> +400ms
-     * 03 -> +800ms
-     * ...
      */
 
     useEffect(() => {
@@ -306,16 +232,15 @@ export default function HowIBuildContainer({
                                 index + 1,
                             )
 
+                            /*
+                             * Blow the matching particle
+                             * ring when the DOM circle appears.
+                             */
+
                             window.requestAnimationFrame(
                                 () => {
-                                    positionCircles()
-
-                                    window.requestAnimationFrame(
-                                        () => {
-                                            blowCircle(
-                                                index,
-                                            )
-                                        },
+                                    blowCircle(
+                                        index,
                                     )
                                 },
                             )
@@ -352,37 +277,6 @@ export default function HowIBuildContainer({
     }, [
         ringReady,
         blowCircle,
-        positionCircles,
-    ])
-
-
-    /*
-     * ========================================================
-     * RESIZE
-     * ========================================================
-     */
-
-    useEffect(() => {
-        const handleResize =
-            () => {
-                positionCircles()
-            }
-
-        window.addEventListener(
-            'resize',
-            handleResize,
-        )
-
-        positionCircles()
-
-        return () => {
-            window.removeEventListener(
-                'resize',
-                handleResize,
-            )
-        }
-    }, [
-        positionCircles,
     ])
 
 
@@ -402,15 +296,11 @@ export default function HowIBuildContainer({
                 )
             }
 
-            if (
-                interactionRef?.current
-            ) {
-                interactionRef.current = {
-                    x: 0,
-                    y: 0,
-                    active: false,
-                    strength: 0,
-                }
+            interactionRef.current = {
+                x: 0,
+                y: 0,
+                active: false,
+                strength: 0,
             }
         }
     }, [
@@ -420,9 +310,6 @@ export default function HowIBuildContainer({
 
     return (
         <Box
-            ref={
-                containerRef
-            }
             sx={{
                 position:
                     'absolute',
@@ -441,48 +328,88 @@ export default function HowIBuildContainer({
 
                 zIndex:
                     10,
+
+                display:
+                    'flex',
+
+                flexDirection:
+                    'column',
+
+                alignItems:
+                    'center',
+
+                /*
+                 * The nebula text occupies the upper part
+                 * of the page. Put the six DOM circles below it.
+                 */
+
+                justifyContent:
+                    'flex-start',
+
+                paddingTop:
+                    '42vh',
+
+                boxSizing:
+                    'border-box',
             }}
         >
-            {
-                HOW_I_BUILD_STAGES.map(
-                    (
-                        stage,
-                        index,
-                    ) => (
-                        <HowIBuildCircle
-                            key={
-                                stage.id
-                            }
+            <Box
+                sx={{
+                    width:
+                        '100%',
 
-                            stage={
-                                stage
-                            }
+                    display:
+                        'grid',
 
-                            visible={
-                                index <
-                                visibleCount
-                            }
+                    gridTemplateColumns:
+                        'repeat(6, 1fr)',
 
-                            circleRef={
-                                (
-                                    element,
-                                ) => {
-                                    circleRefs.current[
-                                        index
-                                    ] =
-                                        element
+                    alignItems:
+                        'center',
+
+                    justifyItems:
+                        'center',
+
+                    pointerEvents:
+                        'none',
+
+                    padding:
+                        '0 4vw',
+
+                    boxSizing:
+                        'border-box',
+                }}
+            >
+                {
+                    HOW_I_BUILD_STAGES.map(
+                        (
+                            stage,
+                            index,
+                        ) => (
+                            <HowIBuildCircle
+                                key={
+                                    stage.id
                                 }
-                            }
 
-                            onClick={() => {
-                                blowCircle(
-                                    index,
-                                )
-                            }}
-                        />
-                    ),
-                )
-            }
+                                stage={
+                                    stage
+                                }
+
+                                visible={
+                                    index <
+                                    visibleCount
+                                }
+
+                                onClick={() => {
+                                    blowCircle(
+                                        index,
+                                    )
+                                }}
+                            />
+                        ),
+                    )
+                }
+            </Box>
         </Box>
     )
 }
