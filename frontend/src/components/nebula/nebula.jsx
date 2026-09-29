@@ -1087,104 +1087,169 @@ const velocityFlowFragmentShader = `
          * ====================================================
          */
 
-        if (
-            uHomeWindActive > 0.5
-        ) {
-            /*
+        if (uHomeWindActive > 0.5) {
+
+/*
              * Main wind direction:
              * strongly toward the right.
              */
             float windTime =
-                max(
-                    0.0,
-                    uTime - 6.0
-                );
+    max(
+        0.0,
+        uTime - 6.0
+    );
 
-            float windRamp =
-                smoothstep(
-                    0.0,
-                    0.22,
-                    windTime
-                );
+float windRamp =
+    smoothstep(
+        0.0,
+        0.22,
+        windTime
+    );
 
-            /*
-             * Particle-specific turbulence.
-             */
-            float turbulenceX =
-                sin(
-                    phase * 2.17 +
-                    position.y * 0.74 +
-                    position.z * 0.41 +
-                    windTime * 1.85
-                );
 
-            float turbulenceY =
-                cos(
-                    phase * 1.63 +
-                    position.x * 0.61 -
-                    position.z * 0.53 -
-                    windTime * 1.47
-                );
+// ============================================================
+// WIND A
+// Right + slightly upward
+// Gentle / slow
+// ============================================================
 
-            float turbulenceZ =
-                sin(
-                    phase * 2.71 +
-                    position.x * 0.48 +
-                    position.y * 0.72 +
-                    windTime * 1.22
-                );
+float windSpeedA =
+    0.72;
 
-            /*
-             * Strong horizontal push.
-             */
-            velocity.x +=
-                0.0050 *
-                particleSpeed *
-                windRamp;
+float windForceA =
+    0.0016;
 
-            /*
-             * Turbulent vertical breakup.
-             */
-            velocity.y +=
-                turbulenceY *
-                0.0022 *
-                particleSpeed *
-                windRamp;
+vec3 windA =
+    vec3(
+        1.0,
+        0.25,
+        0.05
+    );
 
-            /*
-             * Depth movement makes the cloud
-             * feel like it is being carried away
-             * rather than sliding as a flat layer.
-             */
-            velocity.z +=
-                turbulenceZ *
-                0.0015 *
-                particleSpeed *
-                windRamp;
+float flowA =
+    0.5 +
+    0.5 *
+    sin(
+        position.y * 1.10 +
+        phase * 2.10 +
+        windTime * windSpeedA
+    );
 
-            /*
-             * Cross-current.
-             */
-            velocity.x +=
-                turbulenceX *
-                0.0015 *
-                particleSpeed *
-                windRamp;
 
-            /*
-             * Additional vertical shear based
-             * on horizontal position.
-             */
-            velocity.y +=
-                sin(
-                    position.x * 1.15 +
-                    phase * 1.91 +
-                    windTime * 1.1
-                ) *
-                0.0012 *
-                particleSpeed *
-                windRamp;
-        }
+// ============================================================
+// WIND B
+// Left + upward
+// Faster / weaker
+// ============================================================
+
+float windSpeedB =
+    0.75;
+
+float windForceB =
+    0.0030;
+
+vec3 windB =
+    vec3(
+        -0.55,
+        0.75,
+        0.10
+    );
+
+float flowB =
+    0.5 +
+    0.5 *
+    sin(
+        position.x * 0.90 +
+        phase * 2.70 +
+        windTime * windSpeedB
+    );
+
+
+// ============================================================
+// WIND C
+// Right + downward
+// Slow / weakest
+// ============================================================
+
+float windSpeedC =
+    0.58;
+
+float windForceC =
+    0.0020;
+
+vec3 windC =
+    vec3(
+        0.30,
+        -0.90,
+        -0.05
+    );
+
+float flowC =
+    0.5 +
+    0.5 *
+    sin(
+        position.x * 1.20 +
+        position.y * 0.60 +
+        phase * 1.80 +
+        windTime * windSpeedC
+    );
+
+
+// ============================================================
+// WIND D
+// Right + slight depth
+// Medium speed / medium force
+// ============================================================
+
+float windSpeedD =
+    0.88;
+
+float windForceD =
+    0.0020;
+
+vec3 windD =
+    vec3(
+        0.75,
+        0.05,
+        0.20
+    );
+
+float flowD =
+    0.5 +
+    0.5 *
+    sin(
+        position.z * 1.40 +
+        phase * 3.20 +
+        windTime * windSpeedD
+    );
+
+
+// ============================================================
+// COMBINE FOUR WINDS
+// ============================================================
+
+vec3 sceneWind =
+    windA *
+    flowA *
+    windForceA +
+
+    windB *
+    flowB *
+    windForceB +
+
+    windC *
+    flowC *
+    windForceC +
+
+    windD *
+    flowD *
+    windForceD;
+
+velocity +=
+    sceneWind *
+    particleSpeed *
+    windRamp;
+}
 
         /*
          * ====================================================
