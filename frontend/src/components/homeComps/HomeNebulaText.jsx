@@ -29,6 +29,10 @@ const TARGET_JITTER_Z = 0.048;
 
 const WIND_START_DELAY = 10000;
 
+// Time the text remains completely undisturbed
+// after the wind event begins.
+const WIND_TEXT_HOLD = 5;
+
 function drawLetterSpacedText(
     ctx,
     text,
@@ -43,8 +47,9 @@ function drawLetterSpacedText(
 
     const characters = [...text];
 
-    const widths = characters.map((character) =>
-        ctx.measureText(character).width
+    const widths = characters.map(
+        (character) =>
+            ctx.measureText(character).width
     );
 
     const totalWidth =
@@ -52,7 +57,10 @@ function drawLetterSpacedText(
             (sum, width) => sum + width,
             0
         ) +
-        Math.max(0, characters.length - 1) *
+        Math.max(
+            0,
+            characters.length - 1
+        ) *
         letterSpacing;
 
     let x =
@@ -348,14 +356,40 @@ export default function HomeNebulaText() {
         setWindActive,
     ] = useState(false);
 
+    const [
+        textEnabled,
+        setTextEnabled,
+    ] = useState(true);
+
     useEffect(() => {
-        const timer =
+        let releaseTextTimer;
+
+        const windTimer =
             window.setTimeout(() => {
+                // Start the wind event.
+                // The shader itself will hold the
+                // actual wind force for 250ms.
                 setWindActive(true);
+
+                releaseTextTimer =
+                    window.setTimeout(() => {
+                        // Now release the text target.
+                        setTextEnabled(false);
+                    }, WIND_TEXT_HOLD);
             }, WIND_START_DELAY);
 
         return () => {
-            window.clearTimeout(timer);
+            window.clearTimeout(
+                windTimer
+            );
+
+            if (
+                releaseTextTimer
+            ) {
+                window.clearTimeout(
+                    releaseTextTimer
+                );
+            }
         };
     }, []);
 
@@ -433,7 +467,7 @@ export default function HomeNebulaText() {
 
             <NebulaBackground
                 textEnabled={
-                    !windActive &&
+                    textEnabled &&
                     Boolean(
                         textTargetTexture
                     )

@@ -252,6 +252,7 @@ const velocityFlowFragmentShader = `
     uniform float uRectangleStrength;
 
     uniform float uHomeWindActive;
+    uniform float uHomeWindTime;
 
 
     /*
@@ -1094,15 +1095,34 @@ const velocityFlowFragmentShader = `
              * strongly toward the right.
              */
             float windTime =
-    max(
-        0.0,
-        uTime - 6.0
-    );
+    uHomeWindTime;
+
+// ============================================================
+// HOME WIND TIMING
+//
+// WIND START:
+// Immediately when homeWindActive becomes true.
+//
+// WIND RAMP:
+// 0.00 -> 0.22 seconds
+//
+// WIND END:
+// Starts fading at 2.00 seconds.
+// Completely stops at 2.50 seconds.
+// ============================================================
 
 float windRamp =
     smoothstep(
         0.0,
         0.22,
+        windTime
+    );
+
+float windEnd =
+    1.0 -
+    smoothstep(
+        4.0,
+        4.5,
         windTime
     );
 
@@ -1248,7 +1268,8 @@ vec3 sceneWind =
 velocity +=
     sceneWind *
     particleSpeed *
-    windRamp;
+    windRamp*
+    windEnd;
 }
 
         /*
@@ -2659,6 +2680,12 @@ const NebulaParticles = ({
 
     const previousWipeRef =
         useRef(null)
+    
+    const homeWindTimeRef =
+        useRef(0)
+    
+    const homeWindStartTimeRef =
+        useRef(null)
 
     const previousTargetTextureRef =
         useRef(null)
@@ -3150,6 +3177,10 @@ const NebulaParticles = ({
                             value: 0.0,
                         },
 
+                        uHomeWindTime: {
+                            value: 0.0,
+                        },
+
                         uVelocityTexture: {
                             value:
                                 null,
@@ -3489,6 +3520,28 @@ const NebulaParticles = ({
                 .value =
                 textStrength
             
+            if (
+                homeWindActive
+            ) {
+                if (
+                    homeWindStartTimeRef.current ===
+                    null
+                ) {
+                    homeWindStartTimeRef.current =
+                        state.clock.elapsedTime
+                }
+
+                homeWindTimeRef.current =
+                    state.clock.elapsedTime -
+                    homeWindStartTimeRef.current
+            } else {
+                homeWindStartTimeRef.current =
+                    null
+
+                homeWindTimeRef.current =
+                    0
+            }
+
             velocityMaterial
                 .uniforms
                 .uHomeWindActive
@@ -3496,6 +3549,12 @@ const NebulaParticles = ({
                 homeWindActive
                     ? 1.0
                     : 0.0
+
+            velocityMaterial
+                .uniforms
+                .uHomeWindTime
+                .value =
+                homeWindTimeRef.current
 
             velocityMaterial
                 .uniforms
