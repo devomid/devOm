@@ -180,7 +180,13 @@ const DEVOM_MUI_FADE_DURATION =
  *        ↓
  * FINAL_TEXT_FORM_DURATION
  *        ↓
+ * FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
+ *        ↓
  * final MUI text starts
+ *        ↓
+ * FINAL_TEXT_HOLD_AFTER_MUI
+ *        ↓
+ * final nebula disassembles
  *
  * These are intentionally independent.
  * ============================================================
@@ -193,7 +199,10 @@ const FINAL_TEXT_FORM_DURATION =
     1800;
 
 const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
-    1000;
+    0;
+
+const FINAL_TEXT_HOLD_AFTER_MUI =
+    700;
 
 /*
  * ============================================================
@@ -1185,6 +1194,7 @@ export default function HomeNebulaText() {
         let muiFadeCompleteTimer;
         let finalTextTimer;
         let finalMuiTimer;
+        let finalTextReleaseTimer;
 
         /*
          * ====================================================
@@ -1300,13 +1310,17 @@ export default function HomeNebulaText() {
                                                                                  * ====================================================
                                                                                  * FINAL MUI
                                                                                  *
-                                                                                 * Same principle as devOm:
-                                                                                 *
                                                                                  * start particle formation
                                                                                  *       ↓
-                                                                                 * wait formation duration
+                                                                                 * FINAL_TEXT_FORM_DURATION
+                                                                                 *       ↓
+                                                                                 * FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
                                                                                  *       ↓
                                                                                  * show MUI
+                                                                                 *       ↓
+                                                                                 * FINAL_TEXT_HOLD_AFTER_MUI
+                                                                                 *       ↓
+                                                                                 * disassemble particles
                                                                                  * ====================================================
                                                                                  */
 
@@ -1316,6 +1330,16 @@ export default function HomeNebulaText() {
                                                                                             setFinalTextMuiVisible(
                                                                                                 true
                                                                                             );
+
+                                                                                            finalTextReleaseTimer =
+                                                                                                window.setTimeout(
+                                                                                                    () => {
+                                                                                                        setTextEnabled(
+                                                                                                            false
+                                                                                                        );
+                                                                                                    },
+                                                                                                    FINAL_TEXT_HOLD_AFTER_MUI
+                                                                                                );
                                                                                         },
                                                                                         FINAL_TEXT_FORM_DURATION +
                                                                                         FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
@@ -1422,6 +1446,14 @@ export default function HomeNebulaText() {
             ) {
                 window.clearTimeout(
                     finalMuiTimer
+                );
+            }
+
+            if (
+                finalTextReleaseTimer
+            ) {
+                window.clearTimeout(
+                    finalTextReleaseTimer
                 );
             }
         };
