@@ -74,31 +74,12 @@ const FINAL_TEXT_WORLD_WIDTH =
 const FINAL_TEXT_WORLD_HEIGHT =
     4.8;
 
-/*
- * This moves the final particle text below the fixed
- * MUI devOm.
- *
- * The camera does not move.
- * The MUI devOm does not move.
- */
-
 const FINAL_TEXT_OFFSET_Y =
     -2.8;
 
 /*
  * ============================================================
  * DEVOM
- * ============================================================
- *
- * devOm is the main identity of the site.
- *
- * It therefore uses:
- *
- * - a much larger canvas font
- * - a much larger world width
- * - a much larger world height
- * - 100% particle participation during formation
- * - 65% participation after formation
  * ============================================================
  */
 
@@ -162,18 +143,8 @@ const WIND_START_DELAY =
 const WIND_TEXT_HOLD =
     5;
 
-/*
- * Current nebula.jsx wind fades completely
- * between 4.0 and 4.5 seconds.
- */
-
 const WIND_DURATION =
     4500;
-
-/*
- * Wait one full second after wind has completely
- * finished before starting devOm.
- */
 
 const POST_WIND_WAIT =
     1000;
@@ -181,21 +152,6 @@ const POST_WIND_WAIT =
 /*
  * ============================================================
  * DEVOM TIMING
- * ============================================================
- *
- * The 100% devOm formation is intentionally very fast.
- *
- * All particles should gather almost immediately so the
- * transition feels cinematic and dramatic rather than
- * slowly assembling.
- *
- * After that:
- *
- * 100% -> 65%
- *
- * The 65% devOm state remains on screen for a long hold so
- * devOm has enough visual importance as the identity of the
- * website.
  * ============================================================
  */
 
@@ -205,18 +161,6 @@ const DEVOM_FORM_DURATION =
 const DEVOM_HOLD_DURATION =
     8000;
 
-/*
- * ============================================================
- * MUI DEVOM
- * ============================================================
- *
- * The solid MUI devOm should appear late in the particle
- * hold, close to the moment when the particles are released.
- *
- * The delay starts after the 100% -> 65% transition.
- * ============================================================
- */
-
 const DEVOM_MUI_FADE_DELAY =
     7300;
 
@@ -225,32 +169,31 @@ const DEVOM_MUI_FADE_DURATION =
 
 /*
  * ============================================================
- * FINAL TEXT DELAY
+ * FINAL TEXT TIMING
  * ============================================================
  *
- * This controls the delay BETWEEN:
+ * MUI devOm fade finishes
+ *        ↓
+ * FINAL_TEXT_DELAY_AFTER_MUI
+ *        ↓
+ * final nebula formation starts
+ *        ↓
+ * FINAL_TEXT_FORM_DURATION
+ *        ↓
+ * final MUI text starts
  *
- * 1. MUI devOm finishing its fade-in
- * 2. Final nebula text starting
- *
- * Example:
- *
- * 0ms
- *    MUI fade starts
- *
- * 7100ms
- *    MUI fade finishes
- *
- * + FINAL_TEXT_DELAY_AFTER_MUI
- *    final nebula target is activated
- *
- * Set this to 10 for a 10ms delay.
- * Set this to 1000 for a 1 second delay.
+ * These are intentionally independent.
  * ============================================================
  */
 
 const FINAL_TEXT_DELAY_AFTER_MUI =
     700;
+
+const FINAL_TEXT_FORM_DURATION =
+    1800;
+
+const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
+    1000;
 
 /*
  * ============================================================
@@ -327,10 +270,6 @@ function drawLetterSpacedText(
 /*
  * ============================================================
  * CREATE INITIAL SENTENCE TARGET
- * ============================================================
- *
- * This intentionally keeps the original implementation
- * behavior so both lines remain present.
  * ============================================================
  */
 
@@ -1225,33 +1164,15 @@ export default function HomeNebulaText() {
         setDevOmMuiVisible,
     ] = useState(false);
 
-    /*
-     * ========================================================
-     * FINAL MUI TEXT
-     * ========================================================
-     *
-     * This is the solid Typography version of:
-     *
-     * Web. Mobile. Systems. Interfaces.
-     * Software built with attention
-     * to know how it works and how it feels
-     *
-     * It lives behind the final nebula text.
-     *
-     * Its fade duration is intentionally identical to
-     * the MUI devOm fade.
-     * ========================================================
-     */
-
     const [
         finalTextMuiVisible,
         setFinalTextMuiVisible,
     ] = useState(false);
 
     /*
-     * --------------------------------------------------------
+     * ========================================================
      * TIMELINE
-     * --------------------------------------------------------
+     * ========================================================
      */
 
     useEffect(() => {
@@ -1263,6 +1184,7 @@ export default function HomeNebulaText() {
         let devOmReleaseTimer;
         let muiFadeCompleteTimer;
         let finalTextTimer;
+        let finalMuiTimer;
 
         /*
          * ====================================================
@@ -1291,22 +1213,11 @@ export default function HomeNebulaText() {
                      * ====================================================
                      * DEVOM START
                      * ====================================================
-                     *
-                     * 10s
-                     * + 4.5s wind
-                     * + 1s wait
-                     * = 15.5s
                      */
 
                     devOmTimer =
                         window.setTimeout(
                             () => {
-                                /*
-                                 * ====================================================
-                                 * 100% PARTICLES
-                                 * ====================================================
-                                 */
-
                                 setCurrentTargetTexture(
                                     devOmFullTargetTexture
                                 );
@@ -1338,7 +1249,7 @@ export default function HomeNebulaText() {
 
                                             /*
                                              * ====================================================
-                                             * MUI DEVOM FADE-IN
+                                             * MUI DEVOM
                                              * ====================================================
                                              */
 
@@ -1351,13 +1262,8 @@ export default function HomeNebulaText() {
 
                                                         /*
                                                          * ====================================================
-                                                         * WAIT FOR MUI FADE TO FINISH
+                                                         * WAIT FOR MUI DEVOM FADE
                                                          * ====================================================
-                                                         *
-                                                         * The MUI fade starts above.
-                                                         *
-                                                         * We explicitly wait for the
-                                                         * complete CSS transition here.
                                                          */
 
                                                         muiFadeCompleteTimer =
@@ -1365,12 +1271,8 @@ export default function HomeNebulaText() {
                                                                 () => {
                                                                     /*
                                                                      * ====================================================
-                                                                     * FINAL TEXT DELAY
+                                                                     * DELAY BEFORE FINAL NEBULA
                                                                      * ====================================================
-                                                                     *
-                                                                     * This is ONLY the delay
-                                                                     * after the MUI fade has
-                                                                     * completely finished.
                                                                      */
 
                                                                     finalTextTimer =
@@ -1378,9 +1280,13 @@ export default function HomeNebulaText() {
                                                                             () => {
                                                                                 /*
                                                                                  * ====================================================
-                                                                                 * FINAL NEBULA
+                                                                                 * FINAL NEBULA START
                                                                                  * ====================================================
                                                                                  */
+
+                                                                                setFinalTextMuiVisible(
+                                                                                    false
+                                                                                );
 
                                                                                 setCurrentTargetTexture(
                                                                                     finalTextTargetTexture
@@ -1392,20 +1298,28 @@ export default function HomeNebulaText() {
 
                                                                                 /*
                                                                                  * ====================================================
-                                                                                 * FINAL MUI TEXT
-                                                                                 * ====================================================
+                                                                                 * FINAL MUI
                                                                                  *
-                                                                                 * The solid MUI version
-                                                                                 * appears behind the
-                                                                                 * final particle text
-                                                                                 * at exactly the same
-                                                                                 * moment the final
-                                                                                 * nebula target begins.
+                                                                                 * Same principle as devOm:
+                                                                                 *
+                                                                                 * start particle formation
+                                                                                 *       ↓
+                                                                                 * wait formation duration
+                                                                                 *       ↓
+                                                                                 * show MUI
+                                                                                 * ====================================================
                                                                                  */
 
-                                                                                setFinalTextMuiVisible(
-                                                                                    true
-                                                                                );
+                                                                                finalMuiTimer =
+                                                                                    window.setTimeout(
+                                                                                        () => {
+                                                                                            setFinalTextMuiVisible(
+                                                                                                true
+                                                                                            );
+                                                                                        },
+                                                                                        FINAL_TEXT_FORM_DURATION +
+                                                                                        FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
+                                                                                    );
                                                                             },
                                                                             FINAL_TEXT_DELAY_AFTER_MUI
                                                                         );
@@ -1420,10 +1334,6 @@ export default function HomeNebulaText() {
                                              * ====================================================
                                              * DEVOM PARTICLE RELEASE
                                              * ====================================================
-                                             *
-                                             * This remains completely
-                                             * independent from the
-                                             * final text timer.
                                              */
 
                                             devOmReleaseTimer =
@@ -1506,6 +1416,14 @@ export default function HomeNebulaText() {
                     finalTextTimer
                 );
             }
+
+            if (
+                finalMuiTimer
+            ) {
+                window.clearTimeout(
+                    finalMuiTimer
+                );
+            }
         };
     }, [
         devOmFullTargetTexture,
@@ -1514,9 +1432,9 @@ export default function HomeNebulaText() {
     ]);
 
     /*
-     * --------------------------------------------------------
+     * ========================================================
      * DISPOSE
-     * --------------------------------------------------------
+     * ========================================================
      */
 
     useEffect(() => {
@@ -1537,25 +1455,20 @@ export default function HomeNebulaText() {
     ]);
 
     /*
-     * --------------------------------------------------------
+     * ========================================================
      * RENDER
-     * --------------------------------------------------------
+     * ========================================================
      */
 
     return (
         <>
-            {/*
-             * ====================================================
-             * MUI DEVOM
-             * ====================================================
-             */}
-
             <div
                 style={{
                     position:
                         'absolute',
 
-                    inset: 0,
+                    inset:
+                        0,
 
                     pointerEvents:
                         'none',
@@ -1569,7 +1482,8 @@ export default function HomeNebulaText() {
                     justifyContent:
                         'center',
 
-                    zIndex: 0,
+                    zIndex:
+                        0,
                 }}
             >
                 <Typography
@@ -1618,24 +1532,13 @@ export default function HomeNebulaText() {
                 </Typography>
             </div>
 
-            {/*
- * ====================================================
- * FINAL MUI TEXT
- * ====================================================
- *
- * Solid Typography version of the final nebula text.
- *
- * It is deliberately sized and positioned to sit
- * directly underneath the particle text.
- * ====================================================
- */}
-
             <div
                 style={{
                     position:
                         'absolute',
 
-                    inset: 0,
+                    inset:
+                        0,
 
                     pointerEvents:
                         'none',
@@ -1649,7 +1552,8 @@ export default function HomeNebulaText() {
                     justifyContent:
                         'center',
 
-                    zIndex: 0,
+                    zIndex:
+                        0,
                 }}
             >
                 <Typography
@@ -1709,18 +1613,13 @@ export default function HomeNebulaText() {
                 </Typography>
             </div>
 
-            {/*
-             * ====================================================
-             * INITIAL SENTENCE INVISIBLE MUI LAYER
-             * ====================================================
-             */}
-
             <div
                 style={{
                     position:
                         'absolute',
 
-                    inset: 0,
+                    inset:
+                        0,
 
                     pointerEvents:
                         'none',
@@ -1734,7 +1633,8 @@ export default function HomeNebulaText() {
                     justifyContent:
                         'center',
 
-                    zIndex: 2,
+                    zIndex:
+                        2,
                 }}
             >
                 <Typography
