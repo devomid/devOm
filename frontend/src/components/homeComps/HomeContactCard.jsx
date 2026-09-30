@@ -4,6 +4,10 @@ const HomeContactCard = () => {
     return (
         <Box
             sx={{
+                position: 'absolute',
+                bottom: '8vh',
+                right: '10vw',
+
                 width: 'min(420px, 86vw)',
                 aspectRatio: '1.75 / 1',
 
