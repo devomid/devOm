@@ -34,7 +34,9 @@ const Home = ({ homeRef, scrollProgress, }) => {
             sx={{
                 position: 'relative',
                 width: '100%',
-                height: '100vh',
+                height: introComplete
+                    ? '300vh'
+                    : '100vh',
                 minHeight: '100vh',
                 overflow: introComplete
                     ? 'auto'
