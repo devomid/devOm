@@ -71,7 +71,11 @@ const Home = ({ homeRef, scrollProgress, }) => {
                         scrollProgress={scrollProgress}
                         introComplete={introComplete}
                     />
-                    <HomeContactCard />
+
+                    <HomeContactCard
+                        scrollProgress={scrollProgress}
+                        introComplete={introComplete}
+                    />
                 </Box>
             </Box>
         </Box>
