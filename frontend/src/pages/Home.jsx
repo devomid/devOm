@@ -1,82 +1,47 @@
-import {
-    useEffect,
-} from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Box, } from '@mui/material'
+import { useMotionValueEvent, useScroll, } from 'framer-motion'
+import HomeIntro from '../components/homeComps/HomeIntro'
 
-import {
-    Box,
-} from '@mui/material'
+const Home = ({ homeRef, scrollProgress, }) => {
 
-import {
-    useMotionValueEvent,
-    useScroll,
-} from 'framer-motion'
+    const [introComplete, setIntroComplete] = useState(false);
 
-import HomeIntro
-    from '../components/homeComps/HomeIntro'
-
-
-const Home = ({
-    homeRef,
-    scrollProgress,
-}) => {
-    const {
-        scrollYProgress,
-    } = useScroll({
-        target:
-            homeRef,
-
+    const { scrollYProgress, } = useScroll({
+        target: homeRef,
         offset: [
             'start start',
             'end end',
         ],
     })
 
-    useMotionValueEvent(
-        scrollYProgress,
-        'change',
-        latest => {
-            scrollProgress.set(
-                latest,
-            )
-        },
+    useMotionValueEvent(scrollYProgress, 'change', latest => {
+        scrollProgress.set(
+            latest,
+        )
+    }
     )
 
-    useEffect(
-        () => {
-            return () => {
-                scrollProgress.set(
-                    0,
-                )
-            }
-        },
-        [
-            scrollProgress,
-        ],
-    )
+    useEffect(() => {
+        return () => {
+            scrollProgress.set(0)
+        }
+    }, [scrollProgress])
 
     return (
         <Box
-            ref={
-                homeRef
-            }
+            ref={homeRef}
             sx={{
-                position:
-                    'relative',
-
-                width:
-                    '100%',
-
-                height:
-                    '100vh',
-
-                minHeight:
-                    '100vh',
-
-                overflow:
-                    'hidden',
+                position: 'relative',
+                width: '100%',
+                height: '100vh',
+                minHeight: '100vh',
+                overflow: 'hidden',
             }}
         >
-            <HomeIntro />
+            <HomeIntro onIntroComplete={() => {
+                setIntroComplete(true);
+            }} />
         </Box>
     )
 }
