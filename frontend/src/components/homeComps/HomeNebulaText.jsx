@@ -52,14 +52,56 @@ const FINAL_TEXT_CANVAS_WIDTH =
 const FINAL_TEXT_CANVAS_HEIGHT =
     850;
 
-const FINAL_TEXT_WORLD_WIDTH =
-    12.5;
+const FINAL_TEXT_CONTAINER_WIDTH =
+    'min(96vw, 1500px)';
 
-const FINAL_TEXT_WORLD_HEIGHT =
-    4.8;
+const FINAL_TEXT_FONT_SIZE_MIN =
+    25.6;
 
-const FINAL_TEXT_OFFSET_Y =
-    -2.8;
+const FINAL_TEXT_FONT_SIZE_VIEWPORT =
+    0.02;
+
+const FINAL_TEXT_FONT_SIZE_MAX =
+    64;
+
+const FINAL_TEXT_LINE_HEIGHT =
+    1;
+
+const FINAL_TEXT_LETTER_SPACING =
+    0.018;
+
+/*
+ * ============================================================
+ * FINAL TEXT SCREEN / CAMERA GEOMETRY
+ * ============================================================
+ *
+ * The Nebula camera is:
+ *
+ * PerspectiveCamera(
+ *     60,
+ *     aspect,
+ *     ...,
+ * )
+ *
+ * positioned at z = 10.
+ *
+ * These values make the particle target use the actual
+ * visible camera frustum instead of the old fixed
+ * 12.5 x 4.8 world rectangle.
+ * ============================================================
+ */
+
+const FINAL_TEXT_MUI_OFFSET_Y_VH =
+    24;
+
+const FINAL_TEXT_LEFT_OFFSET_PX =
+    24;
+
+const NEBULA_CAMERA_Z =
+    10;
+
+const NEBULA_CAMERA_FOV =
+    60;
 
 /*
  * ============================================================
@@ -195,6 +237,54 @@ const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
 const FINAL_MUI_FADE_DURATION =
     7100;
 
+function drawLeftAlignedLetterSpacedText(
+    ctx,
+    text,
+    x,
+    baselineY,
+    font,
+    letterSpacing
+) {
+    ctx.font =
+        font;
+
+    ctx.textAlign =
+        'left';
+
+    ctx.textBaseline =
+        'alphabetic';
+
+    const characters =
+        [...text];
+
+    const widths =
+        characters.map(
+            (character) =>
+                ctx.measureText(
+                    character
+                ).width
+        );
+
+    let currentX =
+        x;
+
+    characters.forEach(
+        (
+            character,
+            index
+        ) => {
+            ctx.fillText(
+                character,
+                currentX,
+                baselineY
+            );
+
+            currentX +=
+                widths[index] +
+                letterSpacing;
+        }
+    );
+}
 
 function drawLetterSpacedText(
     ctx,
@@ -264,283 +354,209 @@ function drawLetterSpacedText(
 
 async function loadInitialTextFont() {
     const fonts = [
-        /*
-         * ====================================================
-         * OKANA
-         * ====================================================
-         */
+        // ============================================================
+        // OKANA
+        // ============================================================
 
         {
             family: 'Okana',
-            source: 'local("Okana Thin")',
             weight: '100',
             style: 'normal',
+            src: '/fonts/okana/Okana-Thin.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana ExtraLight")',
             weight: '200',
             style: 'normal',
+            src: '/fonts/okana/Okana-ExtraLight.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Light")',
             weight: '300',
             style: 'normal',
+            src: '/fonts/okana/Okana-Light.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Medium")',
             weight: '500',
             style: 'normal',
+            src: '/fonts/okana/Okana-Medium.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana SemiBold")',
             weight: '600',
             style: 'normal',
+            src: '/fonts/okana/Okana-SemiBold.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Bold")',
             weight: '700',
             style: 'normal',
+            src: '/fonts/okana/Okana-Bold.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana UltraBold")',
             weight: '800',
             style: 'normal',
+            src: '/fonts/okana/Okana-UltraBold.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Black")',
             weight: '900',
             style: 'normal',
+            src: '/fonts/okana/Okana-Black.ttf',
+            format: 'truetype',
         },
-
-        /*
-         * ====================================================
-         * OKANA OBLIQUE
-         * ====================================================
-         */
 
         {
             family: 'Okana',
-            source: 'local("Okana Thin Oblique")',
             weight: '100',
             style: 'oblique',
+            src: '/fonts/okana/Okana-ThinOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana ExtraLight Oblique")',
             weight: '200',
             style: 'oblique',
+            src: '/fonts/okana/Okana-ExtraLightOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Light Oblique")',
             weight: '300',
             style: 'oblique',
+            src: '/fonts/okana/Okana-LightOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Medium Oblique")',
             weight: '500',
             style: 'oblique',
+            src: '/fonts/okana/Okana-MediumOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana SemiBold Oblique")',
             weight: '600',
             style: 'oblique',
+            src: '/fonts/okana/Okana-SemiBoldOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Bold Oblique")',
             weight: '700',
             style: 'oblique',
+            src: '/fonts/okana/Okana-BoldOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana UltraBold Oblique")',
             weight: '800',
             style: 'oblique',
+            src: '/fonts/okana/Okana-UltraBoldOblique.ttf',
+            format: 'truetype',
         },
-
         {
             family: 'Okana',
-            source: 'local("Okana Black Oblique")',
             weight: '900',
             style: 'oblique',
+            src: '/fonts/okana/Okana-BlackOblique.ttf',
+            format: 'truetype',
         },
 
-        /*
-         * ====================================================
-         * AVENIR NEXT
-         * ====================================================
-         */
+        // ============================================================
+        // AFTER
+        // ============================================================
 
         {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Ultra Light")',
-            weight: '200',
-            style: 'normal',
-        },
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Regular")',
+            family: 'After',
             weight: '400',
             style: 'normal',
+            src: '/fonts/okana/after-regular.otf',
+            format: 'opentype',
         },
 
+        // ============================================================
+        // FOGIE
+        // ============================================================
+
         {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Medium")',
-            weight: '500',
+            family: 'Fogie',
+            weight: '100',
             style: 'normal',
+            src: '/fonts/okana/Fogie-Thin.ttf',
+            format: 'truetype',
         },
 
+        // ============================================================
+        // MONIGUE
+        // ============================================================
+
         {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Demi Bold")',
-            weight: '600',
+            family: 'Monigue',
+            weight: '400',
             style: 'normal',
+            src: '/fonts/okana/MoniguedemoRegular-gwlL1.otf',
+            format: 'opentype',
         },
 
+        // ============================================================
+        // CODEC PRO
+        // ============================================================
+
         {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Bold")',
-            weight: '700',
+            family: 'Codec Pro',
+            weight: '400',
             style: 'normal',
+            src: '/fonts/okana/CodecPro-Regular.ttf',
+            format: 'truetype',
         },
-
         {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Heavy")',
-            weight: '800',
-            style: 'normal',
-        },
-
-        /*
-         * ====================================================
-         * AVENIR NEXT ITALIC
-         * ====================================================
-         */
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Ultra Light Italic")',
-            weight: '200',
-            style: 'italic',
-        },
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Italic")',
+            family: 'Codec Pro',
             weight: '400',
             style: 'italic',
-        },
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Medium Italic")',
-            weight: '500',
-            style: 'italic',
-        },
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Demi Bold Italic")',
-            weight: '600',
-            style: 'italic',
-        },
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Bold Italic")',
-            weight: '700',
-            style: 'italic',
-        },
-
-        {
-            family: 'Avenir Next',
-            source: 'local("Avenir Next Heavy Italic")',
-            weight: '800',
-            style: 'italic',
+            src: '/fonts/okana/CodecPro-Italic.ttf',
+            format: 'truetype',
         },
     ];
 
-    for (const {
-        family,
-        source,
-        weight,
-        style,
-    } of fonts) {
-        try {
-            const font =
-                new FontFace(
-                    family,
-                    source,
-                    {
-                        weight,
-                        style,
-                    }
+    await Promise.all(
+        fonts.map(
+            async ({
+                family,
+                weight,
+                style,
+                src,
+                format,
+            }) => {
+                const font =
+                    new FontFace(
+                        family,
+                        `url("${src}") format("${format}")`,
+                        {
+                            weight,
+                            style,
+                        }
+                    );
+
+                await font.load();
+
+                document.fonts.add(
+                    font
                 );
-
-            await font.load();
-
-            document.fonts.add(
-                font
-            );
-        } catch (error) {
-            console.warn(
-                `Could not load ${family} ${weight} ${style}:`,
-                error
-            );
-        }
-    }
-
-    /*
-     * Make sure the browser has finished
-     * resolving the font faces.
-     */
-
-    await document.fonts.load(
-        '100 100px "Okana"'
-    );
-
-    await document.fonts.load(
-        '400 100px "Avenir Next"'
-    );
-
-    console.log(
-        'Okana 600:',
-        document.fonts.check(
-            '600 100px "Okana"'
+            }
         )
     );
 
-    console.log(
-        'Avenir Next 400:',
-        document.fonts.check(
-            '400 100px "Avenir Next"'
-        )
-    );
+    await document.fonts.ready;
 }
 
 function createSentenceTargetTexture() {
@@ -582,11 +598,11 @@ function createSentenceTargetTexture() {
         'blur(3px)';
 
     const fontSize =
-        120;
+        130;
 
     const font =
         `400 ${fontSize}px ` +
-        `"Avenir Next", "Helvetica Neue", Arial, sans-serif`;
+        `"Codec Pro", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
         fontSize *
@@ -878,20 +894,8 @@ function createDevOmTargetTexture(
         390;
 
     const font =
-        `600 ${fontSize}px ` +
-        `"Okana", "Helvetica Neue", Arial, sans-serif`;
-    
-    console.log(
-        'DEVOM CANVAS FONT:',
-        font
-    );
-
-    console.log(
-        'DEVOM OKANA:',
-        document.fonts.check(
-            '600 390px "Okana"'
-        )
-    );
+        `400 ${fontSize}px ` +
+        `"After", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
         fontSize *
@@ -1105,6 +1109,146 @@ function createDevOmTargetTexture(
     return texture;
 }
 
+function getFinalTextFontSize() {
+    const rootFontSize =
+        parseFloat(
+            getComputedStyle(
+                document.documentElement
+            ).fontSize
+        ) || 16;
+
+    const min =
+        rootFontSize *
+        1.6;
+
+    const max =
+        rootFontSize *
+        4;
+
+    const viewportFontSize =
+        window.innerWidth *
+        FINAL_TEXT_FONT_SIZE_VIEWPORT;
+
+    return Math.min(
+        Math.max(
+            viewportFontSize,
+            min
+        ),
+        max
+    );
+}
+
+function getFinalTextViewportWorldSize() {
+    const viewportWidth =
+        window.innerWidth;
+
+    const viewportHeight =
+        window.innerHeight;
+
+    const fovRadians =
+        THREE.MathUtils.degToRad(
+            NEBULA_CAMERA_FOV
+        );
+
+    const worldHeight =
+        2 *
+        NEBULA_CAMERA_Z *
+        Math.tan(
+            fovRadians / 2
+        );
+
+    const worldWidth =
+        worldHeight *
+        (
+            viewportWidth /
+            viewportHeight
+        );
+
+    return {
+        worldWidth,
+        worldHeight,
+    };
+}
+
+function getDevOmVisualLeft() {
+    const canvas =
+        document.createElement(
+            'canvas'
+        );
+
+    const ctx =
+        canvas.getContext(
+            '2d'
+        );
+
+    if (!ctx) {
+        return FINAL_TEXT_LEFT_OFFSET_PX;
+    }
+
+    const rootFontSize =
+        parseFloat(
+            getComputedStyle(
+                document.documentElement
+            ).fontSize
+        ) || 16;
+
+    const devOmFontSize =
+        Math.min(
+            Math.max(
+                window.innerWidth *
+                0.15,
+                rootFontSize *
+                6
+            ),
+            rootFontSize *
+            15
+        );
+
+    ctx.font =
+        `400 ${devOmFontSize}px ` +
+        `"After", "Helvetica Neue", Arial, sans-serif`;
+
+    const characters =
+        [...DEVOM_TEXT];
+
+    const letterSpacing =
+        devOmFontSize *
+        0.018;
+
+    const widths =
+        characters.map(
+            (character) =>
+                ctx.measureText(
+                    character
+                ).width
+        );
+
+    const devOmWidth =
+        widths.reduce(
+            (
+                sum,
+                width
+            ) =>
+                sum +
+                width,
+            0
+        ) +
+        Math.max(
+            0,
+            characters.length - 1
+        ) *
+        letterSpacing;
+
+    return (
+        (
+            window.innerWidth -
+            devOmWidth
+        ) /
+        2
+    ) +
+        FINAL_TEXT_LEFT_OFFSET_PX;
+}
+
 function createFinalTextTargetTexture() {
     const canvas =
         document.createElement(
@@ -1140,32 +1284,96 @@ function createFinalTextTargetTexture() {
     ctx.fillStyle =
         '#ffffff';
 
+    /*
+     * ============================================================
+     * ACTUAL CAMERA FRUSTUM
+     * ============================================================
+     */
+
+    const {
+        worldWidth,
+        worldHeight,
+    } =
+        getFinalTextViewportWorldSize();
+
+    /*
+     * ============================================================
+     * EXACT CSS -> CANVAS SCALE
+     * ============================================================
+     *
+     * The canvas represents the complete browser viewport.
+     *
+     * Therefore:
+     *
+     * canvas pixels / viewport pixels
+     *
+     * is the conversion factor.
+     */
+
+    const canvasScale =
+        FINAL_TEXT_CANVAS_WIDTH /
+        window.innerWidth;
+
+    /*
+     * ============================================================
+     * SAME RESPONSIVE FONT SIZE AS MUI
+     * ============================================================
+     */
+
+    const muiFontSize =
+        getFinalTextFontSize();
+
     const fontSize =
-        45;
+        muiFontSize *
+        canvasScale;
 
     const font =
         `400 ${fontSize}px ` +
-        `"Avenir Next", "Helvetica Neue", Arial, sans-serif`;
+        `"Codec Pro", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
         fontSize *
-        0.015;
+        FINAL_TEXT_LETTER_SPACING;
 
-    const centerX =
-        FINAL_TEXT_CANVAS_WIDTH /
-        2;
+    /*
+     * ============================================================
+     * SAME LEFT EDGE AS MUI
+     * ============================================================
+     */
+
+    const finalTextLeft =
+        getDevOmVisualLeft();
+
+    const textX =
+        finalTextLeft *
+        canvasScale;
+
+    /*
+     * ============================================================
+     * SAME VERTICAL TRANSFORM AS MUI
+     * ============================================================
+     */
+
+    const verticalOffsetWorld =
+        -(
+            FINAL_TEXT_MUI_OFFSET_Y_VH /
+            100
+        ) *
+        worldHeight;
+
+    /*
+     * ============================================================
+     * LINE GEOMETRY
+     * ============================================================
+     */
+
+    const lineHeight =
+        fontSize *
+        FINAL_TEXT_LINE_HEIGHT;
 
     const centerY =
         FINAL_TEXT_CANVAS_HEIGHT /
         2;
-
-    const lineGap =
-        fontSize *
-        0.18;
-
-    const lineHeight =
-        fontSize +
-        lineGap;
 
     const baselineCorrection =
         fontSize *
@@ -1184,45 +1392,45 @@ function createFinalTextTargetTexture() {
         centerY +
         lineHeight +
         baselineCorrection;
-    
-    console.log(
-        'Canvas Okana:',
-        document.fonts.check(
-            '600 390px "Okana"'
-        )
-    );
 
-    console.log(
-        'Canvas font before draw:',
-        font
-    );
+    /*
+     * ============================================================
+     * DRAW
+     * ============================================================
+     */
 
-    drawLetterSpacedText(
+    drawLeftAlignedLetterSpacedText(
         ctx,
         FINAL_TEXT_LINE_1,
-        centerX,
+        textX,
         firstLineBaseline,
         font,
         letterSpacing
     );
 
-    drawLetterSpacedText(
+    drawLeftAlignedLetterSpacedText(
         ctx,
         FINAL_TEXT_LINE_2,
-        centerX,
+        textX,
         secondLineBaseline,
         font,
         letterSpacing
     );
 
-    drawLetterSpacedText(
+    drawLeftAlignedLetterSpacedText(
         ctx,
         FINAL_TEXT_LINE_3,
-        centerX,
+        textX,
         thirdLineBaseline,
         font,
         letterSpacing
     );
+
+    /*
+     * ============================================================
+     * READ TEXT PIXELS
+     * ============================================================
+     */
 
     const imageData =
         ctx.getImageData(
@@ -1273,6 +1481,12 @@ function createFinalTextTargetTexture() {
         }
     }
 
+    /*
+     * ============================================================
+     * PARTICLE TARGET
+     * ============================================================
+     */
+
     const targetData =
         new Float32Array(
             PARTICLE_COUNT * 4
@@ -1322,19 +1536,24 @@ function createFinalTextTargetTexture() {
                 particle.y /
                 FINAL_TEXT_CANVAS_HEIGHT;
 
+            /*
+             * The canvas now maps directly to the visible
+             * PerspectiveCamera viewport.
+             */
+
             const worldX =
                 (
                     normalizedX -
                     0.5
                 ) *
-                FINAL_TEXT_WORLD_WIDTH;
+                worldWidth;
 
             const worldY =
                 (
                     0.5 -
                     normalizedY
                 ) *
-                FINAL_TEXT_WORLD_HEIGHT;
+                worldHeight;
 
             targetData[offset] =
                 worldX +
@@ -1346,7 +1565,7 @@ function createFinalTextTargetTexture() {
 
             targetData[offset + 1] =
                 worldY +
-                FINAL_TEXT_OFFSET_Y +
+                verticalOffsetWorld +
                 (
                     Math.random() -
                     0.5
@@ -1423,6 +1642,17 @@ export default function HomeNebulaText() {
 
     /*
      * ========================================================
+     * FINAL MUI LEFT POSITION
+     * ========================================================
+     */
+
+    const [
+        finalTextLeft,
+        setFinalTextLeft,
+    ] = useState(0);
+
+    /*
+     * ========================================================
      * INITIAL TEXT
      * ========================================================
      */
@@ -1462,6 +1692,10 @@ export default function HomeNebulaText() {
                     finalTexture
                 );
 
+                setFinalTextLeft(
+                    getDevOmVisualLeft()
+                );
+
             } catch (error) {
                 console.error(
                     'Failed to load fonts:',
@@ -1494,6 +1728,10 @@ export default function HomeNebulaText() {
                 setFinalTextTargetTexture(
                     finalTexture
                 );
+
+                setFinalTextLeft(
+                    getDevOmVisualLeft()
+                );
             }
         }
 
@@ -1505,7 +1743,74 @@ export default function HomeNebulaText() {
         };
     }, []);
 
-  
+    /*
+     * ========================================================
+     * RESPONSIVE FINAL TEXT GEOMETRY
+     * ========================================================
+     *
+     * Important:
+     *
+     * We DO NOT replace finalTextTargetTexture with a new
+     * React state object here.
+     *
+     * That would restart the timeline because the timeline
+     * depends on finalTextTargetTexture.
+     *
+     * Instead, we update the existing DataTexture's data
+     * in-place.
+     *
+     * Timing therefore remains untouched.
+     * ========================================================
+     */
+
+    useEffect(() => {
+        if (!finalTextTargetTexture) {
+            return;
+        }
+
+        function handleResize() {
+            const nextTexture =
+                createFinalTextTargetTexture();
+
+            if (!nextTexture) {
+                return;
+            }
+
+            if (
+                finalTextTargetTexture.image?.data &&
+                nextTexture.image?.data &&
+                finalTextTargetTexture.image.data.length ===
+                nextTexture.image.data.length
+            ) {
+                finalTextTargetTexture.image.data.set(
+                    nextTexture.image.data
+                );
+
+                finalTextTargetTexture.needsUpdate =
+                    true;
+            }
+
+            nextTexture.dispose();
+
+            setFinalTextLeft(
+                getDevOmVisualLeft()
+            );
+        }
+
+        window.addEventListener(
+            'resize',
+            handleResize
+        );
+
+        return () => {
+            window.removeEventListener(
+                'resize',
+                handleResize
+            );
+        };
+    }, [
+        finalTextTargetTexture,
+    ]);
 
     /*
      * ========================================================
@@ -1557,10 +1862,10 @@ export default function HomeNebulaText() {
     ] = useState(false);
 
     /*
- * ========================================================
- * TIMELINE
- * ========================================================
- */
+     * ========================================================
+     * TIMELINE
+     * ========================================================
+     */
 
     useEffect(() => {
         if (
@@ -1570,7 +1875,6 @@ export default function HomeNebulaText() {
         ) {
             return;
         }
-
 
         let windTimer;
         let releaseTextTimer;
@@ -1677,7 +1981,7 @@ export default function HomeNebulaText() {
 
                                         finalTextTimer =
                                             window.setTimeout(() => {
-                                    
+
                                                 /*
                                                  * =================================================
                                                  * FINAL PARTICLES FORM
@@ -1786,7 +2090,6 @@ export default function HomeNebulaText() {
             window.clearTimeout(
                 finalMuiTimer
             );
-
         };
     }, [
         textTargetTexture,
@@ -1862,13 +2165,13 @@ export default function HomeNebulaText() {
                             'center',
 
                         fontFamily:
-                            '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
+                            '"After", "Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
                             'clamp(6rem, 15vw, 15rem)',
 
                         fontWeight:
-                            550,
+                            400,
 
                         lineHeight:
                             1,
@@ -1902,6 +2205,13 @@ export default function HomeNebulaText() {
              * ==================================================
              * FINAL MUI
              * ==================================================
+             *
+             * This is anchored to the exact measured visual
+             * left edge of devOm + 24px.
+             *
+             * Its vertical center is the same center used by
+             * the particle target, plus the same 24vh offset.
+             * ==================================================
              */}
 
             <div
@@ -1915,15 +2225,6 @@ export default function HomeNebulaText() {
                     pointerEvents:
                         'none',
 
-                    display:
-                        'flex',
-
-                    alignItems:
-                        'center',
-
-                    justifyContent:
-                        'center',
-
                     zIndex:
                         0,
                 }}
@@ -1931,23 +2232,32 @@ export default function HomeNebulaText() {
                 <Typography
                     component="div"
                     sx={{
+                        position:
+                            'absolute',
+
+                        left:
+                            `${finalTextLeft}px`,
+
+                        top:
+                            '50%',
+
                         width:
-                            'min(96vw, 1500px)',
+                            FINAL_TEXT_CONTAINER_WIDTH,
 
                         textAlign:
-                            'center',
+                            'left',
 
                         fontFamily:
-                            '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
+                            '"Codec Pro", "Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
                             'clamp(1.6rem, 2vw, 4rem)',
 
                         fontWeight:
-                            550,
+                            400,
 
                         lineHeight:
-                            1,
+                            FINAL_TEXT_LINE_HEIGHT,
 
                         letterSpacing:
                             '0.018em',
@@ -1967,7 +2277,7 @@ export default function HomeNebulaText() {
                                 : 0,
 
                         transform:
-                            'translateY(24vh)',
+                            'translateY(calc(-50% + 24vh))',
 
                         transition:
                             `opacity ${FINAL_MUI_FADE_DURATION}ms ease`,
