@@ -36,7 +36,10 @@ const Home = ({ homeRef, scrollProgress, }) => {
                 width: '100%',
                 height: '100vh',
                 minHeight: '100vh',
-                overflow: 'hidden',
+                overflow: introComplete
+                    ? 'auto'
+                    : 'hidden',
+                overscrollBehavior: 'none',
             }}
         >
             <HomeIntro onIntroComplete={() => {
