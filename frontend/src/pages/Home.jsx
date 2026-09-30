@@ -46,22 +46,31 @@ const Home = ({ homeRef, scrollProgress, }) => {
                 overscrollBehavior: 'none',
             }}
         >
-            <HomeIntro onIntroComplete={() => {
-                setIntroComplete(true);
-            }} />
-
             <Box
                 sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 2,
-                    pointerEvents: 'none',
+                    position: 'sticky',
+                    top: 0,
+                    width: '100%',
+                    height: '100vh',
+                    overflow: 'hidden',
                 }}
             >
-                <WhyYouNeedMe />
-                <HomeContactCard />
-            </Box>
+                <HomeIntro onIntroComplete={() => {
+                    setIntroComplete(true);
+                }} />
 
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 2,
+                        pointerEvents: 'none',
+                    }}
+                >
+                    <WhyYouNeedMe />
+                    <HomeContactCard />
+                </Box>
+            </Box>
         </Box>
     )
 }
