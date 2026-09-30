@@ -11,6 +11,7 @@ import {
 import * as THREE from 'three';
 
 import NebulaBackground from '../nebula/nebula';
+import { colors } from '../../design/colors';
 
 const TEXT_LINE_1 =
     'Every little idea is';
@@ -20,6 +21,21 @@ const TEXT_LINE_2 =
 
 const DEVOM_TEXT =
     'devOm';
+
+/*
+ * ============================================================
+ * FINAL HOME TEXT
+ * ============================================================
+ */
+
+const FINAL_TEXT_LINE_1 =
+    'Web. Mobile. Systems. Interfaces.';
+
+const FINAL_TEXT_LINE_2 =
+    'Software built with attention';
+
+const FINAL_TEXT_LINE_3 =
+    'to know how it works and how it feels';
 
 const TEXTURE_SIZE =
     512;
@@ -36,6 +52,38 @@ const PARTICLE_COUNT =
 
 const TEXT_PARTICLE_RATIO =
     0.30;
+
+/*
+ * ============================================================
+ * FINAL TEXT
+ * ============================================================
+ */
+
+const FINAL_TEXT_PARTICLE_RATIO =
+    0.30;
+
+const FINAL_TEXT_CANVAS_WIDTH =
+    1800;
+
+const FINAL_TEXT_CANVAS_HEIGHT =
+    850;
+
+const FINAL_TEXT_WORLD_WIDTH =
+    12.5;
+
+const FINAL_TEXT_WORLD_HEIGHT =
+    4.8;
+
+/*
+ * This moves the final particle text below the fixed
+ * MUI devOm.
+ *
+ * The camera does not move.
+ * The MUI devOm does not move.
+ */
+
+const FINAL_TEXT_OFFSET_Y =
+    -2.8;
 
 /*
  * ============================================================
@@ -152,10 +200,57 @@ const POST_WIND_WAIT =
  */
 
 const DEVOM_FORM_DURATION =
-    650;
+    550;
 
 const DEVOM_HOLD_DURATION =
-    9000;
+    8000;
+
+/*
+ * ============================================================
+ * MUI DEVOM
+ * ============================================================
+ *
+ * The solid MUI devOm should appear late in the particle
+ * hold, close to the moment when the particles are released.
+ *
+ * The delay starts after the 100% -> 65% transition.
+ * ============================================================
+ */
+
+const DEVOM_MUI_FADE_DELAY =
+    7300;
+
+const DEVOM_MUI_FADE_DURATION =
+    7100;
+
+/*
+ * ============================================================
+ * FINAL TEXT DELAY
+ * ============================================================
+ *
+ * This controls the delay BETWEEN:
+ *
+ * 1. MUI devOm finishing its fade-in
+ * 2. Final nebula text starting
+ *
+ * Example:
+ *
+ * 0ms
+ *    MUI fade starts
+ *
+ * 7100ms
+ *    MUI fade finishes
+ *
+ * + FINAL_TEXT_DELAY_AFTER_MUI
+ *    final nebula target is activated
+ *
+ * Set this to 10 for a 10ms delay.
+ * Set this to 1000 for a 1 second delay.
+ * ============================================================
+ */
+
+const FINAL_TEXT_DELAY_AFTER_MUI =
+    700;
 
 /*
  * ============================================================
@@ -318,12 +413,6 @@ function createSentenceTargetTexture() {
         lineOffset +
         baselineCorrection;
 
-    /*
-     * IMPORTANT:
-     *
-     * Both lines are explicitly drawn.
-     */
-
     drawLetterSpacedText(
         ctx,
         TEXT_LINE_1,
@@ -415,12 +504,6 @@ function createSentenceTargetTexture() {
             requiredParticles &&
             candidates.length > 0
         ) {
-            /*
-             * Keep the original proportional mapping.
-             *
-             * This preserves the complete two-line shape.
-             */
-
             const candidateIndex =
                 Math.floor(
                     (
@@ -532,15 +615,6 @@ function createSentenceTargetTexture() {
  * ============================================================
  * CREATE DEVOM TARGET
  * ============================================================
- *
- * ratio:
- *
- * 1.00 -> all particles
- * 0.65 -> 65% of particles
- *
- * The remaining particles receive alpha = 0 and therefore
- * remain free in nebula.jsx.
- * ============================================================
  */
 
 function createDevOmTargetTexture(
@@ -579,12 +653,6 @@ function createDevOmTargetTexture(
 
     ctx.fillStyle =
         '#ffffff';
-
-    /*
-     * Much larger than the sentence.
-     *
-     * This is deliberately the main visual identity.
-     */
 
     const fontSize =
         390;
@@ -695,14 +763,6 @@ function createDevOmTargetTexture(
             requiredParticles &&
             candidates.length > 0
         ) {
-            /*
-             * Cycle through the complete letter shape.
-             *
-             * This guarantees that 100% of particles can
-             * participate without clustering only on the
-             * beginning of the word.
-             */
-
             const candidateIndex =
                 Math.floor(
                     (
@@ -812,29 +872,311 @@ function createDevOmTargetTexture(
 
 /*
  * ============================================================
+ * CREATE FINAL TEXT TARGET
+ * ============================================================
+ */
+
+function createFinalTextTargetTexture() {
+    const canvas =
+        document.createElement(
+            'canvas'
+        );
+
+    canvas.width =
+        FINAL_TEXT_CANVAS_WIDTH;
+
+    canvas.height =
+        FINAL_TEXT_CANVAS_HEIGHT;
+
+    const ctx =
+        canvas.getContext(
+            '2d',
+            {
+                willReadFrequently:
+                    true,
+            }
+        );
+
+    if (!ctx) {
+        return null;
+    }
+
+    ctx.clearRect(
+        0,
+        0,
+        FINAL_TEXT_CANVAS_WIDTH,
+        FINAL_TEXT_CANVAS_HEIGHT
+    );
+
+    ctx.fillStyle =
+        '#ffffff';
+
+    const fontSize =
+        85;
+
+    const font =
+        `550 ${fontSize}px ` +
+        `"Neue Montreal", "Helvetica Neue", Arial, sans-serif`;
+
+    const letterSpacing =
+        fontSize *
+        0.018;
+
+    const centerX =
+        FINAL_TEXT_CANVAS_WIDTH /
+        2;
+
+    const centerY =
+        FINAL_TEXT_CANVAS_HEIGHT /
+        2;
+
+    const lineGap =
+        fontSize *
+        0.18;
+
+    const lineHeight =
+        fontSize +
+        lineGap;
+
+    const baselineCorrection =
+        fontSize *
+        0.34;
+
+    const firstLineBaseline =
+        centerY -
+        lineHeight +
+        baselineCorrection;
+
+    const secondLineBaseline =
+        centerY +
+        baselineCorrection;
+
+    const thirdLineBaseline =
+        centerY +
+        lineHeight +
+        baselineCorrection;
+
+    drawLetterSpacedText(
+        ctx,
+        FINAL_TEXT_LINE_1,
+        centerX,
+        firstLineBaseline,
+        font,
+        letterSpacing
+    );
+
+    drawLetterSpacedText(
+        ctx,
+        FINAL_TEXT_LINE_2,
+        centerX,
+        secondLineBaseline,
+        font,
+        letterSpacing
+    );
+
+    drawLetterSpacedText(
+        ctx,
+        FINAL_TEXT_LINE_3,
+        centerX,
+        thirdLineBaseline,
+        font,
+        letterSpacing
+    );
+
+    const imageData =
+        ctx.getImageData(
+            0,
+            0,
+            FINAL_TEXT_CANVAS_WIDTH,
+            FINAL_TEXT_CANVAS_HEIGHT
+        );
+
+    const pixels =
+        imageData.data;
+
+    const candidates =
+        [];
+
+    for (
+        let y = 0;
+        y < FINAL_TEXT_CANVAS_HEIGHT;
+        y += 1
+    ) {
+        for (
+            let x = 0;
+            x < FINAL_TEXT_CANVAS_WIDTH;
+            x += 1
+        ) {
+            const pixelIndex =
+                (
+                    y *
+                    FINAL_TEXT_CANVAS_WIDTH +
+                    x
+                ) *
+                4;
+
+            const alpha =
+                pixels[
+                pixelIndex + 3
+                ];
+
+            if (
+                alpha > 100
+            ) {
+                candidates.push({
+                    x,
+                    y,
+                    alpha,
+                });
+            }
+        }
+    }
+
+    const targetData =
+        new Float32Array(
+            PARTICLE_COUNT * 4
+        );
+
+    const requiredParticles =
+        Math.floor(
+            PARTICLE_COUNT *
+            FINAL_TEXT_PARTICLE_RATIO
+        );
+
+    for (
+        let i = 0;
+        i < PARTICLE_COUNT;
+        i += 1
+    ) {
+        const offset =
+            i * 4;
+
+        if (
+            i <
+            requiredParticles &&
+            candidates.length > 0
+        ) {
+            const candidateIndex =
+                Math.floor(
+                    (
+                        i /
+                        requiredParticles
+                    ) *
+                    candidates.length
+                );
+
+            const particle =
+                candidates[
+                Math.min(
+                    candidateIndex,
+                    candidates.length - 1
+                )
+                ];
+
+            const normalizedX =
+                particle.x /
+                FINAL_TEXT_CANVAS_WIDTH;
+
+            const normalizedY =
+                particle.y /
+                FINAL_TEXT_CANVAS_HEIGHT;
+
+            const worldX =
+                (
+                    normalizedX -
+                    0.5
+                ) *
+                FINAL_TEXT_WORLD_WIDTH;
+
+            const worldY =
+                (
+                    0.5 -
+                    normalizedY
+                ) *
+                FINAL_TEXT_WORLD_HEIGHT;
+
+            targetData[offset] =
+                worldX +
+                (
+                    Math.random() -
+                    0.5
+                ) *
+                TARGET_JITTER_XY;
+
+            targetData[offset + 1] =
+                worldY +
+                FINAL_TEXT_OFFSET_Y +
+                (
+                    Math.random() -
+                    0.5
+                ) *
+                TARGET_JITTER_XY;
+
+            targetData[offset + 2] =
+                (
+                    Math.random() -
+                    0.5
+                ) *
+                TARGET_JITTER_Z;
+
+            targetData[offset + 3] =
+                particle.alpha /
+                255;
+        } else {
+            targetData[offset] =
+                0;
+
+            targetData[offset + 1] =
+                0;
+
+            targetData[offset + 2] =
+                0;
+
+            targetData[offset + 3] =
+                0;
+        }
+    }
+
+    const texture =
+        new THREE.DataTexture(
+            targetData,
+            TEXTURE_SIZE,
+            TEXTURE_SIZE,
+            THREE.RGBAFormat,
+            THREE.FloatType
+        );
+
+    texture.needsUpdate =
+        true;
+
+    texture.magFilter =
+        THREE.NearestFilter;
+
+    texture.minFilter =
+        THREE.NearestFilter;
+
+    texture.wrapS =
+        THREE.ClampToEdgeWrapping;
+
+    texture.wrapT =
+        THREE.ClampToEdgeWrapping;
+
+    return texture;
+}
+
+/*
+ * ============================================================
  * COMPONENT
  * ============================================================
  */
 
 export default function HomeNebulaText() {
-    /*
-     * --------------------------------------------------------
-     * SENTENCE
-     * --------------------------------------------------------
-     */
-
     const textTargetTexture =
         useMemo(
             () =>
                 createSentenceTargetTexture(),
             []
         );
-
-    /*
-     * --------------------------------------------------------
-     * DEVOM FULL
-     * --------------------------------------------------------
-     */
 
     const devOmFullTargetTexture =
         useMemo(
@@ -845,12 +1187,6 @@ export default function HomeNebulaText() {
             []
         );
 
-    /*
-     * --------------------------------------------------------
-     * DEVOM REDUCED
-     * --------------------------------------------------------
-     */
-
     const devOmReducedTargetTexture =
         useMemo(
             () =>
@@ -860,11 +1196,12 @@ export default function HomeNebulaText() {
             []
         );
 
-    /*
-     * --------------------------------------------------------
-     * CURRENT TARGET
-     * --------------------------------------------------------
-     */
+    const finalTextTargetTexture =
+        useMemo(
+            () =>
+                createFinalTextTargetTexture(),
+            []
+        );
 
     const [
         currentTargetTexture,
@@ -873,26 +1210,19 @@ export default function HomeNebulaText() {
         textTargetTexture
     );
 
-    /*
-     * --------------------------------------------------------
-     * TEXT ENABLED
-     * --------------------------------------------------------
-     */
-
     const [
         textEnabled,
         setTextEnabled,
     ] = useState(true);
 
-    /*
-     * --------------------------------------------------------
-     * WIND
-     * --------------------------------------------------------
-     */
-
     const [
         windActive,
         setWindActive,
+    ] = useState(false);
+
+    const [
+        devOmMuiVisible,
+        setDevOmMuiVisible,
     ] = useState(false);
 
     /*
@@ -906,7 +1236,10 @@ export default function HomeNebulaText() {
         let releaseTextTimer;
         let devOmTimer;
         let devOmReduceTimer;
+        let devOmMuiTimer;
         let devOmReleaseTimer;
+        let muiFadeCompleteTimer;
+        let finalTextTimer;
 
         /*
          * ====================================================
@@ -920,10 +1253,6 @@ export default function HomeNebulaText() {
                     setWindActive(
                         true
                     );
-
-                    /*
-                     * Preserve your current wind behavior.
-                     */
 
                     releaseTextTimer =
                         window.setTimeout(
@@ -953,9 +1282,6 @@ export default function HomeNebulaText() {
                                  * ====================================================
                                  * 100% PARTICLES
                                  * ====================================================
-                                 *
-                                 * The full particle field now gathers
-                                 * into devOm extremely quickly.
                                  */
 
                                 setCurrentTargetTexture(
@@ -966,13 +1292,14 @@ export default function HomeNebulaText() {
                                     true
                                 );
 
+                                setDevOmMuiVisible(
+                                    false
+                                );
+
                                 /*
                                  * ====================================================
                                  * 100% -> 65%
                                  * ====================================================
-                                 *
-                                 * Happens after the rapid cinematic
-                                 * formation.
                                  */
 
                                 devOmReduceTimer =
@@ -984,18 +1311,78 @@ export default function HomeNebulaText() {
 
                                             /*
                                              * ====================================================
-                                             * LONG DEVOM HOLD
+                                             * MUI DEVOM FADE-IN
                                              * ====================================================
+                                             */
+
+                                            devOmMuiTimer =
+                                                window.setTimeout(
+                                                    () => {
+                                                        setDevOmMuiVisible(
+                                                            true
+                                                        );
+
+                                                        /*
+                                                         * ====================================================
+                                                         * WAIT FOR MUI FADE TO FINISH
+                                                         * ====================================================
+                                                         *
+                                                         * The MUI fade starts above.
+                                                         *
+                                                         * We explicitly wait for the
+                                                         * complete CSS transition here.
+                                                         */
+
+                                                        muiFadeCompleteTimer =
+                                                            window.setTimeout(
+                                                                () => {
+                                                                    /*
+                                                                     * ====================================================
+                                                                     * FINAL TEXT DELAY
+                                                                     * ====================================================
+                                                                     *
+                                                                     * This is now ONLY the delay
+                                                                     * after the MUI fade has
+                                                                     * completely finished.
+                                                                     */
+
+                                                                    finalTextTimer =
+                                                                        window.setTimeout(
+                                                                            () => {
+                                                                                setCurrentTargetTexture(
+                                                                                    finalTextTargetTexture
+                                                                                );
+
+                                                                                setTextEnabled(
+                                                                                    true
+                                                                                );
+                                                                            },
+                                                                            FINAL_TEXT_DELAY_AFTER_MUI/2
+                                                                        );
+                                                                },
+                                                                DEVOM_MUI_FADE_DURATION
+                                                            );
+                                                    },
+                                                    DEVOM_MUI_FADE_DELAY
+                                                );
+
+                                            /*
+                                             * ====================================================
+                                             * DEVOM PARTICLE RELEASE
+                                             * ====================================================
+                                             *
+                                             * This remains completely
+                                             * independent from the
+                                             * final text timer.
+                                             *
+                                             * The devOm particle release
+                                             * still happens after exactly
+                                             * DEVOM_HOLD_DURATION.
                                              */
 
                                             devOmReleaseTimer =
                                                 window.setTimeout(
                                                     () => {
-                                                        /*
-                                                         * Release all devOm
-                                                         * target participation.
-                                                         */
-
                                                         setTextEnabled(
                                                             false
                                                         );
@@ -1043,16 +1430,41 @@ export default function HomeNebulaText() {
             }
 
             if (
+                devOmMuiTimer
+            ) {
+                window.clearTimeout(
+                    devOmMuiTimer
+                );
+            }
+
+            if (
                 devOmReleaseTimer
             ) {
                 window.clearTimeout(
                     devOmReleaseTimer
                 );
             }
+
+            if (
+                muiFadeCompleteTimer
+            ) {
+                window.clearTimeout(
+                    muiFadeCompleteTimer
+                );
+            }
+
+            if (
+                finalTextTimer
+            ) {
+                window.clearTimeout(
+                    finalTextTimer
+                );
+            }
         };
     }, [
         devOmFullTargetTexture,
         devOmReducedTargetTexture,
+        finalTextTargetTexture,
     ]);
 
     /*
@@ -1068,11 +1480,14 @@ export default function HomeNebulaText() {
             devOmFullTargetTexture?.dispose();
 
             devOmReducedTargetTexture?.dispose();
+
+            finalTextTargetTexture?.dispose();
         };
     }, [
         textTargetTexture,
         devOmFullTargetTexture,
         devOmReducedTargetTexture,
+        finalTextTargetTexture,
     ]);
 
     /*
@@ -1083,6 +1498,80 @@ export default function HomeNebulaText() {
 
     return (
         <>
+            {/*
+             * ====================================================
+             * MUI DEVOM
+             * ====================================================
+             */}
+
+            <div
+                style={{
+                    position:
+                        'absolute',
+
+                    inset: 0,
+
+                    pointerEvents:
+                        'none',
+
+                    display:
+                        'flex',
+
+                    alignItems:
+                        'center',
+
+                    justifyContent:
+                        'center',
+
+                    zIndex: 0,
+                }}
+            >
+                <Typography
+                    component="div"
+                    sx={{
+                        width:
+                            'min(96vw, 1500px)',
+
+                        textAlign:
+                            'center',
+
+                        fontFamily:
+                            '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
+
+                        fontSize:
+                            'clamp(6rem, 15vw, 15rem)',
+
+                        fontWeight:
+                            550,
+
+                        lineHeight:
+                            1,
+
+                        letterSpacing:
+                            '0.018em',
+
+                        color:
+                            colors.accent.primary,
+
+                        userSelect:
+                            'none',
+
+                        whiteSpace:
+                            'nowrap',
+
+                        opacity:
+                            devOmMuiVisible
+                                ? 1
+                                : 0,
+
+                        transition:
+                            `opacity ${DEVOM_MUI_FADE_DURATION}ms ease`,
+                    }}
+                >
+                    {DEVOM_TEXT}
+                </Typography>
+            </div>
+
             <div
                 style={{
                     position:
