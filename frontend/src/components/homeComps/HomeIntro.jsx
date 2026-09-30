@@ -6,7 +6,11 @@ import HomeNebulaText
     from './HomeNebulaText'
 
 
-const HomeIntro = ({ onIntroComplete }) => {
+const HomeIntro = ({
+    onIntroComplete,
+    scrollProgress,
+    introComplete,
+}) => {
     return (
         <Box
             sx={{
@@ -32,7 +36,17 @@ const HomeIntro = ({ onIntroComplete }) => {
                     1,
             }}
         >
-            <HomeNebulaText onIntroComplete={onIntroComplete} />
+            <HomeNebulaText
+                onIntroComplete={
+                    onIntroComplete
+                }
+                scrollProgress={
+                    scrollProgress
+                }
+                introComplete={
+                    introComplete
+                }
+            />
         </Box>
     )
 }

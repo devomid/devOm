@@ -55,9 +55,13 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     overflow: 'hidden',
                 }}
             >
-                <HomeIntro onIntroComplete={() => {
-                    setIntroComplete(true);
-                }} />
+                <HomeIntro
+                    onIntroComplete={() => {
+                        setIntroComplete(true);
+                    }}
+                    scrollProgress={scrollProgress}
+                    introComplete={introComplete}
+                />
 
                 <Box
                     sx={{

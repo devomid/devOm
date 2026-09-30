@@ -3,6 +3,7 @@ import { Typography } from '@mui/material';
 import * as THREE from 'three';
 import NebulaBackground from '../nebula/nebula';
 import { colors } from '../../design/colors';
+import { motion, useTransform, } from 'framer-motion';
 
 /*
 * ============================================================
@@ -1624,10 +1625,39 @@ function createFinalTextTargetTexture() {
     return texture;
 }
 
-export default function HomeNebulaText({onIntroComplete}) {
+export default function HomeNebulaText({
+    onIntroComplete,
+    scrollProgress,
+    introComplete,
+}) {
     const introCompleteRef =
         useRef(false);
-    
+
+    /*
+ * ========================================================
+ * POST-INTRO MUI MOVEMENT
+ * ========================================================
+ *
+ * Only the two MUI text layers move.
+ *
+ * NebulaBackground remains completely untouched.
+ * ========================================================
+ */
+
+    const muiX =
+        useTransform(
+            scrollProgress,
+            [0, 0.55],
+            ['0vw', '-14vw']
+        );
+
+    const muiScale =
+        useTransform(
+            scrollProgress,
+            [0, 0.55],
+            [1, 0.84]
+        );
+
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -2147,7 +2177,7 @@ export default function HomeNebulaText({onIntroComplete}) {
              * ==================================================
              */}
 
-            <div
+            <motion.div
                 style={{
                     position:
                         'absolute',
@@ -2169,6 +2199,19 @@ export default function HomeNebulaText({onIntroComplete}) {
 
                     zIndex:
                         0,
+
+                    x:
+                        introComplete
+                            ? muiX
+                            : 0,
+
+                    scale:
+                        introComplete
+                            ? muiScale
+                            : 1,
+
+                    transformOrigin:
+                        'center center',
                 }}
             >
                 <Typography
@@ -2215,7 +2258,7 @@ export default function HomeNebulaText({onIntroComplete}) {
                 >
                     {DEVOM_TEXT}
                 </Typography>
-            </div>
+            </motion.div>
 
             {/*
              * ==================================================
@@ -2230,7 +2273,7 @@ export default function HomeNebulaText({onIntroComplete}) {
              * ==================================================
              */}
 
-            <div
+            <motion.div
                 style={{
                     position:
                         'absolute',
@@ -2243,6 +2286,19 @@ export default function HomeNebulaText({onIntroComplete}) {
 
                     zIndex:
                         0,
+
+                    x:
+                        introComplete
+                            ? muiX
+                            : 0,
+
+                    scale:
+                        introComplete
+                            ? muiScale
+                            : 1,
+
+                    transformOrigin:
+                        'center center',
                 }}
             >
                 <Typography
@@ -2309,7 +2365,7 @@ export default function HomeNebulaText({onIntroComplete}) {
 
                     {FINAL_TEXT_LINE_3}
                 </Typography>
-            </div>
+            </motion.div>
 
             {/*
              * ==================================================
