@@ -1,7 +1,10 @@
 import { Box } from '@mui/material';
 import { motion, useTransform } from 'framer-motion';
 
-const WhyYouNeedMe = ({ scrollProgress }) => {
+const WhyYouNeedMe = ({
+    scrollProgress,
+    introComplete,
+}) => {
 
     const y = useTransform(
         scrollProgress,
@@ -17,7 +20,9 @@ const WhyYouNeedMe = ({ scrollProgress }) => {
                 right: 0,
                 width: '100%',
                 height: '100%',
-                y,
+                y: introComplete
+                    ? y
+                    : '100vh',
                 pointerEvents: 'none',
             }}
         >
@@ -36,7 +41,8 @@ const WhyYouNeedMe = ({ scrollProgress }) => {
                     background: 'rgba(255, 255, 255, 0.06)',
                     backdropFilter: 'blur(18px)',
                     WebkitBackdropFilter: 'blur(18px)',
-                    boxShadow: '0 20px 70px rgba(0, 0, 0, 0.18)',
+                    boxShadow:
+                        '0 20px 70px rgba(0, 0, 0, 0.18)',
 
                     boxSizing: 'border-box',
                 }}
