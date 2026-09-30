@@ -6,7 +6,7 @@ import HomeNebulaText
     from './HomeNebulaText'
 
 
-const HomeIntro = () => {
+const HomeIntro = ({ onIntroComplete }) => {
     return (
         <Box
             sx={{
@@ -32,7 +32,7 @@ const HomeIntro = () => {
                     1,
             }}
         >
-            <HomeNebulaText />
+            <HomeNebulaText onIntroComplete={onIntroComplete} />
         </Box>
     )
 }

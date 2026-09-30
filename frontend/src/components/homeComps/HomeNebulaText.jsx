@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Typography } from '@mui/material';
 import * as THREE from 'three';
 import NebulaBackground from '../nebula/nebula';
@@ -1624,7 +1624,10 @@ function createFinalTextTargetTexture() {
     return texture;
 }
 
-export default function HomeNebulaText() {
+export default function HomeNebulaText({onIntroComplete}) {
+    const introCompleteRef =
+        useRef(false);
+    
     const [
         textTargetTexture,
         setTextTargetTexture,
@@ -2029,6 +2032,19 @@ export default function HomeNebulaText() {
                                                         setTextEnabled(
                                                             false
                                                         );
+
+                                                        window.setTimeout(() => {
+                                                            if (
+                                                                introCompleteRef.current
+                                                            ) {
+                                                                return;
+                                                            }
+
+                                                            introCompleteRef.current =
+                                                                true;
+
+                                                            onIntroComplete?.();
+                                                        }, FINAL_MUI_FADE_DURATION);
 
                                                     },
                                                         FINAL_TEXT_FORM_DURATION +
