@@ -5,7 +5,7 @@ const HomeContactCard = () => {
         <Box
             sx={{
                 position: 'absolute',
-                bottom: '8vh',
+                top: 'calc(100vh + 40px)',
                 right: '10vw',
 
                 width: 'min(420px, 86vw)',

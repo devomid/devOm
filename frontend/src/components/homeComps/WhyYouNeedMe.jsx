@@ -5,9 +5,8 @@ const WhyYouNeedMe = () => {
         <Box
             sx={{
                 position: 'absolute',
-                top: '50%',
+                top: 'calc(100vh + 40px)',
                 right: '6vw',
-                transform: 'translateY(-50%)',
 
                 width: 'min(520px, 42vw)',
                 height: 'min(620px, 68vh)',
