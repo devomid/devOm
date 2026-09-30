@@ -186,23 +186,30 @@ const DEVOM_MUI_FADE_DURATION =
  *        ↓
  * FINAL_TEXT_HOLD_AFTER_MUI
  *        ↓
- * final nebula disassembles
+ * disassemble particles
  *
- * These are intentionally independent.
+ * IMPORTANT:
+ *
+ * FINAL_TEXT_FORM_DURATION is now passed into
+ * NebulaBackground so it controls the actual GPU
+ * formation speed as well as the MUI timing.
  * ============================================================
  */
 
 const FINAL_TEXT_DELAY_AFTER_MUI =
-    700;
+    10;
 
 const FINAL_TEXT_FORM_DURATION =
-    1800;
+    1;
 
 const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
-    0;
+    1000;
+
+const FINAL_MUI_FADE_DURATION =
+    100;
 
 const FINAL_TEXT_HOLD_AFTER_MUI =
-    700;
+    7;
 
 /*
  * ============================================================
@@ -1180,6 +1187,26 @@ export default function HomeNebulaText() {
 
     /*
      * ========================================================
+     * FINAL FORMATION STATE
+     * ========================================================
+     *
+     * This is deliberately separate from textEnabled.
+     *
+     * It tells NebulaBackground:
+     *
+     * "The current target is the final Home text."
+     *
+     * Only this stage receives FINAL_TEXT_FORM_DURATION.
+     * ========================================================
+     */
+
+    const [
+        finalTextFormationActive,
+        setFinalTextFormationActive,
+    ] = useState(false);
+
+    /*
+     * ========================================================
      * TIMELINE
      * ========================================================
      */
@@ -1228,6 +1255,10 @@ export default function HomeNebulaText() {
                     devOmTimer =
                         window.setTimeout(
                             () => {
+                                setFinalTextFormationActive(
+                                    false
+                                );
+
                                 setCurrentTargetTexture(
                                     devOmFullTargetTexture
                                 );
@@ -1298,6 +1329,18 @@ export default function HomeNebulaText() {
                                                                                     false
                                                                                 );
 
+                                                                                /*
+                                                                                 * IMPORTANT:
+                                                                                 *
+                                                                                 * Mark this as the final
+                                                                                 * formation BEFORE enabling
+                                                                                 * the target.
+                                                                                 */
+
+                                                                                setFinalTextFormationActive(
+                                                                                    true
+                                                                                );
+
                                                                                 setCurrentTargetTexture(
                                                                                     finalTextTargetTexture
                                                                                 );
@@ -1335,6 +1378,10 @@ export default function HomeNebulaText() {
                                                                                                 window.setTimeout(
                                                                                                     () => {
                                                                                                         setTextEnabled(
+                                                                                                            false
+                                                                                                        );
+
+                                                                                                        setFinalTextFormationActive(
                                                                                                             false
                                                                                                         );
                                                                                                     },
@@ -1630,7 +1677,7 @@ export default function HomeNebulaText() {
                             'translateY(24vh)',
 
                         transition:
-                            `opacity ${DEVOM_MUI_FADE_DURATION}ms ease`,
+                            `opacity ${FINAL_MUI_FADE_DURATION}ms ease`,
                     }}
                 >
                     {FINAL_TEXT_LINE_1}
@@ -1729,6 +1776,14 @@ export default function HomeNebulaText() {
 
                 homeWindActive={
                     windActive
+                }
+
+                finalTextFormationActive={
+                    finalTextFormationActive
+                }
+
+                finalTextFormationDuration={
+                    FINAL_TEXT_FORM_DURATION
                 }
             />
         </>
