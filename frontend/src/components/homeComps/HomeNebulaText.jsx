@@ -37,7 +37,7 @@ const PARTICLE_COUNT =
  */
 
 const TEXT_PARTICLE_RATIO =
-    0.10;
+    0.16;
 
 /*
  * ============================================================
@@ -112,10 +112,10 @@ const TEXT_WORLD_HEIGHT =
  */
 
 const TARGET_JITTER_XY =
-    0.008;
+    0.048;
 
 const TARGET_JITTER_Z =
-    0.048;
+    0.118;
 
 /*
  * ============================================================
@@ -183,7 +183,7 @@ const DEVOM_MUI_FADE_DURATION =
  */
 
 const FINAL_TEXT_DELAY_AFTER_MUI =
-    4700;
+    50;
 
 const FINAL_TEXT_FORM_DURATION =
     100;
@@ -314,10 +314,12 @@ function createSentenceTargetTexture() {
     );
 
     ctx.fillStyle =
-        '#000000';
+        '#ffffff';
+    
+    ctx.filter= 'blur(3px)'
 
     const fontSize =
-        150;
+        130;
 
     const font =
         `200 ${fontSize}px ` +
@@ -325,7 +327,7 @@ function createSentenceTargetTexture() {
 
     const letterSpacing =
         fontSize *
-        0.015;
+        0.017;
 
     const centerX =
         TEXT_CANVAS_WIDTH /
@@ -377,6 +379,7 @@ function createSentenceTargetTexture() {
         font,
         letterSpacing
     );
+    ctx.filter = 'none';
 
     const imageData =
         ctx.getImageData(
@@ -416,7 +419,7 @@ function createSentenceTargetTexture() {
                 ];
 
             if (
-                alpha > 100
+                alpha > 35
             ) {
                 candidates.push({
                     x,
@@ -452,10 +455,12 @@ function createSentenceTargetTexture() {
             candidates.length > 0
         ) {
             const candidateIndex =
-                Math.floor(
-                    Math.random() *
-                    candidates.length
-                );
+                (
+                    i *
+                    15731 +
+                    789221
+                ) %
+                candidates.length;
 
             const particle =
                 candidates[
@@ -484,32 +489,44 @@ function createSentenceTargetTexture() {
                 ) *
                 TEXT_WORLD_HEIGHT;
 
+            const variation =
+                i *
+                0.0137;
+
+            const jitterX =
+                Math.sin(
+                    variation *
+                    1.71
+                ) *
+                0.03;
+
+            const jitterY =
+                Math.cos(
+                    variation *
+                    1.43
+                ) *
+                0.03;
+
+            const jitterZ =
+                Math.sin(
+                    variation *
+                    0.91
+                ) *
+                0.085;
+
             targetData[offset] =
                 worldX +
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                TARGET_JITTER_XY;
+                jitterX;
 
             targetData[offset + 1] =
                 worldY +
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                TARGET_JITTER_XY;
+                jitterY;
 
             targetData[offset + 2] =
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                TARGET_JITTER_Z;
+                jitterZ;
 
             targetData[offset + 3] =
-                particle.alpha /
-                255;
+                1.0;
         } else {
             targetData[offset] =
                 0;
@@ -588,12 +605,14 @@ function createDevOmTargetTexture(
 
     ctx.fillStyle =
         '#ffffff';
+    
+    ctx.filter = 'blur(3px)';
 
     const fontSize =
         390;
 
     const font =
-        `550 ${fontSize}px ` +
+        `650 ${fontSize}px ` +
         `"Neue Montreal", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
@@ -624,6 +643,7 @@ function createDevOmTargetTexture(
         font,
         letterSpacing
     );
+    ctx.filter = 'none';
 
     const imageData =
         ctx.getImageData(
@@ -663,7 +683,7 @@ function createDevOmTargetTexture(
                 ];
 
             if (
-                alpha > 100
+                alpha > 70
             ) {
                 candidates.push({
                     x,
@@ -841,15 +861,15 @@ function createFinalTextTargetTexture() {
         '#ffffff';
 
     const fontSize =
-        85;
+        45;
 
     const font =
-        `550 ${fontSize}px ` +
-        `"Neue Montreal", "Helvetica Neue", Arial, sans-serif`;
+        `350 ${fontSize}px ` +
+        `"Avenir Next", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
         fontSize *
-        0.018;
+        0.015;
 
     const centerX =
         FINAL_TEXT_CANVAS_WIDTH /
@@ -1675,7 +1695,7 @@ export default function HomeNebulaText() {
                     <br />
 
                     {FINAL_TEXT_LINE_3}
-                </Typography>
+                </Typography> 
             </div>
 
             <div
@@ -1757,7 +1777,7 @@ export default function HomeNebulaText() {
                 }
 
                 textStrength={
-                    3.3
+                    4.8
                 }
 
                 homeWindActive={
