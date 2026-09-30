@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, } from 'framer-motion'
 import { Box, } from '@mui/material'
 import { useMotionValueEvent, useScroll, } from 'framer-motion'
 import HomeIntro from '../components/homeComps/HomeIntro'
@@ -42,7 +41,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     : '100vh',
                 minHeight: '100vh',
                 overflow: introComplete
-                    ? 'auto'
+                    ? 'visible'
                     : 'hidden',
                 overscrollBehavior: 'none',
             }}
@@ -59,16 +58,8 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     pointerEvents: 'none',
                 }}
             >
-                <motion.div
-                    style={{
-                        position: 'absolute',
-                        inset: 0,
-                        y: scrollProgress,
-                    }}
-                >
-                    <WhyYouNeedMe />
-                    <HomeContactCard />
-                </motion.div>
+                <WhyYouNeedMe />
+                <HomeContactCard />
             </Box>
 
         </Box>
