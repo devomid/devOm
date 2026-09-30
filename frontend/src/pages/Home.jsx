@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion, } from 'framer-motion'
 import { Box, } from '@mui/material'
 import { useMotionValueEvent, useScroll, } from 'framer-motion'
 import HomeIntro from '../components/homeComps/HomeIntro'
@@ -58,10 +59,18 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     pointerEvents: 'none',
                 }}
             >
-                <WhyYouNeedMe />
-                <HomeContactCard />
+                <motion.div
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        y: scrollProgress,
+                    }}
+                >
+                    <WhyYouNeedMe />
+                    <HomeContactCard />
+                </motion.div>
             </Box>
-            
+
         </Box>
     )
 }
