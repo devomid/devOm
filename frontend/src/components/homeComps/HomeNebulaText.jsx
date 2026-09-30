@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useState, } from 'react';
-import { Typography, } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Typography } from '@mui/material';
 import * as THREE from 'three';
 import NebulaBackground from '../nebula/nebula';
 import { colors } from '../../design/colors';
 
-const TEXT_LINE_1 = 'Every little idea is';
-const TEXT_LINE_2 = 'like a small particle';
-const DEVOM_TEXT = 'devOm';
-
 /*
- * ============================================================
- * FINAL HOME TEXT
+* ============================================================
+* FINAL HOME TEXT
  * ============================================================
  */
 
@@ -31,10 +27,12 @@ const PARTICLE_COUNT =
     TEXTURE_SIZE;
 
 /*
- * ============================================================
- * INITIAL SENTENCE
- * ============================================================
- */
+* ============================================================
+* INITIAL SENTENCE
+* ============================================================
+*/
+const TEXT_LINE_1 = 'Every little idea is';
+const TEXT_LINE_2 = 'like a small particle';
 
 const TEXT_PARTICLE_RATIO =
     0.16;
@@ -68,12 +66,10 @@ const FINAL_TEXT_OFFSET_Y =
  * DEVOM
  * ============================================================
  */
+const DEVOM_TEXT = 'devOm';
 
 const DEVOM_FULL_RATIO =
     1.0;
-
-const DEVOM_REDUCED_RATIO =
-    0.65;
 
 const DEVOM_CANVAS_WIDTH =
     1800;
@@ -112,10 +108,10 @@ const TEXT_WORLD_HEIGHT =
  */
 
 const TARGET_JITTER_XY =
-    0.048;
+    0.018;
 
 const TARGET_JITTER_Z =
-    0.118;
+    0.078;
 
 /*
  * ============================================================
@@ -139,63 +135,66 @@ const POST_WIND_WAIT =
  * ============================================================
  * DEVOM TIMING
  * ============================================================
+ *
+ * WIND
+ *   ↓
+ * devOm particle formation
+ *   ↓
+ * devOm reduced target
+ *   ↓
+ * devOm MUI on its own timeline
+ *
+ * The devOm MUI timeline does NOT control the final particle
+ * sequence.
+ * ============================================================
  */
 
 const DEVOM_FORM_DURATION =
-    550;
-
-const DEVOM_HOLD_DURATION =
-    8000;
+    7500;
 
 const DEVOM_MUI_FADE_DELAY =
-    7300;
+    1300;
 
 const DEVOM_MUI_FADE_DURATION =
-    7100;
+    5500;
 
 /*
  * ============================================================
  * FINAL TEXT TIMING
  * ============================================================
  *
- * MUI devOm fade finishes
+ * devOm particle formation completes
  *        ↓
- * FINAL_TEXT_DELAY_AFTER_MUI
+ * FINAL_TEXT_DELAY_AFTER_DEVOM_FORM
  *        ↓
- * final nebula formation starts
+ * final particle target starts
  *        ↓
  * FINAL_TEXT_FORM_DURATION
  *        ↓
  * FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
  *        ↓
- * final MUI text starts
+ * final MUI appears
  *        ↓
  * FINAL_MUI_FADE_DURATION
  *        ↓
- * final MUI remains visible
- *        ↓
  * FINAL_TEXT_HOLD_AFTER_MUI
  *        ↓
- * final nebula disassembles
- *
- * These are intentionally independent.
+ * particles are released
  * ============================================================
  */
 
-const FINAL_TEXT_DELAY_AFTER_MUI =
-    50;
+const FINAL_TEXT_DELAY_AFTER_DEVOM_FORM =
+    2000;
 
 const FINAL_TEXT_FORM_DURATION =
-    100;
+    2500;
 
 const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
-    2000;
+    5700;
 
 const FINAL_MUI_FADE_DURATION =
     7100;
 
-const FINAL_TEXT_HOLD_AFTER_MUI =
-    700;
 
 function drawLetterSpacedText(
     ctx,
@@ -264,20 +263,283 @@ function drawLetterSpacedText(
 }
 
 async function loadInitialTextFont() {
-    const font =
-        new FontFace(
-            'Avenir Next',
-            'local("Avenir Next")'
-        );
+    const fonts = [
+        /*
+         * ====================================================
+         * OKANA
+         * ====================================================
+         */
 
-    await font.load();
+        {
+            family: 'Okana',
+            source: 'local("Okana Thin")',
+            weight: '100',
+            style: 'normal',
+        },
 
-    document.fonts.add(
-        font
+        {
+            family: 'Okana',
+            source: 'local("Okana ExtraLight")',
+            weight: '200',
+            style: 'normal',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Light")',
+            weight: '300',
+            style: 'normal',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Medium")',
+            weight: '500',
+            style: 'normal',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana SemiBold")',
+            weight: '600',
+            style: 'normal',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Bold")',
+            weight: '700',
+            style: 'normal',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana UltraBold")',
+            weight: '800',
+            style: 'normal',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Black")',
+            weight: '900',
+            style: 'normal',
+        },
+
+        /*
+         * ====================================================
+         * OKANA OBLIQUE
+         * ====================================================
+         */
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Thin Oblique")',
+            weight: '100',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana ExtraLight Oblique")',
+            weight: '200',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Light Oblique")',
+            weight: '300',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Medium Oblique")',
+            weight: '500',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana SemiBold Oblique")',
+            weight: '600',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Bold Oblique")',
+            weight: '700',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana UltraBold Oblique")',
+            weight: '800',
+            style: 'oblique',
+        },
+
+        {
+            family: 'Okana',
+            source: 'local("Okana Black Oblique")',
+            weight: '900',
+            style: 'oblique',
+        },
+
+        /*
+         * ====================================================
+         * AVENIR NEXT
+         * ====================================================
+         */
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Ultra Light")',
+            weight: '200',
+            style: 'normal',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Regular")',
+            weight: '400',
+            style: 'normal',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Medium")',
+            weight: '500',
+            style: 'normal',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Demi Bold")',
+            weight: '600',
+            style: 'normal',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Bold")',
+            weight: '700',
+            style: 'normal',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Heavy")',
+            weight: '800',
+            style: 'normal',
+        },
+
+        /*
+         * ====================================================
+         * AVENIR NEXT ITALIC
+         * ====================================================
+         */
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Ultra Light Italic")',
+            weight: '200',
+            style: 'italic',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Italic")',
+            weight: '400',
+            style: 'italic',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Medium Italic")',
+            weight: '500',
+            style: 'italic',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Demi Bold Italic")',
+            weight: '600',
+            style: 'italic',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Bold Italic")',
+            weight: '700',
+            style: 'italic',
+        },
+
+        {
+            family: 'Avenir Next',
+            source: 'local("Avenir Next Heavy Italic")',
+            weight: '800',
+            style: 'italic',
+        },
+    ];
+
+    for (const {
+        family,
+        source,
+        weight,
+        style,
+    } of fonts) {
+        try {
+            const font =
+                new FontFace(
+                    family,
+                    source,
+                    {
+                        weight,
+                        style,
+                    }
+                );
+
+            await font.load();
+
+            document.fonts.add(
+                font
+            );
+        } catch (error) {
+            console.warn(
+                `Could not load ${family} ${weight} ${style}:`,
+                error
+            );
+        }
+    }
+
+    /*
+     * Make sure the browser has finished
+     * resolving the font faces.
+     */
+
+    await document.fonts.load(
+        '100 100px "Okana"'
     );
 
     await document.fonts.load(
-        '200 100px "Avenir Next"'
+        '400 100px "Avenir Next"'
+    );
+
+    console.log(
+        'Okana 600:',
+        document.fonts.check(
+            '600 100px "Okana"'
+        )
+    );
+
+    console.log(
+        'Avenir Next 400:',
+        document.fonts.check(
+            '400 100px "Avenir Next"'
+        )
     );
 }
 
@@ -315,14 +577,15 @@ function createSentenceTargetTexture() {
 
     ctx.fillStyle =
         '#ffffff';
-    
-    ctx.filter= 'blur(3px)'
+
+    ctx.filter =
+        'blur(3px)';
 
     const fontSize =
-        130;
+        120;
 
     const font =
-        `200 ${fontSize}px ` +
+        `400 ${fontSize}px ` +
         `"Avenir Next", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
@@ -379,7 +642,9 @@ function createSentenceTargetTexture() {
         font,
         letterSpacing
     );
-    ctx.filter = 'none';
+
+    ctx.filter =
+        'none';
 
     const imageData =
         ctx.getImageData(
@@ -605,15 +870,28 @@ function createDevOmTargetTexture(
 
     ctx.fillStyle =
         '#ffffff';
-    
-    ctx.filter = 'blur(3px)';
+
+    ctx.filter =
+        'blur(20px)';
 
     const fontSize =
         390;
 
     const font =
-        `650 ${fontSize}px ` +
-        `"Neue Montreal", "Helvetica Neue", Arial, sans-serif`;
+        `600 ${fontSize}px ` +
+        `"Okana", "Helvetica Neue", Arial, sans-serif`;
+    
+    console.log(
+        'DEVOM CANVAS FONT:',
+        font
+    );
+
+    console.log(
+        'DEVOM OKANA:',
+        document.fonts.check(
+            '600 390px "Okana"'
+        )
+    );
 
     const letterSpacing =
         fontSize *
@@ -643,7 +921,9 @@ function createDevOmTargetTexture(
         font,
         letterSpacing
     );
-    ctx.filter = 'none';
+
+    ctx.filter =
+        'none';
 
     const imageData =
         ctx.getImageData(
@@ -864,7 +1144,7 @@ function createFinalTextTargetTexture() {
         45;
 
     const font =
-        `350 ${fontSize}px ` +
+        `400 ${fontSize}px ` +
         `"Avenir Next", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
@@ -904,6 +1184,18 @@ function createFinalTextTargetTexture() {
         centerY +
         lineHeight +
         baselineCorrection;
+    
+    console.log(
+        'Canvas Okana:',
+        document.fonts.check(
+            '600 390px "Okana"'
+        )
+    );
+
+    console.log(
+        'Canvas font before draw:',
+        font
+    );
 
     drawLetterSpacedText(
         ctx,
@@ -1119,10 +1411,27 @@ export default function HomeNebulaText() {
         setTextTargetTexture,
     ] = useState(null);
 
-    useEffect(() => {
-        let cancelled = false;
+    const [
+        devOmFullTargetTexture,
+        setDevOmFullTargetTexture,
+    ] = useState(null);
 
-        async function prepareInitialText() {
+    const [
+        finalTextTargetTexture,
+        setFinalTextTargetTexture,
+    ] = useState(null);
+
+    /*
+     * ========================================================
+     * INITIAL TEXT
+     * ========================================================
+     */
+
+    useEffect(() => {
+        let cancelled =
+            false;
+
+        async function prepareFontsAndTextures() {
             try {
                 await loadInitialTextFont();
 
@@ -1130,15 +1439,32 @@ export default function HomeNebulaText() {
                     return;
                 }
 
-                const texture =
+                const sentenceTexture =
                     createSentenceTargetTexture();
 
+                const devOmTexture =
+                    createDevOmTargetTexture(
+                        DEVOM_FULL_RATIO
+                    );
+
+                const finalTexture =
+                    createFinalTextTargetTexture();
+
                 setTextTargetTexture(
-                    texture
+                    sentenceTexture
                 );
+
+                setDevOmFullTargetTexture(
+                    devOmTexture
+                );
+
+                setFinalTextTargetTexture(
+                    finalTexture
+                );
+
             } catch (error) {
                 console.error(
-                    'Failed to load Avenir Next:',
+                    'Failed to load fonts:',
                     error
                 );
 
@@ -1146,46 +1472,46 @@ export default function HomeNebulaText() {
                     return;
                 }
 
-                const texture =
+                const sentenceTexture =
                     createSentenceTargetTexture();
 
+                const devOmTexture =
+                    createDevOmTargetTexture(
+                        DEVOM_FULL_RATIO
+                    );
+
+                const finalTexture =
+                    createFinalTextTargetTexture();
+
                 setTextTargetTexture(
-                    texture
+                    sentenceTexture
+                );
+
+                setDevOmFullTargetTexture(
+                    devOmTexture
+                );
+
+                setFinalTextTargetTexture(
+                    finalTexture
                 );
             }
         }
 
-        prepareInitialText();
+        prepareFontsAndTextures();
 
         return () => {
-            cancelled = true;
+            cancelled =
+                true;
         };
     }, []);
 
-    const devOmFullTargetTexture =
-        useMemo(
-            () =>
-                createDevOmTargetTexture(
-                    DEVOM_FULL_RATIO
-                ),
-            []
-        );
+  
 
-    const devOmReducedTargetTexture =
-        useMemo(
-            () =>
-                createDevOmTargetTexture(
-                    DEVOM_REDUCED_RATIO
-                ),
-            []
-        );
-
-    const finalTextTargetTexture =
-        useMemo(
-            () =>
-                createFinalTextTargetTexture(),
-            []
-        );
+    /*
+     * ========================================================
+     * PARTICLE STATE
+     * ========================================================
+     */
 
     const [
         currentTargetTexture,
@@ -1203,6 +1529,7 @@ export default function HomeNebulaText() {
     }, [
         textTargetTexture,
     ]);
+
     const [
         textEnabled,
         setTextEnabled,
@@ -1212,6 +1539,12 @@ export default function HomeNebulaText() {
         windActive,
         setWindActive,
     ] = useState(false);
+
+    /*
+     * ========================================================
+     * MUI STATE
+     * ========================================================
+     */
 
     const [
         devOmMuiVisible,
@@ -1223,27 +1556,31 @@ export default function HomeNebulaText() {
         setFinalTextMuiVisible,
     ] = useState(false);
 
-
     /*
-     * ========================================================
-     * TIMELINE
-     * ========================================================
-     */
+ * ========================================================
+ * TIMELINE
+ * ========================================================
+ */
 
     useEffect(() => {
-        if (!textTargetTexture) {
+        if (
+            !textTargetTexture ||
+            !devOmFullTargetTexture ||
+            !finalTextTargetTexture
+        ) {
             return;
         }
+
+
         let windTimer;
         let releaseTextTimer;
+
         let devOmTimer;
-        let devOmReduceTimer;
+        let devOmFormationTimer;
         let devOmMuiTimer;
-        let devOmReleaseTimer;
-        let muiFadeCompleteTimer;
+
         let finalTextTimer;
         let finalMuiTimer;
-        let finalTextReleaseTimer;
 
         /*
          * ====================================================
@@ -1252,267 +1589,208 @@ export default function HomeNebulaText() {
          */
 
         windTimer =
-            window.setTimeout(
-                () => {
-                    setWindActive(
-                        true
-                    );
+            window.setTimeout(() => {
+                setWindActive(true);
 
-                    releaseTextTimer =
-                        window.setTimeout(
-                            () => {
-                                setTextEnabled(
-                                    false
-                                );
-                            },
-                            WIND_TEXT_HOLD
+                /*
+                 * Let the wind work on the initial sentence.
+                 */
+
+                releaseTextTimer =
+                    window.setTimeout(() => {
+                        setTextEnabled(false);
+                    }, WIND_TEXT_HOLD);
+
+                /*
+                 * =================================================
+                 * DEVOM START
+                 * =================================================
+                 */
+
+                devOmTimer =
+                    window.setTimeout(() => {
+
+                        /*
+                         * DEVOM PARTICLES FORM
+                         */
+
+                        setCurrentTargetTexture(
+                            devOmFullTargetTexture
                         );
 
-                    /*
-                     * ====================================================
-                     * DEVOM START
-                     * ====================================================
-                     */
+                        setTextEnabled(true);
 
-                    devOmTimer =
-                        window.setTimeout(
-                            () => {
-                                setCurrentTargetTexture(
-                                    devOmFullTargetTexture
-                                );
+                        setDevOmMuiVisible(false);
+                        setFinalTextMuiVisible(false);
 
-                                setTextEnabled(
-                                    true
-                                );
+                        /*
+                         * =================================================
+                         * DEVOM FORMATION WINDOW
+                         * =================================================
+                         *
+                         * Give devOm 7.5 seconds to form.
+                         */
 
-                                setDevOmMuiVisible(
-                                    false
-                                );
-
-                                setFinalTextMuiVisible(
-                                    false
-                                );
+                        devOmFormationTimer =
+                            window.setTimeout(() => {
 
                                 /*
-                                 * ====================================================
-                                 * 100% -> 65%
-                                 * ====================================================
+                                 * =================================================
+                                 * DEVOM MUI
+                                 * =================================================
+                                 *
+                                 * Wait 1.8 seconds.
                                  */
 
-                                devOmReduceTimer =
-                                    window.setTimeout(
-                                        () => {
-                                            setCurrentTargetTexture(
-                                                devOmReducedTargetTexture
-                                            );
+                                devOmMuiTimer =
+                                    window.setTimeout(() => {
 
-                                            /*
-                                             * ====================================================
-                                             * MUI DEVOM
-                                             * ====================================================
-                                             */
+                                        /*
+                                         * MUI APPEARS
+                                         */
 
-                                            devOmMuiTimer =
-                                                window.setTimeout(
-                                                    () => {
-                                                        setDevOmMuiVisible(
+                                        setDevOmMuiVisible(true);
+
+                                        /*
+                                         * =================================================
+                                         * DEVOM PARTICLES ARE RELEASED
+                                         * =================================================
+                                         *
+                                         * The MUI effectively blows devOm away.
+                                         *
+                                         * IMPORTANT:
+                                         *
+                                         * We release the particles HERE,
+                                         * not when the final text starts.
+                                         */
+
+                                        setTextEnabled(false);
+
+                                        /*
+                                         * =================================================
+                                         * FINAL TEXT START
+                                         * =================================================
+                                         *
+                                         * Wait 1 second while the particles
+                                         * are freely flying.
+                                         */
+
+                                        finalTextTimer =
+                                            window.setTimeout(() => {
+                                    
+                                                /*
+                                                 * =================================================
+                                                 * FINAL PARTICLES FORM
+                                                 * =================================================
+                                                 */
+
+                                                setCurrentTargetTexture(
+                                                    finalTextTargetTexture
+                                                );
+
+                                                setTextEnabled(true);
+
+                                                /*
+                                                 * =================================================
+                                                 * FINAL MUI
+                                                 * =================================================
+                                                 *
+                                                 * Wait:
+                                                 *
+                                                 * final formation
+                                                 * +
+                                                 * 1 second hold
+                                                 */
+
+                                                finalMuiTimer =
+                                                    window.setTimeout(() => {
+
+                                                        /*
+                                                         * FINAL MUI APPEARS
+                                                         */
+
+                                                        setFinalTextMuiVisible(
                                                             true
                                                         );
 
                                                         /*
-                                                         * ====================================================
-                                                         * WAIT FOR MUI DEVOM FADE
-                                                         * ====================================================
+                                                         * =================================================
+                                                         * FINAL PARTICLES RELEASE
+                                                         * =================================================
+                                                         *
+                                                         * MUI blows the final
+                                                         * particle text away.
                                                          */
 
-                                                        muiFadeCompleteTimer =
-                                                            window.setTimeout(
-                                                                () => {
-                                                                    /*
-                                                                     * ====================================================
-                                                                     * DELAY BEFORE FINAL NEBULA
-                                                                     * ====================================================
-                                                                     */
-
-                                                                    finalTextTimer =
-                                                                        window.setTimeout(
-                                                                            () => {
-                                                                                /*
-                                                                                 * ====================================================
-                                                                                 * FINAL NEBULA START
-                                                                                 * ====================================================
-                                                                                 */
-
-                                                                                setFinalTextMuiVisible(
-                                                                                    false
-                                                                                );
-
-                                                                                setCurrentTargetTexture(
-                                                                                    finalTextTargetTexture
-                                                                                );
-
-                                                                                setTextEnabled(
-                                                                                    true
-                                                                                );
-
-                                                                                /*
-                                                                                 * ====================================================
-                                                                                 * FINAL MUI
-                                                                                 *
-                                                                                 * final nebula formation
-                                                                                 *       ↓
-                                                                                 * FINAL_TEXT_FORM_DURATION
-                                                                                 *       ↓
-                                                                                 * FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
-                                                                                 *       ↓
-                                                                                 * show MUI
-                                                                                 *       ↓
-                                                                                 * FINAL_MUI_FADE_DURATION
-                                                                                 *       ↓
-                                                                                 * FINAL_TEXT_HOLD_AFTER_MUI
-                                                                                 *       ↓
-                                                                                 * disassemble particles
-                                                                                 * ====================================================
-                                                                                 */
-
-                                                                                finalMuiTimer =
-                                                                                    window.setTimeout(
-                                                                                        () => {
-                                                                                            setFinalTextMuiVisible(
-                                                                                                true
-                                                                                            );
-
-                                                                                            finalTextReleaseTimer =
-                                                                                                window.setTimeout(
-                                                                                                    () => {
-                                                                                                        setTextEnabled(
-                                                                                                            false
-                                                                                                        );
-                                                                                                    },
-                                                                                                    FINAL_MUI_FADE_DURATION +
-                                                                                                    FINAL_TEXT_HOLD_AFTER_MUI
-                                                                                                );
-                                                                                        },
-                                                                                        FINAL_TEXT_FORM_DURATION +
-                                                                                        FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
-                                                                                    );
-                                                                            },
-                                                                            FINAL_TEXT_DELAY_AFTER_MUI
-                                                                        );
-                                                                },
-                                                                DEVOM_MUI_FADE_DURATION
-                                                            );
-                                                    },
-                                                    DEVOM_MUI_FADE_DELAY
-                                                );
-
-                                            /*
-                                             * ====================================================
-                                             * DEVOM PARTICLE RELEASE
-                                             * ====================================================
-                                             */
-
-                                            devOmReleaseTimer =
-                                                window.setTimeout(
-                                                    () => {
                                                         setTextEnabled(
                                                             false
                                                         );
+
                                                     },
-                                                    DEVOM_HOLD_DURATION
-                                                );
-                                        },
-                                        DEVOM_FORM_DURATION
+                                                        FINAL_TEXT_FORM_DURATION +
+                                                        FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
+                                                    );
+
+                                            },
+                                                FINAL_TEXT_DELAY_AFTER_DEVOM_FORM
+                                            );
+
+                                    },
+                                        DEVOM_MUI_FADE_DELAY
                                     );
+
                             },
-                            WIND_DURATION +
-                            POST_WIND_WAIT
-                        );
-                },
+                                DEVOM_FORM_DURATION
+                            );
+
+                    },
+                        WIND_DURATION +
+                        POST_WIND_WAIT
+                    );
+
+            },
                 WIND_START_DELAY
             );
+
+        /*
+         * ========================================================
+         * CLEANUP
+         * ========================================================
+         */
 
         return () => {
             window.clearTimeout(
                 windTimer
             );
 
-            if (
+            window.clearTimeout(
                 releaseTextTimer
-            ) {
-                window.clearTimeout(
-                    releaseTextTimer
-                );
-            }
+            );
 
-            if (
+            window.clearTimeout(
                 devOmTimer
-            ) {
-                window.clearTimeout(
-                    devOmTimer
-                );
-            }
+            );
 
-            if (
-                devOmReduceTimer
-            ) {
-                window.clearTimeout(
-                    devOmReduceTimer
-                );
-            }
+            window.clearTimeout(
+                devOmFormationTimer
+            );
 
-            if (
+            window.clearTimeout(
                 devOmMuiTimer
-            ) {
-                window.clearTimeout(
-                    devOmMuiTimer
-                );
-            }
+            );
 
-            if (
-                devOmReleaseTimer
-            ) {
-                window.clearTimeout(
-                    devOmReleaseTimer
-                );
-            }
-
-            if (
-                muiFadeCompleteTimer
-            ) {
-                window.clearTimeout(
-                    muiFadeCompleteTimer
-                );
-            }
-
-            if (
+            window.clearTimeout(
                 finalTextTimer
-            ) {
-                window.clearTimeout(
-                    finalTextTimer
-                );
-            }
+            );
 
-            if (
+            window.clearTimeout(
                 finalMuiTimer
-            ) {
-                window.clearTimeout(
-                    finalMuiTimer
-                );
-            }
+            );
 
-            if (
-                finalTextReleaseTimer
-            ) {
-                window.clearTimeout(
-                    finalTextReleaseTimer
-                );
-            }
         };
     }, [
         textTargetTexture,
         devOmFullTargetTexture,
-        devOmReducedTargetTexture,
         finalTextTargetTexture,
     ]);
 
@@ -1528,14 +1806,11 @@ export default function HomeNebulaText() {
 
             devOmFullTargetTexture?.dispose();
 
-            devOmReducedTargetTexture?.dispose();
-
             finalTextTargetTexture?.dispose();
         };
     }, [
         textTargetTexture,
         devOmFullTargetTexture,
-        devOmReducedTargetTexture,
         finalTextTargetTexture,
     ]);
 
@@ -1547,6 +1822,12 @@ export default function HomeNebulaText() {
 
     return (
         <>
+            {/*
+             * ==================================================
+             * DEVOM MUI
+             * ==================================================
+             */}
+
             <div
                 style={{
                     position:
@@ -1616,6 +1897,12 @@ export default function HomeNebulaText() {
                     {DEVOM_TEXT}
                 </Typography>
             </div>
+
+            {/*
+             * ==================================================
+             * FINAL MUI
+             * ==================================================
+             */}
 
             <div
                 style={{
@@ -1695,8 +1982,14 @@ export default function HomeNebulaText() {
                     <br />
 
                     {FINAL_TEXT_LINE_3}
-                </Typography> 
+                </Typography>
             </div>
+
+            {/*
+             * ==================================================
+             * INVISIBLE INITIAL TEXT
+             * ==================================================
+             */}
 
             <div
                 style={{
@@ -1763,6 +2056,12 @@ export default function HomeNebulaText() {
                     {TEXT_LINE_2}
                 </Typography>
             </div>
+
+            {/*
+             * ==================================================
+             * NEBULA
+             * ==================================================
+             */}
 
             <NebulaBackground
                 textEnabled={
