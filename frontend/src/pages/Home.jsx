@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Box, } from '@mui/material'
 import { useMotionValueEvent, useScroll, } from 'framer-motion'
 import HomeIntro from '../components/homeComps/HomeIntro'
+import WhyYouNeedMe from '../components/homeComps/WhyYouNeedMe'
+import HomeContactCard from '../components/homeComps/HomeContactCard'
 
 const Home = ({ homeRef, scrollProgress, }) => {
 
@@ -47,6 +49,19 @@ const Home = ({ homeRef, scrollProgress, }) => {
             <HomeIntro onIntroComplete={() => {
                 setIntroComplete(true);
             }} />
+
+            <Box
+                sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                }}
+            >
+                <WhyYouNeedMe />
+                <HomeContactCard />
+            </Box>
+            
         </Box>
     )
 }
