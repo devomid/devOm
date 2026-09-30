@@ -2671,6 +2671,7 @@ const NebulaParticles = ({
     cardRect = null,
     interactionRef = null,
     onRingComplete = null,
+    ringCompletionDuration = RING_FORM_DURATION,
 }) => {
     const pointsRef =
         useRef(null)
@@ -3004,7 +3005,10 @@ const NebulaParticles = ({
                             onRingComplete()
                         }
                     },
-                    RING_FORM_DURATION,
+                    Math.max(
+                        0,
+                        ringCompletionDuration,
+                    ),
                 )
 
             return () => {
@@ -3023,6 +3027,7 @@ const NebulaParticles = ({
         [
             textTargetTexture,
             onRingComplete,
+            ringCompletionDuration,
         ],
     )
 
@@ -4109,6 +4114,7 @@ const NebulaBackground = ({
     cardRect = null,
     interactionRef = null,
     onRingComplete = null,
+    ringCompletionDuration = RING_FORM_DURATION,
 }) => {
     return (
         <Canvas
@@ -4195,6 +4201,9 @@ const NebulaBackground = ({
 
                 onRingComplete={
                     onRingComplete
+                }
+                ringCompletionDuration={
+                    ringCompletionDuration
                 }
             />
         </Canvas>
