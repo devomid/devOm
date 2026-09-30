@@ -1,26 +1,12 @@
-import {
-    useEffect,
-    useMemo,
-    useState,
-} from 'react';
-
-import {
-    Typography,
-} from '@mui/material';
-
+import { useEffect, useMemo, useState, } from 'react';
+import { Typography, } from '@mui/material';
 import * as THREE from 'three';
-
 import NebulaBackground from '../nebula/nebula';
 import { colors } from '../../design/colors';
 
-const TEXT_LINE_1 =
-    'Every little idea is';
-
-const TEXT_LINE_2 =
-    'like a small particle.';
-
-const DEVOM_TEXT =
-    'devOm';
+const TEXT_LINE_1 = 'Every little idea is';
+const TEXT_LINE_2 = 'like a small particle';
+const DEVOM_TEXT = 'devOm';
 
 /*
  * ============================================================
@@ -51,7 +37,7 @@ const PARTICLE_COUNT =
  */
 
 const TEXT_PARTICLE_RATIO =
-    0.30;
+    0.10;
 
 /*
  * ============================================================
@@ -108,7 +94,7 @@ const DEVOM_WORLD_HEIGHT =
  */
 
 const TEXT_CANVAS_WIDTH =
-    1600;
+    1800;
 
 const TEXT_CANVAS_HEIGHT =
     520;
@@ -184,38 +170,32 @@ const DEVOM_MUI_FADE_DURATION =
  *        ↓
  * final MUI text starts
  *        ↓
+ * FINAL_MUI_FADE_DURATION
+ *        ↓
+ * final MUI remains visible
+ *        ↓
  * FINAL_TEXT_HOLD_AFTER_MUI
  *        ↓
- * disassemble particles
+ * final nebula disassembles
  *
- * IMPORTANT:
- *
- * FINAL_TEXT_FORM_DURATION is now passed into
- * NebulaBackground so it controls the actual GPU
- * formation speed as well as the MUI timing.
+ * These are intentionally independent.
  * ============================================================
  */
 
 const FINAL_TEXT_DELAY_AFTER_MUI =
-    10;
+    4700;
 
 const FINAL_TEXT_FORM_DURATION =
-    1;
-
-const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
-    1000;
-
-const FINAL_MUI_FADE_DURATION =
     100;
 
-const FINAL_TEXT_HOLD_AFTER_MUI =
-    7;
+const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
+    2000;
 
-/*
- * ============================================================
- * LETTER-SPACED TEXT
- * ============================================================
- */
+const FINAL_MUI_FADE_DURATION =
+    7100;
+
+const FINAL_TEXT_HOLD_AFTER_MUI =
+    700;
 
 function drawLetterSpacedText(
     ctx,
@@ -283,11 +263,23 @@ function drawLetterSpacedText(
     );
 }
 
-/*
- * ============================================================
- * CREATE INITIAL SENTENCE TARGET
- * ============================================================
- */
+async function loadInitialTextFont() {
+    const font =
+        new FontFace(
+            'Avenir Next',
+            'local("Avenir Next")'
+        );
+
+    await font.load();
+
+    document.fonts.add(
+        font
+    );
+
+    await document.fonts.load(
+        '200 100px "Avenir Next"'
+    );
+}
 
 function createSentenceTargetTexture() {
     const canvas =
@@ -322,18 +314,18 @@ function createSentenceTargetTexture() {
     );
 
     ctx.fillStyle =
-        '#ffffff';
+        '#000000';
 
     const fontSize =
-        170;
+        150;
 
     const font =
-        `550 ${fontSize}px ` +
-        `"Neue Montreal", "Helvetica Neue", Arial, sans-serif`;
+        `200 ${fontSize}px ` +
+        `"Avenir Next", "Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
         fontSize *
-        0.018;
+        0.015;
 
     const centerX =
         TEXT_CANVAS_WIDTH /
@@ -461,19 +453,13 @@ function createSentenceTargetTexture() {
         ) {
             const candidateIndex =
                 Math.floor(
-                    (
-                        i /
-                        requiredParticles
-                    ) *
+                    Math.random() *
                     candidates.length
                 );
 
             const particle =
                 candidates[
-                Math.min(
-                    candidateIndex,
-                    candidates.length - 1
-                )
+                candidateIndex
                 ];
 
             const normalizedX =
@@ -565,12 +551,6 @@ function createSentenceTargetTexture() {
 
     return texture;
 }
-
-/*
- * ============================================================
- * CREATE DEVOM TARGET
- * ============================================================
- */
 
 function createDevOmTargetTexture(
     ratio
@@ -824,12 +804,6 @@ function createDevOmTargetTexture(
 
     return texture;
 }
-
-/*
- * ============================================================
- * CREATE FINAL TEXT TARGET
- * ============================================================
- */
 
 function createFinalTextTargetTexture() {
     const canvas =
@@ -1119,19 +1093,54 @@ function createFinalTextTargetTexture() {
     return texture;
 }
 
-/*
- * ============================================================
- * COMPONENT
- * ============================================================
- */
-
 export default function HomeNebulaText() {
-    const textTargetTexture =
-        useMemo(
-            () =>
-                createSentenceTargetTexture(),
-            []
-        );
+    const [
+        textTargetTexture,
+        setTextTargetTexture,
+    ] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function prepareInitialText() {
+            try {
+                await loadInitialTextFont();
+
+                if (cancelled) {
+                    return;
+                }
+
+                const texture =
+                    createSentenceTargetTexture();
+
+                setTextTargetTexture(
+                    texture
+                );
+            } catch (error) {
+                console.error(
+                    'Failed to load Avenir Next:',
+                    error
+                );
+
+                if (cancelled) {
+                    return;
+                }
+
+                const texture =
+                    createSentenceTargetTexture();
+
+                setTextTargetTexture(
+                    texture
+                );
+            }
+        }
+
+        prepareInitialText();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const devOmFullTargetTexture =
         useMemo(
@@ -1161,10 +1170,19 @@ export default function HomeNebulaText() {
     const [
         currentTargetTexture,
         setCurrentTargetTexture,
-    ] = useState(
-        textTargetTexture
-    );
+    ] = useState(null);
 
+    useEffect(() => {
+        if (!textTargetTexture) {
+            return;
+        }
+
+        setCurrentTargetTexture(
+            textTargetTexture
+        );
+    }, [
+        textTargetTexture,
+    ]);
     const [
         textEnabled,
         setTextEnabled,
@@ -1185,25 +1203,6 @@ export default function HomeNebulaText() {
         setFinalTextMuiVisible,
     ] = useState(false);
 
-    /*
-     * ========================================================
-     * FINAL FORMATION STATE
-     * ========================================================
-     *
-     * This is deliberately separate from textEnabled.
-     *
-     * It tells NebulaBackground:
-     *
-     * "The current target is the final Home text."
-     *
-     * Only this stage receives FINAL_TEXT_FORM_DURATION.
-     * ========================================================
-     */
-
-    const [
-        finalTextFormationActive,
-        setFinalTextFormationActive,
-    ] = useState(false);
 
     /*
      * ========================================================
@@ -1212,6 +1211,9 @@ export default function HomeNebulaText() {
      */
 
     useEffect(() => {
+        if (!textTargetTexture) {
+            return;
+        }
         let windTimer;
         let releaseTextTimer;
         let devOmTimer;
@@ -1255,10 +1257,6 @@ export default function HomeNebulaText() {
                     devOmTimer =
                         window.setTimeout(
                             () => {
-                                setFinalTextFormationActive(
-                                    false
-                                );
-
                                 setCurrentTargetTexture(
                                     devOmFullTargetTexture
                                 );
@@ -1329,18 +1327,6 @@ export default function HomeNebulaText() {
                                                                                     false
                                                                                 );
 
-                                                                                /*
-                                                                                 * IMPORTANT:
-                                                                                 *
-                                                                                 * Mark this as the final
-                                                                                 * formation BEFORE enabling
-                                                                                 * the target.
-                                                                                 */
-
-                                                                                setFinalTextFormationActive(
-                                                                                    true
-                                                                                );
-
                                                                                 setCurrentTargetTexture(
                                                                                     finalTextTargetTexture
                                                                                 );
@@ -1353,13 +1339,15 @@ export default function HomeNebulaText() {
                                                                                  * ====================================================
                                                                                  * FINAL MUI
                                                                                  *
-                                                                                 * start particle formation
+                                                                                 * final nebula formation
                                                                                  *       ↓
                                                                                  * FINAL_TEXT_FORM_DURATION
                                                                                  *       ↓
                                                                                  * FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
                                                                                  *       ↓
                                                                                  * show MUI
+                                                                                 *       ↓
+                                                                                 * FINAL_MUI_FADE_DURATION
                                                                                  *       ↓
                                                                                  * FINAL_TEXT_HOLD_AFTER_MUI
                                                                                  *       ↓
@@ -1380,11 +1368,8 @@ export default function HomeNebulaText() {
                                                                                                         setTextEnabled(
                                                                                                             false
                                                                                                         );
-
-                                                                                                        setFinalTextFormationActive(
-                                                                                                            false
-                                                                                                        );
                                                                                                     },
+                                                                                                    FINAL_MUI_FADE_DURATION +
                                                                                                     FINAL_TEXT_HOLD_AFTER_MUI
                                                                                                 );
                                                                                         },
@@ -1505,6 +1490,7 @@ export default function HomeNebulaText() {
             }
         };
     }, [
+        textTargetTexture,
         devOmFullTargetTexture,
         devOmReducedTargetTexture,
         finalTextTargetTexture,
@@ -1648,7 +1634,7 @@ export default function HomeNebulaText() {
                             '"Neue Montreal", "Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
-                            'clamp(2rem, 2.8vw, 4.5rem)',
+                            'clamp(1.6rem, 2vw, 4rem)',
 
                         fontWeight:
                             550,
@@ -1776,14 +1762,6 @@ export default function HomeNebulaText() {
 
                 homeWindActive={
                     windActive
-                }
-
-                finalTextFormationActive={
-                    finalTextFormationActive
-                }
-
-                finalTextFormationDuration={
-                    FINAL_TEXT_FORM_DURATION
                 }
             />
         </>
