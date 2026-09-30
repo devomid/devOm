@@ -2181,19 +2181,19 @@ export default function HomeNebulaText({onIntroComplete}) {
                             'center',
 
                         fontFamily:
-                            '"After", "Helvetica Neue", Arial, sans-serif',
+                            '"Okana", "Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
                             'clamp(6rem, 15vw, 15rem)',
 
                         fontWeight:
-                            400,
+                            900,
 
                         lineHeight:
                             1,
 
                         letterSpacing:
-                            '0.018em',
+                            '0.068em',
 
                         color:
                             colors.accent.primary,

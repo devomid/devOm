@@ -67,7 +67,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
                         pointerEvents: 'none',
                     }}
                 >
-                    <WhyYouNeedMe />
+                    <WhyYouNeedMe scrollProgress={scrollProgress} />
                     <HomeContactCard />
                 </Box>
             </Box>
