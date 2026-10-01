@@ -62,19 +62,67 @@ const WhyYouNeedMe = ({
         ]
     );
 
-    const exitScale = useTransform(
+    const exitScaleX = useTransform(
         scrollProgress,
         [
             0.42,
-            0.47,
-            0.52,
-            0.56,
+            0.46,
+            0.50,
+            0.54,
+        ],
+        [
+            1,
+            0.98,
+            0.78,
+            0.12,
+        ]
+    );
+
+    const exitScaleY = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.46,
+            0.50,
+            0.54,
         ],
         [
             1,
             0.96,
-            0.72,
-            0.08,
+            0.68,
+            0.10,
+        ]
+    );
+
+    const exitX = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.46,
+            0.50,
+            0.54,
+        ],
+        [
+            '0vw',
+            '-0.5vw',
+            '-2vw',
+            '0vw',
+        ]
+    );
+
+    const exitY = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.46,
+            0.50,
+            0.54,
+        ],
+        [
+            '0vh',
+            '0.5vh',
+            '1.5vh',
+            '0vh',
         ]
     );
 
@@ -123,17 +171,25 @@ const WhyYouNeedMe = ({
                 width: '100%',
                 height: '100%',
 
-                x: introComplete
-                    ? x
-                    : '70vw',
-
                 opacity: introComplete
                     ? exitOpacity
                     : 0,
 
-                scale: introComplete
-                    ? exitScale
+                scaleX: introComplete
+                    ? exitScaleX
                     : 0.96,
+
+                scaleY: introComplete
+                    ? exitScaleY
+                    : 0.96,
+
+                x: introComplete
+                    ? exitX
+                    : '70vw',
+
+                y: introComplete
+                    ? exitY
+                    : 0,
 
                 filter: introComplete
                     ? exitFilter
