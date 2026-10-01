@@ -22,13 +22,88 @@ const WhyYouNeedMe = ({
         ]
     );
 
-    const x = useSpring(
-        xTarget,
-        {
-            stiffness: 42,
-            damping: 32,
-            mass: 2.4,
-        }
+    const x = useTransform(
+        scrollProgress,
+        [
+            0.28,
+            0.34,
+            0.40,
+            0.46,
+            0.52,
+        ],
+        [
+            '110vw',
+            '58vw',
+            '18vw',
+            '3vw',
+            '0vw',
+        ]
+    );
+
+    const rotateY = useTransform(
+        scrollProgress,
+        [
+            0.28,
+            0.34,
+            0.40,
+            0.46,
+            0.52,
+        ],
+        [
+            -22,
+            -15,
+            -6,
+            1.5,
+            0,
+        ]
+    );
+
+    const rotateZ = useTransform(
+        scrollProgress,
+        [
+            0.28,
+            0.36,
+            0.44,
+            0.52,
+        ],
+        [
+            2.5,
+            1.2,
+            0.3,
+            0,
+        ]
+    );
+
+    const scale = useTransform(
+        scrollProgress,
+        [
+            0.28,
+            0.36,
+            0.44,
+            0.52,
+        ],
+        [
+            0.88,
+            0.94,
+            0.985,
+            1,
+        ]
+    );
+
+    const opacity = useTransform(
+        scrollProgress,
+        [
+            0.28,
+            0.34,
+            0.40,
+            0.46,
+        ],
+        [
+            0,
+            0.35,
+            0.75,
+            1,
+        ]
     );
 
     return (
@@ -39,9 +114,29 @@ const WhyYouNeedMe = ({
                 right: 0,
                 width: '100%',
                 height: '100%',
+
                 x: introComplete
                     ? x
-                    : '100vw',
+                    : '110vw',
+
+                rotateY: introComplete
+                    ? rotateY
+                    : -22,
+
+                rotateZ: introComplete
+                    ? rotateZ
+                    : 2.5,
+
+                scale: introComplete
+                    ? scale
+                    : 0.88,
+
+                opacity: introComplete
+                    ? opacity
+                    : 0,
+
+                transformPerspective: 1400,
+
                 pointerEvents: 'none',
             }}
         >
