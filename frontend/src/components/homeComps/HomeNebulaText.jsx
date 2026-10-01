@@ -1972,6 +1972,7 @@ export default function HomeNebulaText({
     onScrollIndicatorReady,
     scrollProgress,
     introComplete,
+    postIntroScrollStarted
 }) {
     const introCompleteRef =
         useRef(false);
@@ -2592,15 +2593,8 @@ export default function HomeNebulaText({
                     zIndex:
                         0,
 
-                    x:
-                        introComplete
-                            ? devOmX
-                            : 0,
-
-                    scale:
-                        introComplete
-                            ? muiScale
-                            : 1,
+                    x: postIntroScrollStarted ? devOmX : 0,
+                    scale: postIntroScrollStarted ? muiScale : 1,
 
                     transformOrigin:
                         'center center',
@@ -2745,15 +2739,8 @@ export default function HomeNebulaText({
                     zIndex:
                         0,
 
-                    x:
-                        introComplete
-                            ? devOmX
-                            : 0,
-
-                    scale:
-                        introComplete
-                            ? muiScale
-                            : 1,
+                    x: postIntroScrollStarted ? devOmX : 0,
+                    scale: postIntroScrollStarted ? muiScale : 1,
 
                     transformOrigin:
                         'center center',

@@ -135,6 +135,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
 
                 <HomeIntro
                     onIntroComplete={() => {
+                        scrollProgress.set(0);
                         setIntroComplete(true);
                     }}
                     onScrollIndicatorReady={() => {
@@ -142,6 +143,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     }}
                     scrollProgress={lazyScrollProgress}
                     introComplete={introComplete}
+                    postIntroScrollStarted={postIntroScrollStarted}
                 />
 
                 {cardsMounted && (

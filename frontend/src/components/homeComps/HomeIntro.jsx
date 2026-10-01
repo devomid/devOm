@@ -11,6 +11,7 @@ const HomeIntro = ({
     onScrollIndicatorReady,
     scrollProgress,
     introComplete,
+    postIntroScrollStarted
 }) => {
     return (
         <Box
@@ -50,6 +51,8 @@ const HomeIntro = ({
                 introComplete={
                     introComplete
                 }
+                postIntroScrollStarted={postIntroScrollStarted}
+
             />
         </Box>
     )
