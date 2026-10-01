@@ -1539,7 +1539,8 @@ function createFinalTextTargetTexture(
 
     const lineHeight =
         fontSize *
-        FINAL_TEXT_LINE_HEIGHT;
+        FINAL_TEXT_LINE_HEIGHT *
+        (finalTextCanvasHeight / FINAL_TEXT_CANVAS_WIDTH);
 
     /*
      * ============================================================
