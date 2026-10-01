@@ -71,6 +71,8 @@ const FINAL_TEXT_LINE_HEIGHT =
 const FINAL_TEXT_LETTER_SPACING =
     0.018;
 
+const FINAL_TEXT_NEBULA_RIGHT_OFFSET_PX = 70;
+
 /*
  * ============================================================
  * FINAL TEXT SCREEN / CAMERA GEOMETRY
@@ -141,6 +143,7 @@ const DEVOM_WORLD_WIDTH =
 
 const DEVOM_WORLD_HEIGHT =
     5.0;
+    
 
 /*
  * ============================================================
