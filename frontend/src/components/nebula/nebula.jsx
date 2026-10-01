@@ -2855,7 +2855,7 @@ const NebulaParticles = ({
                 geometry.setAttribute(
                     'aIntensity',
                     new THREE.BufferAttribute(
-                        particles.intensity,
+                        particles.intensities,
                         1,
                     ),
                 )
@@ -2863,7 +2863,7 @@ const NebulaParticles = ({
                 geometry.setAttribute(
                     'aSize',
                     new THREE.BufferAttribute(
-                        particles.size,
+                        particles.sizes,
                         1,
                     ),
                 )
