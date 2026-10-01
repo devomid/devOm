@@ -43,8 +43,15 @@ const Home = ({ homeRef, scrollProgress, }) => {
         scrollProgress.set(
             latest,
         )
-    }
-    )
+
+        if (
+            introComplete &&
+            !cardsMounted &&
+            latest > 0
+        ) {
+            setCardsMounted(true)
+        }
+    })
 
     useEffect(() => {
         return () => {

@@ -8,6 +8,7 @@ import HomeNebulaText
 
 const HomeIntro = ({
     onIntroComplete,
+    onScrollIndicatorReady,
     scrollProgress,
     introComplete,
 }) => {
@@ -39,6 +40,9 @@ const HomeIntro = ({
             <HomeNebulaText
                 onIntroComplete={
                     onIntroComplete
+                }
+                onScrollIndicatorReady={
+                    onScrollIndicatorReady
                 }
                 scrollProgress={
                     scrollProgress
