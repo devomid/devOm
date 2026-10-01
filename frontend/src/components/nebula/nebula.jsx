@@ -1154,10 +1154,10 @@ float windEnd =
 // ============================================================
 
 float windSpeedA =
-    0.72;
+    0.0006;
 
 float windForceA =
-    0.0016;
+    0.0010;
 
 vec3 windA =
     vec3(
@@ -1183,10 +1183,10 @@ float flowA =
 // ============================================================
 
 float windSpeedB =
-    0.75;
+    0.0018;
 
 float windForceB =
-    0.0030;
+    0.0065;
 
 vec3 windB =
     vec3(
@@ -1212,10 +1212,10 @@ float flowB =
 // ============================================================
 
 float windSpeedC =
-    0.58;
+    0.001;
 
 float windForceC =
-    0.0020;
+    0.0045;
 
 vec3 windC =
     vec3(
@@ -1242,10 +1242,10 @@ float flowC =
 // ============================================================
 
 float windSpeedD =
-    0.88;
+    0.0016;
 
 float windForceD =
-    0.0020;
+    0.0055;
 
 vec3 windD =
     vec3(
@@ -3646,11 +3646,11 @@ const NebulaParticles = ({
                     null
                 ) {
                     homeWindStartTimeRef.current =
-                        state.clock.elapsedTime
+                        simulationTimeRef.current
                 }
 
                 homeWindTimeRef.current =
-                    state.clock.elapsedTime -
+                    simulationTimeRef.current -
                     homeWindStartTimeRef.current
             } else {
                 homeWindStartTimeRef.current =

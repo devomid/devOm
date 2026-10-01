@@ -119,13 +119,13 @@ const DEVOM_TEXT_RIGHT =
     'm';
 
 const DEVOM_LEFT_FONT =
-    `400 390px "After", "Helvetica Neue", Arial, sans-serif`;
+    `100 390px "Helvetica Neue", Arial, sans-serif`;
 
 const DEVOM_CENTER_FONT =
-    `400 390px "After", "Helvetica Neue", Arial, sans-serif`;
+    `400 430px "After", "Helvetica Neue", Arial, sans-serif`;
 
 const DEVOM_RIGHT_FONT =
-    `400 390px "After", "Helvetica Neue", Arial, sans-serif`;
+    `100 390px "Helvetica Neue", Arial, sans-serif`;
 
 const DEVOM_FULL_RATIO =
     1.0;
@@ -1464,8 +1464,8 @@ function createFinalTextTargetTexture() {
         canvasScale;
 
     const font =
-        `400 ${fontSize}px ` +
-        `"Codec Pro", "Helvetica Neue", Arial, sans-serif`;
+        `100 ${fontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
         fontSize *
@@ -2359,54 +2359,115 @@ export default function HomeNebulaText({
 
                     transformOrigin:
                         'center center',
+
+                    opacity:
+                        devOmMuiVisible
+                            ? 1
+                            : 0,
+
+                    transition:
+                        `opacity ${DEVOM_MUI_FADE_DURATION}ms ease`,
                 }}
             >
-                <Typography
-                    component="div"
-                    sx={{
-                        width:
-                            'min(96vw, 1500px)',
+                <div
+                    style={{
+                        display:
+                            'flex',
 
-                        textAlign:
+                        alignItems:
+                            'baseline',
+
+                        justifyContent:
                             'center',
-
-                        fontFamily:
-                            '"After", "Helvetica Neue", Arial, sans-serif',
-
-                        fontSize:
-                            'clamp(6rem, 15vw, 15rem)',
-
-                        fontWeight:
-                            400,
-
-                        lineHeight:
-                            1,
-
-                        letterSpacing:
-                            '0.068em',
-
-                        color:
-                            colors.accent.primary,
-
-                        userSelect:
-                            'none',
 
                         whiteSpace:
                             'nowrap',
-
-                        opacity:
-                            devOmMuiVisible
-                                ? 1
-                                : 0,
-
-                        transition:
-                            `opacity ${DEVOM_MUI_FADE_DURATION}ms ease`,
                     }}
                 >
-                    {DEVOM_TEXT_LEFT}
-                    {DEVOM_TEXT_CENTER}
-                    {DEVOM_TEXT_RIGHT}
-                </Typography>
+                    <Typography
+                        component="span"
+                        sx={{
+                            fontFamily:
+                                '"Helvetica Neue", Arial, sans-serif',
+
+                            fontSize:
+                                'clamp(6rem, 15vw, 15rem)',
+
+                            fontWeight:
+                                100,
+
+                            lineHeight:
+                                1,
+
+                            letterSpacing:
+                                0,
+
+                            color:
+                                colors.accent.secondary,
+
+                            userSelect:
+                                'none',
+                        }}
+                    >
+                        {DEVOM_TEXT_LEFT}
+                    </Typography>
+
+                    <Typography
+                        component="span"
+                        sx={{
+                            fontFamily:
+                                '"After", "Helvetica Neue", Arial, sans-serif',
+
+                            fontSize:
+                                'calc(clamp(6rem, 15vw, 15rem) * 1.10256)',
+
+                            fontWeight:
+                                400,
+
+                            lineHeight:
+                                1,
+
+                            letterSpacing:
+                                0,
+
+                            color:
+                                colors.accent.primary,
+
+                            userSelect:
+                                'none',
+                        }}
+                    >
+                        {DEVOM_TEXT_CENTER}
+                    </Typography>
+
+                    <Typography
+                        component="span"
+                        sx={{
+                            fontFamily:
+                                '"Helvetica Neue", Arial, sans-serif',
+
+                            fontSize:
+                                'clamp(6rem, 15vw, 15rem)',
+
+                            fontWeight:
+                                100,
+
+                            lineHeight:
+                                1,
+
+                            letterSpacing:
+                                0,
+
+                            color:
+                                colors.accent.secondary,
+
+                            userSelect:
+                                'none',
+                        }}
+                    >
+                        {DEVOM_TEXT_RIGHT}
+                    </Typography>
+                </div>
             </motion.div>
 
             {/*
@@ -2469,13 +2530,13 @@ export default function HomeNebulaText({
                             'left',
 
                         fontFamily:
-                            '"Codec Pro", "Helvetica Neue", Arial, sans-serif',
+                            '"Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
                             'clamp(1.4rem, 1.8vw, 3.8rem)',
 
                         fontWeight:
-                            400,
+                            100,
 
                         lineHeight:
                             FINAL_TEXT_LINE_HEIGHT,
