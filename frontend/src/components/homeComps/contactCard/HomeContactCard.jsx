@@ -1,16 +1,68 @@
-import { Box } from '@mui/material';
-import { motion, useTransform } from 'framer-motion';
+import { Box } from '@mui/material'
+import {
+    motion,
+    useTransform,
+} from 'framer-motion'
+
+import ContactCardFace from './ContactCardFace'
+import { contactCardStyles } from './contactCardStyle'
 
 const HomeContactCard = ({
     scrollProgress,
     introComplete,
 }) => {
 
+    /*
+     * ============================================================
+     * VERTICAL ENTRANCE
+     * ============================================================
+     */
+
     const y = useTransform(
         scrollProgress,
-        [0.34, 0.58],
-        ['100vh', '0vh']
-    );
+        [
+            0.40,
+            0.54,
+            0.64,
+        ],
+        [
+            '105vh',
+            '10vh',
+            '0vh',
+        ],
+    )
+
+    /*
+     * ============================================================
+     * 3D FLIP
+     *
+     * Front
+     *   ↓
+     * Edge
+     *   ↓
+     * Back
+     *   ↓
+     * Edge
+     *   ↓
+     * Front
+     * ============================================================
+     */
+
+    const rotateY = useTransform(
+        scrollProgress,
+        [
+            0.40,
+            0.49,
+            0.55,
+            0.64,
+        ],
+        [
+            0,
+            180,
+            180,
+            360,
+        ],
+    )
 
     return (
         <motion.div
@@ -18,38 +70,56 @@ const HomeContactCard = ({
                 position: 'absolute',
                 top: 0,
                 right: 0,
+
                 width: '100%',
                 height: '100%',
+
                 y: introComplete
                     ? y
-                    : '100vh',
+                    : '105vh',
+
                 pointerEvents: 'none',
+
+                perspective: '1400px',
             }}
         >
             <Box
                 sx={{
                     position: 'absolute',
                     top: '50%',
-                    transform: 'translateY(-50%)',
                     right: '10vw',
 
-                    width: 'min(420px, 86vw)',
-                    aspectRatio: '1.75 / 1',
+                    transform:
+                        'translateY(-50%)',
 
-                    borderRadius: '24px',
-                    border: '1px solid rgba(255, 255, 255, 0.16)',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    backdropFilter: 'blur(18px)',
-                    WebkitBackdropFilter: 'blur(18px)',
-                    boxShadow:
-                        '0 20px 60px rgba(0, 0, 0, 0.18)',
+                    width: contactCardStyles.card.width,
+                    aspectRatio:
+                        contactCardStyles.card.aspectRatio,
 
-                    boxSizing: 'border-box',
-                    flexShrink: 0,
+                    perspective:
+                        '1400px',
                 }}
-            />
-        </motion.div>
-    );
-};
+            >
+                <motion.div
+                    style={{
+                        position: 'relative',
 
-export default HomeContactCard;
+                        width: '100%',
+                        height: '100%',
+
+                        rotateY,
+
+                        transformStyle:
+                            'preserve-3d',
+                    }}
+                >
+                    <ContactCardFace />
+
+                    <ContactCardFace back />
+                </motion.div>
+            </Box>
+        </motion.div>
+    )
+}
+
+export default HomeContactCard
