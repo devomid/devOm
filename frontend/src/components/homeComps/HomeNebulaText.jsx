@@ -959,7 +959,9 @@ function createDevOmTargetTexture(
                 DEVOM_CANVAS_HEIGHT;
 
             const targetScale =
-                getHomeParticleTargetScale();
+                getHomeParticleTargetScale(
+                    DEVOM_WORLD_WIDTH
+                );
 
             const worldX =
                 (
