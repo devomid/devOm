@@ -29,7 +29,8 @@ const HomeContactCard = ({
             <Box
                 sx={{
                     position: 'absolute',
-                    top: 'calc(100vh + 40px)',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     right: '10vw',
 
                     width: 'min(420px, 86vw)',
