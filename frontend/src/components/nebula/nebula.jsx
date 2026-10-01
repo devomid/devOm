@@ -16,21 +16,46 @@ import {
     nebulaWipeState,
 } from '../whatibuildComps/nebulaWipe'
 
-const PARTICLE_COUNT = 262144
+const DESKTOP_PARTICLE_COUNT = 262144
+const DESKTOP_TEXTURE_SIZE = 512
 
-const TEXTURE_SIZE = 512
+const TABLET_PARTICLE_COUNT = 147456
+const TABLET_TEXTURE_SIZE = 384
 
-const TEXTURE_CAPACITY =
-    TEXTURE_SIZE *
-    TEXTURE_SIZE
+const PHONE_PARTICLE_COUNT = 65536
+const PHONE_TEXTURE_SIZE = 256
 
 const RING_FORM_DURATION = 1800
 
-/*
- * ============================================================
- * PARTICLE RENDER SHADERS
- * ============================================================
- */
+const getNebulaQuality = (width) => {
+    if (width < 768) {
+        return {
+            particleCount:
+                PHONE_PARTICLE_COUNT,
+
+            textureSize:
+                PHONE_TEXTURE_SIZE,
+        }
+    }
+
+    if (width < 1024) {
+        return {
+            particleCount:
+                TABLET_PARTICLE_COUNT,
+
+            textureSize:
+                TABLET_TEXTURE_SIZE,
+        }
+    }
+
+    return {
+        particleCount:
+            DESKTOP_PARTICLE_COUNT,
+
+        textureSize:
+            DESKTOP_TEXTURE_SIZE,
+    }
+}
 
 const particleVertexShader = `
     attribute vec2 aParticleUv;
@@ -210,12 +235,6 @@ const particleFragmentShader = `
             );
     }
 `
-
-/*
- * ============================================================
- * GPU SIMULATION
- * ============================================================
- */
 
 const simulationVertexShader = `
     varying vec2 vUv;
@@ -2372,40 +2391,42 @@ const createSimulationQuad = (
     )
 }
 
-const createParticleData = () => {
+const createParticleData = (
+    particleCount,
+) => {
     const positions =
         new Float32Array(
-            PARTICLE_COUNT * 3,
+            particleCount * 3,
         )
 
     const velocities =
         new Float32Array(
-            PARTICLE_COUNT * 3,
+            particleCount * 3,
         )
 
     const intensities =
         new Float32Array(
-            PARTICLE_COUNT,
+            particleCount,
         )
 
     const sizes =
         new Float32Array(
-            PARTICLE_COUNT,
+            particleCount,
         )
 
     const phases =
         new Float32Array(
-            PARTICLE_COUNT,
+            particleCount,
         )
 
     const speeds =
         new Float32Array(
-            PARTICLE_COUNT,
+            particleCount,
         )
 
     for (
         let i = 0;
-        i < PARTICLE_COUNT;
+        i < particleCount;
         i += 1
     ) {
         const i3 =
@@ -2511,12 +2532,13 @@ const createParticleData = () => {
 
 const createFloatTexture = (
     data,
+    textureSize,
 ) => {
     const texture =
         new THREE.DataTexture(
             data,
-            TEXTURE_SIZE,
-            TEXTURE_SIZE,
+            textureSize,
+            textureSize,
             THREE.RGBAFormat,
             THREE.FloatType,
         )
@@ -2544,25 +2566,31 @@ const createFloatTexture = (
 
 const createInitialTextures = (
     particles,
+    particleCount,
+    textureSize,
 ) => {
+    const textureCapacity =
+        textureSize *
+        textureSize
+
     const positionData =
         new Float32Array(
-            TEXTURE_CAPACITY * 4,
+            textureCapacity * 4,
         )
 
     const velocityData =
         new Float32Array(
-            TEXTURE_CAPACITY * 4,
+            textureCapacity * 4,
         )
 
     const metadataData =
         new Float32Array(
-            TEXTURE_CAPACITY * 4,
+            textureCapacity * 4,
         )
 
     for (
         let i = 0;
-        i < PARTICLE_COUNT;
+        i < particleCount;
         i += 1
     ) {
         const i3 =
@@ -2612,24 +2640,29 @@ const createInitialTextures = (
         position:
             createFloatTexture(
                 positionData,
+                textureSize,
             ),
 
         velocity:
             createFloatTexture(
                 velocityData,
+                textureSize,
             ),
 
         metadata:
             createFloatTexture(
                 metadataData,
+                textureSize,
             ),
     }
 }
 
-const createStateTarget = () => {
+const createStateTarget = (
+    textureSize,
+) => {
     return new THREE.WebGLRenderTarget(
-        TEXTURE_SIZE,
-        TEXTURE_SIZE,
+        textureSize,
+        textureSize,
         {
             minFilter:
                 THREE.NearestFilter,
@@ -2700,6 +2733,22 @@ const NebulaParticles = ({
         camera,
     } = useThree()
 
+    const nebulaQuality =
+        useMemo(
+            () =>
+                getNebulaQuality(
+                    size.width,
+                ),
+            [
+                size.width,
+            ],
+        )
+
+    const {
+        particleCount,
+        textureSize,
+    } = nebulaQuality
+
     /*
      * --------------------------------------------------------
      * PARTICLE DATA
@@ -2709,8 +2758,12 @@ const NebulaParticles = ({
     const particles =
         useMemo(
             () =>
-                createParticleData(),
-            [],
+                createParticleData(
+                    particleCount,
+                ),
+            [
+                particleCount,
+            ],
         )
 
     const initialTextures =
@@ -2718,8 +2771,14 @@ const NebulaParticles = ({
             () =>
                 createInitialTextures(
                     particles,
+                    particleCount,
+                    textureSize,
                 ),
-            [particles],
+            [
+                particles,
+                particleCount,
+                textureSize,
+            ],
         )
 
     /*
@@ -2736,27 +2795,27 @@ const NebulaParticles = ({
 
                 const uvs =
                     new Float32Array(
-                        PARTICLE_COUNT * 2,
+                        particleCount * 2,
                     )
 
                 const dummyPositions =
                     new Float32Array(
-                        PARTICLE_COUNT * 3,
+                        particleCount * 3,
                     )
 
                 for (
                     let i = 0;
-                    i < PARTICLE_COUNT;
+                    i < particleCount;
                     i += 1
                 ) {
                     const x =
                         i %
-                        TEXTURE_SIZE
+                        textureSize
 
                     const y =
                         Math.floor(
                             i /
-                            TEXTURE_SIZE,
+                            textureSize,
                         )
 
                     const i2 =
@@ -2767,51 +2826,55 @@ const NebulaParticles = ({
                             x +
                             0.5
                         ) /
-                        TEXTURE_SIZE
+                        textureSize
 
                     uvs[i2 + 1] =
                         (
                             y +
                             0.5
                         ) /
-                        TEXTURE_SIZE
-                }
+                        textureSize
 
-                geometry.setAttribute(
-                    'position',
-                    new THREE.BufferAttribute(
-                        dummyPositions,
-                        3,
-                    ),
-                )
+                    geometry.setAttribute(
+                        'position',
+                        new THREE.BufferAttribute(
+                            dummyPositions,
+                            3,
+                        ),
+                    )
 
-                geometry.setAttribute(
-                    'aParticleUv',
-                    new THREE.BufferAttribute(
-                        uvs,
-                        2,
-                    ),
-                )
+                    geometry.setAttribute(
+                        'aParticleUv',
+                        new THREE.BufferAttribute(
+                            uvs,
+                            2,
+                        ),
+                    )
 
-                geometry.setAttribute(
-                    'aIntensity',
-                    new THREE.BufferAttribute(
-                        particles.intensities,
-                        1,
-                    ),
-                )
+                    geometry.setAttribute(
+                        'aIntensity',
+                        new THREE.BufferAttribute(
+                            particles.intensities,
+                            1,
+                        ),
+                    )
 
-                geometry.setAttribute(
-                    'aSize',
-                    new THREE.BufferAttribute(
-                        particles.sizes,
-                        1,
-                    ),
-                )
+                    geometry.setAttribute(
+                        'aSize',
+                        new THREE.BufferAttribute(
+                            particles.sizes,
+                            1,
+                        ),
+                    )
 
-                return geometry
-            },
-            [particles],
+                    return geometry
+                },
+                [
+                    particles,
+                    particleCount,
+                    textureSize,
+                ]
+            }
         )
 
     /*
@@ -3051,16 +3114,24 @@ const NebulaParticles = ({
             }
 
             const positionA =
-                createStateTarget()
+                createStateTarget(
+                    textureSize,
+                )
 
             const positionB =
-                createStateTarget()
+                createStateTarget(
+                    textureSize,
+                )
 
             const velocityA =
-                createStateTarget()
+                createStateTarget(
+                    textureSize,
+                )
 
             const velocityB =
-                createStateTarget()
+                createStateTarget(
+                    textureSize,
+                )
 
             const simulationScene =
                 new THREE.Scene()
@@ -3426,6 +3497,7 @@ const NebulaParticles = ({
             gl,
             initialTextures,
             particleMaterial,
+            textureSize,
         ],
     )
 
