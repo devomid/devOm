@@ -264,6 +264,7 @@ const velocityFlowFragmentShader = `
     uniform float uTime;
     uniform float uTextEnabled;
     uniform float uTextStrength;
+    uniform float uTextFormationBoost;
 
     uniform vec2 uInteractionCenter;
     uniform float uInteractionStrength;
@@ -1663,10 +1664,11 @@ velocity +=
                         );
 
                     velocity +=
-                        direction *
-                        springAcceleration *
-                        uTextStrength *
-                        formationWeight;
+    direction *
+    springAcceleration *
+    uTextStrength *
+    formationWeight *
+    uTextFormationBoost;
 
                     /*
                      * =================================================
@@ -2717,7 +2719,7 @@ const NebulaParticles = ({
 
     const homeWindTimeRef =
         useRef(0)
-    
+
     const simulationAccumulatorRef =
         useRef(0)
 
@@ -3297,6 +3299,10 @@ const NebulaParticles = ({
                                 0.0,
                         },
 
+                        uTextFormationBoost: {
+                            value: 1.0,
+                        },
+
                         uRectangleStrength: {
                             value:
                                 0.0,
@@ -3623,6 +3629,14 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
+
+            velocityMaterial
+                .uniforms
+                .uTextFormationBoost
+                .value =
+                window.innerWidth < 768
+                    ? 1.35
+                    : 1.0
 
             if (
                 homeWindActive
