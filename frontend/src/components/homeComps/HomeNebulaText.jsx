@@ -1969,6 +1969,7 @@ function createFinalTextTargetTexture(
 
 export default function HomeNebulaText({
     onIntroComplete,
+    onScrollIndicatorReady,
     scrollProgress,
     introComplete,
 }) {
@@ -2450,17 +2451,22 @@ export default function HomeNebulaText({
                                                         );
 
                                                         window.setTimeout(() => {
-                                                            if (
-                                                                introCompleteRef.current
-                                                            ) {
+                                                            if (introCompleteRef.current) {
                                                                 return;
                                                             }
 
-                                                            introCompleteRef.current =
-                                                                true;
+                                                            onScrollIndicatorReady?.();
 
-                                                            onIntroComplete?.();
-                                                        }, FINAL_MUI_FADE_DURATION);
+                                                            window.setTimeout(() => {
+                                                                if (introCompleteRef.current) {
+                                                                    return;
+                                                                }
+
+                                                                introCompleteRef.current = true;
+
+                                                                onIntroComplete?.();
+                                                            }, 1000);
+                                                        }, FINAL_MUI_FADE_DURATION - 1000);
 
                                                     },
                                                         FINAL_TEXT_FORM_DURATION +

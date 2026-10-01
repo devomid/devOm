@@ -7,8 +7,12 @@ import HomeContactCard from '../components/homeComps/contactCard/HomeContactCard
 
 const Home = ({ homeRef, scrollProgress, }) => {
 
-    const [introComplete, setIntroComplete] = useState(false);
+    const [introComplete, setIntroComplete] =
+        useState(false);
 
+    const [cardsMounted, setCardsMounted] =
+        useState(false);
+    
     const { scrollYProgress, } = useScroll({
         target: homeRef,
         offset: [
@@ -73,24 +77,26 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     introComplete={introComplete}
                 />
 
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        zIndex: 2,
-                        pointerEvents: 'none',
-                    }}
-                >
-                    <WhyYouNeedMe
-                        scrollProgress={lazyScrollProgress}
-                        introComplete={introComplete}
-                    />
+                {cardsMounted && (
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            zIndex: 2,
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        <WhyYouNeedMe
+                            scrollProgress={lazyScrollProgress}
+                            introComplete={introComplete}
+                        />
 
-                    <HomeContactCard
-                        scrollProgress={lazyScrollProgress}
-                        introComplete={introComplete}
-                    />
-                </Box>
+                        <HomeContactCard
+                            scrollProgress={lazyScrollProgress}
+                            introComplete={introComplete}
+                        />
+                    </Box>
+                )}
             </Box>
         </Box>
     )
