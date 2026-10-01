@@ -959,9 +959,7 @@ function createDevOmTargetTexture(
                 DEVOM_CANVAS_HEIGHT;
 
             const targetScale =
-                getHomeParticleTargetScale(
-                    DEVOM_WORLD_WIDTH
-                );
+                getHomeParticleTargetScale();
 
             const worldX =
                 (
@@ -1420,6 +1418,51 @@ function getDevOmVisualLeft() {
         FINAL_TEXT_LEFT_OFFSET_PX;
 }
 
+function getDevOmParticleTargetScale() {
+    const rootFontSize =
+        parseFloat(
+            getComputedStyle(
+                document.documentElement
+            ).fontSize
+        ) || 16;
+
+    const muiFontSize =
+        Math.min(
+            Math.max(
+                window.innerWidth *
+                0.15,
+                rootFontSize *
+                6
+            ),
+            rootFontSize *
+            15
+        );
+
+    const {
+        worldWidth,
+    } = getFinalTextViewportWorldSize();
+
+    const muiWorldWidth =
+        (
+            muiFontSize /
+            window.innerWidth
+        ) *
+        worldWidth;
+
+    const nebulaWorldWidthPerCanvasPixel =
+        DEVOM_WORLD_WIDTH /
+        DEVOM_CANVAS_WIDTH;
+
+    const muiEquivalentNebulaWidth =
+        muiWorldWidth /
+        nebulaWorldWidthPerCanvasPixel;
+
+    return (
+        muiEquivalentNebulaWidth /
+        DEVOM_CANVAS_WIDTH
+    );
+}
+
 function createFinalTextTargetTexture(
     responsiveGeometry =
         getFinalTextResponsiveGeometry()
@@ -1539,8 +1582,7 @@ function createFinalTextTargetTexture(
 
     const lineHeight =
         fontSize *
-        FINAL_TEXT_LINE_HEIGHT *
-        (finalTextCanvasHeight / FINAL_TEXT_CANVAS_WIDTH);
+        FINAL_TEXT_LINE_HEIGHT;
 
     /*
      * ============================================================
