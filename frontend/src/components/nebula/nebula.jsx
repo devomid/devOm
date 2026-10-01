@@ -1556,8 +1556,8 @@ velocity +=
 
                     float normalAttachment =
                         smoothstep(
-                            -0.75,
-                            0.05,
+                            -0.45,
+                            0.1,
                             attachmentNoise
                         );
 
@@ -1642,9 +1642,9 @@ velocity +=
                     float normalSpringAcceleration =
                         clamp(
                             distanceToTarget *
-                            0.00360,
-                            0.00040,
-                            0.0105
+                            0.00250,
+                            0.00028,
+                            0.0075
                         );
 
                     float cloudSpringAcceleration =
