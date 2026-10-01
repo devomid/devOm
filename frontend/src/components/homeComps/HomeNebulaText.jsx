@@ -1654,8 +1654,8 @@ export default function HomeNebulaText({
     const muiScale =
         useTransform(
             scrollProgress,
-            [0, 0.55],
-            [1, 0.84]
+            [0, 0.30, 0.46, 0.58],
+            [1, 0.70, 0.70, 0.78]
         );
 
     const [
