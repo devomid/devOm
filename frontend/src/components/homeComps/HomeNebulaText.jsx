@@ -71,8 +71,6 @@ const FINAL_TEXT_LINE_HEIGHT =
 const FINAL_TEXT_LETTER_SPACING =
     0.018;
 
-const FINAL_TEXT_NEBULA_RIGHT_OFFSET_PX = 70;
-
 /*
  * ============================================================
  * FINAL TEXT SCREEN / CAMERA GEOMETRY
@@ -97,8 +95,18 @@ const FINAL_TEXT_NEBULA_RIGHT_OFFSET_PX = 70;
 const FINAL_TEXT_MUI_OFFSET_Y_VH =
     24;
 
+/*
+ * Shared horizontal offset for BOTH:
+ *
+ * 1. final MUI text
+ * 2. final nebula text
+ *
+ * This moves the entire final text block to the right
+ * relative to the visual left edge of devOm.
+ */
+
 const FINAL_TEXT_LEFT_OFFSET_PX =
-    24;
+    70;
 
 const NEBULA_CAMERA_Z =
     10;
@@ -143,7 +151,7 @@ const DEVOM_WORLD_WIDTH =
 
 const DEVOM_WORLD_HEIGHT =
     5.0;
-    
+
 
 /*
  * ============================================================
@@ -267,7 +275,7 @@ const FINAL_TEXT_FORM_DURATION =
     2500;
 
 const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
-    5700;
+    4500;
 
 const FINAL_MUI_FADE_DURATION =
     7100;
@@ -1236,15 +1244,15 @@ function getFinalTextFontSize() {
 
     const min =
         rootFontSize *
-        1.6;
+        1.4;
 
     const max =
         rootFontSize *
-        4;
+        3.8;
 
     const viewportFontSize =
         window.innerWidth *
-        FINAL_TEXT_FONT_SIZE_VIEWPORT;
+        0.018;
 
     return Math.min(
         Math.max(
@@ -1305,6 +1313,30 @@ function getHomeParticleTargetScale(
     );
 }
 
+/*
+ * ============================================================
+ * DEVOM VISUAL LEFT EDGE
+ * ============================================================
+ *
+ * Measure devOm using the same three font segments as the
+ * actual MUI devOm:
+ *
+ * "dev" -> Helvetica Neue 100
+ * "O"   -> After 400, 1.10256x the base size
+ * "m"   -> Helvetica Neue 100
+ *
+ * This gives the actual visual left edge of the complete
+ * devOm wordmark.
+ *
+ * The final text then uses this same left coordinate plus
+ * FINAL_TEXT_LEFT_OFFSET_PX.
+ *
+ * IMPORTANT:
+ * devOm itself is NOT changed.
+ * This function only measures it.
+ * ============================================================
+ */
+
 function getDevOmVisualLeft() {
     const canvas =
         document.createElement(
@@ -1327,7 +1359,7 @@ function getDevOmVisualLeft() {
             ).fontSize
         ) || 16;
 
-    const devOmFontSize =
+    const baseFontSize =
         Math.min(
             Math.max(
                 window.innerWidth *
@@ -1339,49 +1371,65 @@ function getDevOmVisualLeft() {
             15
         );
 
+    const centerFontSize =
+        baseFontSize *
+        1.10256;
+
+    /*
+     * "dev"
+     */
+
     ctx.font =
-        `400 ${devOmFontSize}px ` +
+        `100 ${baseFontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
+
+    const leftWidth =
+        ctx.measureText(
+            DEVOM_TEXT_LEFT
+        ).width;
+
+    /*
+     * "O"
+     */
+
+    ctx.font =
+        `400 ${centerFontSize}px ` +
         `"After", "Helvetica Neue", Arial, sans-serif`;
 
-    const characters =
-        [
-            ...DEVOM_TEXT_LEFT,
-            DEVOM_TEXT_CENTER,
-            ...DEVOM_TEXT_RIGHT,
-        ];
+    const centerWidth =
+        ctx.measureText(
+            DEVOM_TEXT_CENTER
+        ).width;
 
-    const letterSpacing =
-        devOmFontSize *
-        0.018;
+    /*
+     * "m"
+     */
 
-    const widths =
-        characters.map(
-            (character) =>
-                ctx.measureText(
-                    character
-                ).width
-        );
+    ctx.font =
+        `100 ${baseFontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
 
-    const devOmWidth =
-        widths.reduce(
-            (
-                sum,
-                width
-            ) =>
-                sum +
-                width,
-            0
-        ) +
-        Math.max(
-            0,
-            characters.length - 1
-        ) *
-        letterSpacing;
+    const rightWidth =
+        ctx.measureText(
+            DEVOM_TEXT_RIGHT
+        ).width;
+
+    const totalWidth =
+        leftWidth +
+        centerWidth +
+        rightWidth;
+
+    /*
+     * devOm itself remains centered.
+     *
+     * We only calculate its left edge and then add the
+     * shared final-text offset.
+     */
 
     return (
         (
             window.innerWidth -
-            devOmWidth
+            totalWidth
         ) /
         2
     ) +
@@ -1478,6 +1526,11 @@ function createFinalTextTargetTexture() {
      * ============================================================
      * SAME LEFT EDGE AS MUI
      * ============================================================
+     *
+     * Both the MUI text and nebula text use this exact same
+     * left coordinate.
+     *
+     * The 70px offset is shared by both.
      */
 
     const finalTextLeft =
@@ -2406,7 +2459,7 @@ export default function HomeNebulaText({
                                 0,
 
                             color:
-                                colors.accent.secondary,
+                                colors.accent.primary,
 
                             userSelect:
                                 'none',
@@ -2434,7 +2487,7 @@ export default function HomeNebulaText({
                                 0,
 
                             color:
-                                colors.accent.primary,
+                                colors.accent.secondary,
 
                             userSelect:
                                 'none',
@@ -2462,7 +2515,7 @@ export default function HomeNebulaText({
                                 0,
 
                             color:
-                                colors.accent.secondary,
+                                colors.accent.primary,
 
                             userSelect:
                                 'none',
@@ -2478,8 +2531,11 @@ export default function HomeNebulaText({
              * FINAL MUI
              * ==================================================
              *
-             * This is anchored to the exact measured visual
-             * left edge of devOm + 24px.
+             * This is anchored to the measured visual left
+             * edge of devOm + the shared 70px offset.
+             *
+             * The nebula final text uses the exact same
+             * horizontal coordinate.
              *
              * Its vertical center is the same center used by
              * the particle target, plus the same 24vh offset.
