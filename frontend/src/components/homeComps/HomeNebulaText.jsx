@@ -752,8 +752,24 @@ function createDevOmTargetTexture(
     ctx.filter =
         'blur(20px)';
 
+    const rootFontSize =
+        parseFloat(
+            getComputedStyle(
+                document.documentElement
+            ).fontSize
+        ) || 16;
+
     const devOmFontSize =
-        390;
+        Math.min(
+            Math.max(
+                window.innerWidth *
+                0.15,
+                rootFontSize *
+                6
+            ),
+            rootFontSize *
+            15
+        );
 
     const letterSpacing =
         devOmFontSize *
