@@ -42,6 +42,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
         ) {
             setPostIntroScrollStarted(true);
             setShowScrollIndicator(false);
+            setCardsMounted(true);
         }
     })
 
