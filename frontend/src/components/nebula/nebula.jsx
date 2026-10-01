@@ -2717,6 +2717,12 @@ const NebulaParticles = ({
 
     const homeWindTimeRef =
         useRef(0)
+    
+    const simulationAccumulatorRef =
+        useRef(0)
+
+    const simulationTimeRef =
+        useRef(0)
 
     const homeWindStartTimeRef =
         useRef(null)
@@ -3523,6 +3529,23 @@ const NebulaParticles = ({
                 return
             }
 
+            const FIXED_SIMULATION_STEP =
+                1 / 60
+
+            simulationAccumulatorRef.current +=
+                Math.min(
+                    delta,
+                    0.1
+                )
+
+            if (
+                simulationTimeRef.current === 0
+            ) {
+                simulationTimeRef.current =
+                    state.clock.elapsedTime -
+                    simulationAccumulatorRef.current
+            }
+
             const {
                 positionA,
                 positionB,
@@ -4004,127 +4027,238 @@ const NebulaParticles = ({
             }
 
             /*
-             * =================================================
-             * PASS 1
-             *
-             * positionA + velocityA
-             *              |
-             *              v
-             *         velocityB
-             * =================================================
-             */
+ * =================================================
+ * FIXED-TIME GPU SIMULATION
+ *
+ * The visual render FPS is independent from the
+ * particle simulation rate.
+ *
+ * 60 FPS -> 1 simulation step
+ * 30 FPS -> 2 simulation steps
+ * 20 FPS -> 3 simulation steps
+ *
+ * This keeps the existing shader physics running
+ * at its original 60 Hz behavior.
+ * =================================================
+ */
 
-            simulationQuad.material =
+            let simulationSteps =
+                0
+
+            while (
+                simulationAccumulatorRef.current >=
+                FIXED_SIMULATION_STEP
+            ) {
+                simulationAccumulatorRef.current -=
+                    FIXED_SIMULATION_STEP
+
+                simulationTimeRef.current +=
+                    FIXED_SIMULATION_STEP
+
+                /*
+                 * ------------------------------------------------
+                 * TIME
+                 * ------------------------------------------------
+                 */
+
                 velocityMaterial
+                    .uniforms
+                    .uTime
+                    .value =
+                    simulationTimeRef.current
 
-            gl.setRenderTarget(
-                velocityB,
-            )
+                /*
+                 * ------------------------------------------------
+                 * HOME WIND TIME
+                 * ------------------------------------------------
+                 */
 
-            gl.clear()
+                if (
+                    homeWindActive &&
+                    homeWindStartTimeRef.current !== null
+                ) {
+                    velocityMaterial
+                        .uniforms
+                        .uHomeWindTime
+                        .value =
+                        Math.max(
+                            0,
+                            simulationTimeRef.current -
+                            homeWindStartTimeRef.current
+                        )
+                } else {
+                    velocityMaterial
+                        .uniforms
+                        .uHomeWindTime
+                        .value =
+                        0
+                }
 
-            gl.render(
-                simulationScene,
-                simulationCamera,
-            )
+                /*
+                 * =================================================
+                 * PASS 1
+                 *
+                 * positionA + velocityA
+                 *              |
+                 *              v
+                 *         velocityB
+                 * =================================================
+                 */
 
-            /*
-             * =================================================
-             * PASS 2
-             *
-             * positionA + velocityB
-             *              |
-             *              v
-             *         positionB
-             * =================================================
-             */
+                velocityMaterial
+                    .uniforms
+                    .uPositionTexture
+                    .value =
+                    simulation.positionA.texture
 
-            positionMaterial
-                .uniforms
-                .uPositionTexture
-                .value =
-                positionA.texture
+                velocityMaterial
+                    .uniforms
+                    .uVelocityTexture
+                    .value =
+                    simulation.velocityA.texture
 
-            positionMaterial
-                .uniforms
-                .uVelocityTexture
-                .value =
-                velocityB.texture
+                simulationQuad.material =
+                    velocityMaterial
 
-            simulationQuad.material =
+                gl.setRenderTarget(
+                    simulation.velocityB,
+                )
+
+                gl.clear()
+
+                gl.render(
+                    simulationScene,
+                    simulationCamera,
+                )
+
+                /*
+                 * =================================================
+                 * PASS 2
+                 *
+                 * positionA + velocityB
+                 *              |
+                 *              v
+                 *         positionB
+                 * =================================================
+                 */
+
                 positionMaterial
+                    .uniforms
+                    .uPositionTexture
+                    .value =
+                    simulation.positionA.texture
 
-            gl.setRenderTarget(
-                positionB,
-            )
+                positionMaterial
+                    .uniforms
+                    .uVelocityTexture
+                    .value =
+                    simulation.velocityB.texture
 
-            gl.clear()
+                simulationQuad.material =
+                    positionMaterial
 
-            gl.render(
-                simulationScene,
-                simulationCamera,
-            )
+                gl.setRenderTarget(
+                    simulation.positionB,
+                )
 
-            /*
-             * =================================================
-             * PASS 3
-             *
-             * positionB + velocityB
-             *              |
-             *              v
-             *         velocityA
-             * =================================================
-             */
+                gl.clear()
 
-            containmentMaterial
-                .uniforms
-                .uPositionTexture
-                .value =
-                positionB.texture
+                gl.render(
+                    simulationScene,
+                    simulationCamera,
+                )
 
-            containmentMaterial
-                .uniforms
-                .uVelocityTexture
-                .value =
-                velocityB.texture
+                /*
+                 * =================================================
+                 * PASS 3
+                 *
+                 * positionB + velocityB
+                 *              |
+                 *              v
+                 *         velocityA
+                 * =================================================
+                 */
 
-            simulationQuad.material =
                 containmentMaterial
+                    .uniforms
+                    .uPositionTexture
+                    .value =
+                    simulation.positionB.texture
 
-            gl.setRenderTarget(
-                velocityA,
-            )
+                containmentMaterial
+                    .uniforms
+                    .uVelocityTexture
+                    .value =
+                    simulation.velocityB.texture
 
-            gl.clear()
+                simulationQuad.material =
+                    containmentMaterial
 
-            gl.render(
-                simulationScene,
-                simulationCamera,
-            )
+                gl.setRenderTarget(
+                    simulation.velocityA,
+                )
 
-            /*
-             * ------------------------------------------------
-             * PING-PONG STATE
-             * ------------------------------------------------
-             */
+                gl.clear()
 
-            simulation.positionA =
-                positionB
+                gl.render(
+                    simulationScene,
+                    simulationCamera,
+                )
 
-            simulation.positionB =
-                positionA
+                /*
+                 * ------------------------------------------------
+                 * PING-PONG
+                 * ------------------------------------------------
+                 */
 
-            simulation.velocityA =
-                velocityA
+                const previousPositionA =
+                    simulation.positionA
 
-            simulation.velocityB =
-                velocityB
+                simulation.positionA =
+                    simulation.positionB
 
-            particleMaterial
-                .uniforms
-                .uPositionTexture
-                .value =
-                positionB.texture
+                simulation.positionB =
+                    previousPositionA
+
+                /*
+                 * velocityA and velocityB swap roles
+                 */
+
+                const previousVelocityA =
+                    simulation.velocityA
+
+                simulation.velocityA =
+                    simulation.velocityB
+
+                simulation.velocityB =
+                    previousVelocityA
+
+                particleMaterial
+                    .uniforms
+                    .uPositionTexture
+                    .value =
+                    simulation.positionA.texture
+
+                simulationSteps +=
+                    1
+
+                /*
+                 * Safety guard.
+                 *
+                 * If the browser is heavily throttled,
+                 * don't allow one rendered frame to execute
+                 * an unbounded number of GPU simulations.
+                 */
+
+                if (
+                    simulationSteps >= 8
+                ) {
+                    simulationAccumulatorRef.current =
+                        0
+
+                    break
+                }
+            }
 
             gl.setRenderTarget(
                 null,
