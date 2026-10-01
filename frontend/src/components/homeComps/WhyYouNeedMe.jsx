@@ -1,15 +1,34 @@
 import { Box } from '@mui/material';
-import { motion, useTransform } from 'framer-motion';
+import { motion, useTransform, useSpring } from 'framer-motion';
 
 const WhyYouNeedMe = ({
     scrollProgress,
     introComplete,
 }) => {
 
-    const y = useTransform(
+    const xTarget = useTransform(
         scrollProgress,
-        [0.12, 0.30, 0.42, 0.58],
-        ['100vh', '0vh', '0vh', '-100vh']
+        [
+            0.28,
+            0.36,
+            0.46,
+            0.54,
+        ],
+        [
+            '100vw',
+            '62vw',
+            '14vw',
+            '0vw',
+        ]
+    );
+
+    const x = useSpring(
+        xTarget,
+        {
+            stiffness: 42,
+            damping: 32,
+            mass: 2.4,
+        }
     );
 
     return (
@@ -20,9 +39,9 @@ const WhyYouNeedMe = ({
                 right: 0,
                 width: '100%',
                 height: '100%',
-                y: introComplete
-                    ? y
-                    : '100vh',
+                x: introComplete
+                    ? x
+                    : '100vw',
                 pointerEvents: 'none',
             }}
         >
