@@ -716,7 +716,7 @@ function createSentenceTargetTexture() {
                 ];
 
             if (
-                alpha > 35
+                alpha > 25
             ) {
                 candidates.push({
                     x,
@@ -752,12 +752,13 @@ function createSentenceTargetTexture() {
             candidates.length > 0
         ) {
             const candidateIndex =
-                (
-                    i *
-                    15731 +
-                    789221
-                ) %
-                candidates.length;
+                Math.floor(
+                    (
+                        i /
+                        requiredParticles
+                    ) *
+                    candidates.length
+                );
 
             const particle =
                 candidates[
