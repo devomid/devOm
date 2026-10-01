@@ -62,6 +62,56 @@ const WhyYouNeedMe = ({
         ]
     );
 
+    const exitScale = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.47,
+            0.52,
+            0.56,
+        ],
+        [
+            1,
+            0.96,
+            0.72,
+            0.08,
+        ]
+    );
+
+    const exitBlur = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.47,
+            0.52,
+            0.56,
+        ],
+        [
+            0,
+            3,
+            10,
+            24,
+        ]
+    );
+
+    const exitOpacity = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.48,
+            0.53,
+            0.56,
+        ],
+        [
+            1,
+            0.92,
+            0.45,
+            0,
+        ]
+    );
+
+    const exitFilter = useMotionTemplate`blur(${exitBlur}px)`;
+
     const filter = useMotionTemplate`blur(${blur}px)`;
 
     return (
@@ -78,10 +128,16 @@ const WhyYouNeedMe = ({
                     : '70vw',
 
                 opacity: introComplete
-                    ? opacity
+                    ? exitOpacity
                     : 0,
 
-                filter,
+                scale: introComplete
+                    ? exitScale
+                    : 0.96,
+
+                filter: introComplete
+                    ? exitFilter
+                    : 'blur(16px)',
 
                 pointerEvents: 'none',
             }}
