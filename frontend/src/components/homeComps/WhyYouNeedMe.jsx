@@ -10,155 +10,172 @@ const WhyYouNeedMe = ({
     introComplete,
 }) => {
 
+    /*
+     * ============================================================
+     * ENTRANCE → HOLD → COLLAPSE
+     *
+     * One continuous X timeline.
+     *
+     * The card enters from the right,
+     * settles into position,
+     * holds,
+     * then physically collapses.
+     * ============================================================
+     */
+
     const x = useTransform(
         scrollProgress,
         [
+            0.00,
             0.04,
             0.10,
             0.16,
             0.22,
             0.28,
+            0.42,
+            0.46,
+            0.50,
+            0.54,
         ],
         [
+            '70vw',
             '70vw',
             '48vw',
             '24vw',
             '6vw',
             '0vw',
-        ]
+            '0vw',
+            '-0.5vw',
+            '-2vw',
+            '0vw',
+        ],
     );
+
+    /*
+     * ============================================================
+     * ENTRANCE BLUR → SHARP → COLLAPSE BLUR
+     * ============================================================
+     */
 
     const blur = useTransform(
         scrollProgress,
         [
+            0.00,
             0.04,
             0.10,
             0.16,
             0.22,
             0.28,
-        ],
-        [
-            16,
-            12,
-            7,
-            2,
-            0,
-        ]
-    );
-
-    const opacity = useTransform(
-        scrollProgress,
-        [
-            0.04,
-            0.08,
-            0.14,
-            0.20,
-        ],
-        [
-            0,
-            0.45,
-            0.82,
-            1,
-        ]
-    );
-
-    const exitScaleX = useTransform(
-        scrollProgress,
-        [
-            0.42,
-            0.46,
-            0.50,
-            0.54,
-        ],
-        [
-            1,
-            0.98,
-            0.78,
-            0.12,
-        ]
-    );
-
-    const exitScaleY = useTransform(
-        scrollProgress,
-        [
-            0.42,
-            0.46,
-            0.50,
-            0.54,
-        ],
-        [
-            1,
-            0.96,
-            0.68,
-            0.10,
-        ]
-    );
-
-    const exitX = useTransform(
-        scrollProgress,
-        [
-            0.42,
-            0.46,
-            0.50,
-            0.54,
-        ],
-        [
-            '0vw',
-            '-0.5vw',
-            '-2vw',
-            '0vw',
-        ]
-    );
-
-    const exitY = useTransform(
-        scrollProgress,
-        [
-            0.42,
-            0.46,
-            0.50,
-            0.54,
-        ],
-        [
-            '0vh',
-            '0.5vh',
-            '1.5vh',
-            '0vh',
-        ]
-    );
-
-    const exitBlur = useTransform(
-        scrollProgress,
-        [
             0.42,
             0.47,
             0.52,
             0.56,
         ],
         [
+            16,
+            16,
+            12,
+            7,
+            2,
+            0,
             0,
             3,
             10,
             24,
-        ]
+        ],
     );
 
-    const exitOpacity = useTransform(
+    /*
+     * ============================================================
+     * ENTRANCE OPACITY → HOLD → EXIT
+     * ============================================================
+     */
+
+    const opacity = useTransform(
         scrollProgress,
         [
+            0.00,
+            0.04,
+            0.08,
+            0.14,
+            0.20,
             0.42,
             0.48,
             0.53,
             0.56,
         ],
         [
+            0,
+            0,
+            0.45,
+            0.82,
+            1,
             1,
             0.92,
             0.45,
             0,
-        ]
+        ],
     );
 
-    const exitFilter = useMotionTemplate`blur(${exitBlur}px)`;
+    /*
+     * ============================================================
+     * MATERIAL COLLAPSE
+     * ============================================================
+     */
+
+    const scaleX = useTransform(
+        scrollProgress,
+        [
+            0.00,
+            0.42,
+            0.46,
+            0.50,
+            0.54,
+        ],
+        [
+            0.96,
+            1,
+            0.98,
+            0.78,
+            0.12,
+        ],
+    );
+
+    const scaleY = useTransform(
+        scrollProgress,
+        [
+            0.00,
+            0.42,
+            0.46,
+            0.50,
+            0.54,
+        ],
+        [
+            0.96,
+            1,
+            0.96,
+            0.68,
+            0.10,
+        ],
+    );
+
+    const y = useTransform(
+        scrollProgress,
+        [
+            0.00,
+            0.42,
+            0.46,
+            0.50,
+            0.54,
+        ],
+        [
+            0,
+            0,
+            '0.5vh',
+            '1.5vh',
+            '0vh',
+        ],
+    );
 
     const filter = useMotionTemplate`blur(${blur}px)`;
 
@@ -168,32 +185,19 @@ const WhyYouNeedMe = ({
                 position: 'absolute',
                 top: 0,
                 right: 0,
+
                 width: '100%',
                 height: '100%',
 
-                opacity: introComplete
-                    ? exitOpacity
-                    : 0,
+                x,
+                y,
 
-                scaleX: introComplete
-                    ? exitScaleX
-                    : 0.96,
+                scaleX,
+                scaleY,
 
-                scaleY: introComplete
-                    ? exitScaleY
-                    : 0.96,
+                opacity,
 
-                x: introComplete
-                    ? exitX
-                    : '70vw',
-
-                y: introComplete
-                    ? exitY
-                    : 0,
-
-                filter: introComplete
-                    ? exitFilter
-                    : 'blur(16px)',
+                filter,
 
                 pointerEvents: 'none',
             }}
@@ -203,17 +207,29 @@ const WhyYouNeedMe = ({
                     position: 'absolute',
                     top: '50%',
                     right: '6vw',
-                    transform: 'translateY(-50%)',
 
-                    width: 'min(900px, 68vw)',
-                    height: 'min(620px, 68vh)',
+                    transform:
+                        'translateY(-50%)',
+
+                    width:
+                        'min(900px, 68vw)',
+
+                    height:
+                        'min(620px, 68vh)',
 
                     borderRadius: '28px',
-                    border: '1px solid rgba(255, 255, 255, 0.16)',
-                    background: 'rgba(255, 255, 255, 0.06)',
 
-                    backdropFilter: 'blur(18px)',
-                    WebkitBackdropFilter: 'blur(18px)',
+                    border:
+                        '1px solid rgba(255, 255, 255, 0.16)',
+
+                    background:
+                        'rgba(255, 255, 255, 0.06)',
+
+                    backdropFilter:
+                        'blur(18px)',
+
+                    WebkitBackdropFilter:
+                        'blur(18px)',
 
                     boxShadow:
                         '0 20px 70px rgba(0, 0, 0, 0.18)',

@@ -15,18 +15,29 @@ const HomeContactCard = ({
     /*
      * ============================================================
      * VERTICAL ENTRANCE
+     *
+     * The card stays below the viewport until the Why card
+     * has started collapsing.
+     *
+     * Then it rises into its final position.
      * ============================================================
      */
 
     const y = useTransform(
         scrollProgress,
         [
+            0.00,
+            0.38,
             0.40,
+            0.48,
             0.54,
             0.64,
         ],
         [
             '105vh',
+            '105vh',
+            '105vh',
+            '55vh',
             '10vh',
             '0vh',
         ],
@@ -51,12 +62,14 @@ const HomeContactCard = ({
     const rotateY = useTransform(
         scrollProgress,
         [
+            0.00,
             0.40,
             0.49,
             0.55,
             0.64,
         ],
         [
+            0,
             0,
             180,
             180,
@@ -74,13 +87,18 @@ const HomeContactCard = ({
                 width: '100%',
                 height: '100%',
 
-                y: introComplete
-                    ? y
-                    : '105vh',
+                y,
 
                 pointerEvents: 'none',
 
                 perspective: '1400px',
+
+                /*
+                 * Keep it invisible during the actual intro.
+                 * Once intro is complete, scroll controls its
+                 * position continuously — no transform handoff.
+                 */
+                opacity: introComplete ? 1 : 0,
             }}
         >
             <Box
@@ -92,7 +110,9 @@ const HomeContactCard = ({
                     transform:
                         'translateY(-50%)',
 
-                    width: contactCardStyles.card.width,
+                    width:
+                        contactCardStyles.card.width,
+
                     aspectRatio:
                         contactCardStyles.card.aspectRatio,
 
