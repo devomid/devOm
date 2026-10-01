@@ -1424,6 +1424,9 @@ function createFinalTextTargetTexture(
     responsiveGeometry =
         getFinalTextResponsiveGeometry()
 ) {
+
+    const finalTextCanvasHeight =
+        getFinalTextCanvasHeight();
     const canvas =
         document.createElement(
             'canvas'
@@ -1433,7 +1436,7 @@ function createFinalTextTargetTexture(
         FINAL_TEXT_CANVAS_WIDTH;
 
     canvas.height =
-        FINAL_TEXT_CANVAS_HEIGHT;
+        finalTextCanvasHeight;
 
     const ctx =
         canvas.getContext(
@@ -1452,7 +1455,7 @@ function createFinalTextTargetTexture(
         0,
         0,
         FINAL_TEXT_CANVAS_WIDTH,
-        FINAL_TEXT_CANVAS_HEIGHT
+        finalTextCanvasHeight
     );
 
     ctx.fillStyle =
@@ -1576,7 +1579,7 @@ function createFinalTextTargetTexture(
             : fontSize * 0.74;
 
     const lineBoxTop =
-        FINAL_TEXT_CANVAS_HEIGHT / 2 -
+        finalTextCanvasHeight / 2 -
         (
             lineHeight *
             3
@@ -1638,7 +1641,7 @@ function createFinalTextTargetTexture(
             0,
             0,
             FINAL_TEXT_CANVAS_WIDTH,
-            FINAL_TEXT_CANVAS_HEIGHT
+            finalTextCanvasHeight
         );
 
     const pixels =
@@ -1649,7 +1652,7 @@ function createFinalTextTargetTexture(
 
     for (
         let y = 0;
-        y < FINAL_TEXT_CANVAS_HEIGHT;
+        y < finalTextCanvasHeight;
         y += 1
     ) {
         for (
@@ -1735,7 +1738,7 @@ function createFinalTextTargetTexture(
 
             const normalizedY =
                 particle.y /
-                FINAL_TEXT_CANVAS_HEIGHT;
+                finalTextCanvasHeight;
 
             /*
              * The canvas now maps directly to the visible
