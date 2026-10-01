@@ -3,7 +3,7 @@ import { Box, } from '@mui/material'
 import { useMotionValueEvent, useScroll, } from 'framer-motion'
 import HomeIntro from '../components/homeComps/HomeIntro'
 import WhyYouNeedMe from '../components/homeComps/WhyYouNeedMe'
-import HomeContactCard from '../components/homeComps/HomeContactCard'
+import HomeContactCard from '../components/homeComps/contactCard/HomeContactCard'
 
 const Home = ({ homeRef, scrollProgress, }) => {
 
