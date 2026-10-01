@@ -1,62 +1,50 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, } from '@mui/material'
-import { useMotionValueEvent, useScroll, useSpring } from 'framer-motion'
-import HomeIntro from '../components/homeComps/HomeIntro'
-import WhyYouNeedMe from '../components/homeComps/WhyYouNeedMe'
-import HomeContactCard from '../components/homeComps/contactCard/HomeContactCard'
+
+import { colors, glass, spacing } from '../design/colors';
+
+import { useMotionValueEvent, useScroll, useSpring, motion } from 'framer-motion'
 import { ArrowDown } from 'lucide-react';
-import { colors } from '../design/colors';
-import { glass } from '../design/glass';
-import { spacing } from '../design/spacing';
-import { motion } from 'framer-motion'
+import { Box, } from '@mui/material'
+
+import WhyYouNeedMe from '../components/homeComps/WhyYouNeedMe'
+import HomeIntro from '../components/homeComps/HomeIntro'
+import HomeContactCard from '../components/homeComps/contactCard/HomeContactCard'
 
 const Home = ({ homeRef, scrollProgress, }) => {
 
-    const [introComplete, setIntroComplete] =
-        useState(false);
-
-    const [cardsMounted, setCardsMounted] =
-        useState(false);
-
-    const [showScrollIndicator, setShowScrollIndicator] =
-        useState(false);
+    const [introComplete, setIntroComplete] = useState(false);
+    const [cardsMounted, setCardsMounted] = useState(false);
+    const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+    const [postIntroScrollStarted, setPostIntroScrollStarted] = useState(false);
 
     const { scrollYProgress, } = useScroll({
         target: homeRef,
-        offset: [
-            'start start',
-            'end end',
-        ],
+        offset: ['start start', 'end end']
     });
 
     const lazyScrollProgress =
-        useSpring(
-            scrollYProgress,
+        useSpring(scrollYProgress,
             {
                 stiffness: 35,
                 damping: 24,
                 mass: 1.8,
-            }
-        )
+            })
 
     useMotionValueEvent(scrollYProgress, 'change', latest => {
-        scrollProgress.set(
-            latest,
-        )
+        scrollProgress.set(latest)
 
         if (
             introComplete &&
-            !cardsMounted &&
+            !postIntroScrollStarted &&
             latest > 0
         ) {
-            setCardsMounted(true)
+            setPostIntroScrollStarted(true);
+            setShowScrollIndicator(false);
         }
     })
 
     useEffect(() => {
-        return () => {
-            scrollProgress.set(0)
-        }
+        return () => { scrollProgress.set(0) }
     }, [scrollProgress])
 
     return (
