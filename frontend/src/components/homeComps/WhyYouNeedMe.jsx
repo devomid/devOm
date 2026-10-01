@@ -25,17 +25,17 @@ const WhyYouNeedMe = ({
     const x = useTransform(
         scrollProgress,
         [
-            0.28,
-            0.34,
+            0.22,
+            0.27,
+            0.32,
+            0.36,
             0.40,
-            0.46,
-            0.52,
         ],
         [
-            '110vw',
-            '58vw',
-            '18vw',
-            '3vw',
+            '72vw',
+            '48vw',
+            '25vw',
+            '7vw',
             '0vw',
         ]
     );
@@ -44,16 +44,14 @@ const WhyYouNeedMe = ({
         scrollProgress,
         [
             0.28,
-            0.34,
+            0.32,
+            0.36,
             0.40,
-            0.46,
-            0.52,
         ],
         [
-            -22,
-            -15,
-            -6,
-            1.5,
+            -18,
+            -11,
+            -4,
             0,
         ]
     );
@@ -62,14 +60,14 @@ const WhyYouNeedMe = ({
         scrollProgress,
         [
             0.28,
-            0.36,
-            0.44,
-            0.52,
+            0.34,
+            0.38,
+            0.40,
         ],
         [
-            2.5,
-            1.2,
-            0.3,
+            2,
+            1,
+            0.25,
             0,
         ]
     );
@@ -78,13 +76,13 @@ const WhyYouNeedMe = ({
         scrollProgress,
         [
             0.28,
-            0.36,
-            0.44,
-            0.52,
+            0.34,
+            0.38,
+            0.40,
         ],
         [
-            0.88,
-            0.94,
+            0.90,
+            0.95,
             0.985,
             1,
         ]
@@ -93,15 +91,15 @@ const WhyYouNeedMe = ({
     const opacity = useTransform(
         scrollProgress,
         [
-            0.28,
-            0.34,
-            0.40,
-            0.46,
+            0.30,
+            0.33,
+            0.37,
+            0.39,
         ],
         [
-            0,
-            0.35,
+            0.65,
             0.75,
+            0.95,
             1,
         ]
     );
@@ -117,23 +115,21 @@ const WhyYouNeedMe = ({
 
                 x: introComplete
                     ? x
-                    : '110vw',
+                    : '72vw',
 
                 rotateY: introComplete
                     ? rotateY
-                    : -22,
+                    : -18,
 
                 rotateZ: introComplete
                     ? rotateZ
-                    : 2.5,
+                    : 2,
 
                 scale: introComplete
                     ? scale
-                    : 0.88,
+                    : 0.90,
 
-                opacity: introComplete
-                    ? opacity
-                    : 0,
+                opacity: opacity,
 
                 transformPerspective: 1400,
 
