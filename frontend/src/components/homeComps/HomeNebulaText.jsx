@@ -783,13 +783,30 @@ function createDevOmTargetTexture(
         DEVOM_CANVAS_HEIGHT /
         2;
 
-    const baselineCorrection =
+    const muiCenterFontSize =
         devOmFontSize *
-        0.34;
+        1.10256;
+
+    ctx.font =
+        DEVOM_CENTER_FONT;
+
+    const centerMetrics =
+        ctx.measureText(
+            DEVOM_TEXT_CENTER
+        );
+
+    const centerAscent =
+        centerMetrics.actualBoundingBoxAscent;
+
+    const muiFlexBaseline =
+        centerY +
+        (
+            centerAscent -
+            muiCenterFontSize / 2
+        );
 
     const baseline =
-        centerY +
-        baselineCorrection;
+        muiFlexBaseline;
 
     const leftFont =
         DEVOM_LEFT_FONT;
