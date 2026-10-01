@@ -2714,10 +2714,10 @@ const NebulaParticles = ({
 
     const previousWipeRef =
         useRef(null)
-    
+
     const homeWindTimeRef =
         useRef(0)
-    
+
     const homeWindStartTimeRef =
         useRef(null)
 
@@ -2898,8 +2898,12 @@ const NebulaParticles = ({
                             value:
                                 null,
                         },
-                    },
 
+                        uTextTargetUvScale: {
+                            value:
+                                1.0,
+                        },
+                    },
                     transparent:
                         true,
 
@@ -3596,7 +3600,7 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
-            
+
             if (
                 homeWindActive
             ) {

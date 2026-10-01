@@ -156,6 +156,21 @@ const TARGET_JITTER_XY =
 const TARGET_JITTER_Z =
     0.078;
 
+function getInitialTextParticleRatio() {
+    const width =
+        window.innerWidth;
+
+    if (width < 768) {
+        return 0.64;
+    }
+
+    if (width < 1024) {
+        return 0.285;
+    }
+
+    return TEXT_PARTICLE_RATIO;
+}
+
 /*
  * ============================================================
  * WIND
@@ -599,7 +614,7 @@ function createSentenceTargetTexture() {
         'blur(3px)';
 
     const fontSize =
-        130;
+        150;
 
     const font =
         `400 ${fontSize}px ` +
@@ -715,7 +730,7 @@ function createSentenceTargetTexture() {
     const requiredParticles =
         Math.floor(
             PARTICLE_COUNT *
-            TEXT_PARTICLE_RATIO
+            getInitialTextParticleRatio()
         );
 
     const targetData =
