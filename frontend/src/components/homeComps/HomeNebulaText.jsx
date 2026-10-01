@@ -757,19 +757,26 @@ function createSentenceTargetTexture() {
                 particle.y /
                 TEXT_CANVAS_HEIGHT;
 
+            const targetScale =
+                getHomeParticleTargetScale(
+                    TEXT_WORLD_WIDTH
+                );
+
             const worldX =
                 (
                     normalizedX -
                     0.5
                 ) *
-                TEXT_WORLD_WIDTH;
+                TEXT_WORLD_WIDTH *
+                targetScale;
 
             const worldY =
                 (
                     0.5 -
                     normalizedY
                 ) *
-                TEXT_WORLD_HEIGHT;
+                TEXT_WORLD_HEIGHT *
+                targetScale;
 
             const variation =
                 i *
@@ -1028,19 +1035,26 @@ function createDevOmTargetTexture(
                 particle.y /
                 DEVOM_CANVAS_HEIGHT;
 
+            const targetScale =
+                getHomeParticleTargetScale(
+                    DEVOM_WORLD_WIDTH
+                );
+
             const worldX =
                 (
                     normalizedX -
                     0.5
                 ) *
-                DEVOM_WORLD_WIDTH;
+                DEVOM_WORLD_WIDTH *
+                targetScale;
 
             const worldY =
                 (
                     0.5 -
                     normalizedY
                 ) *
-                DEVOM_WORLD_HEIGHT;
+                DEVOM_WORLD_HEIGHT *
+                targetScale;
 
             targetData[offset] =
                 worldX +
@@ -1169,6 +1183,24 @@ function getFinalTextViewportWorldSize() {
         worldWidth,
         worldHeight,
     };
+}
+
+function getHomeParticleTargetScale(
+    baseWorldWidth
+) {
+    const {
+        worldWidth,
+    } = getFinalTextViewportWorldSize();
+
+    const availableWidth =
+        worldWidth *
+        0.84;
+
+    return Math.min(
+        1,
+        availableWidth /
+        baseWorldWidth
+    );
 }
 
 function getDevOmVisualLeft() {
