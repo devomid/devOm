@@ -3518,7 +3518,7 @@ const NebulaParticles = ({
      */
 
     useFrame(
-        (state) => {
+        (state, delta) => {
             const simulation =
                 simulationRef.current
 

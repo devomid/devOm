@@ -752,13 +752,11 @@ function createSentenceTargetTexture() {
             candidates.length > 0
         ) {
             const candidateIndex =
-                Math.floor(
-                    (
-                        i /
-                        requiredParticles
-                    ) *
-                    candidates.length
-                );
+                (
+                    i *
+                    7919
+                ) %
+                candidates.length;
 
             const particle =
                 candidates[
