@@ -974,9 +974,16 @@ function createDevOmTargetTexture(
                 particle.y /
                 DEVOM_CANVAS_HEIGHT;
 
+            const nebulaTextWidth =
+                leftWidth +
+                centerWidth +
+                rightWidth +
+                letterSpacing * 2;
+
             const targetScale =
-                getHomeParticleTargetScale(
-                    DEVOM_WORLD_WIDTH
+                getDevOmParticleTargetScale(
+                    ctx,
+                    nebulaTextWidth
                 );
 
             const worldX =
@@ -1436,7 +1443,10 @@ function getDevOmVisualLeft() {
         FINAL_TEXT_LEFT_OFFSET_PX;
 }
 
-function getDevOmParticleTargetScale() {
+function getDevOmParticleTargetScale(
+    ctx,
+    nebulaTextWidth
+) {
     const rootFontSize =
         parseFloat(
             getComputedStyle(
@@ -1444,7 +1454,8 @@ function getDevOmParticleTargetScale() {
             ).fontSize
         ) || 16;
 
-    const muiFontSize =
+    // Exact responsive base size used by the MUI devOm text.
+    const muiBaseFontSize =
         Math.min(
             Math.max(
                 window.innerWidth *
@@ -1456,28 +1467,75 @@ function getDevOmParticleTargetScale() {
             15
         );
 
+    const muiCenterFontSize =
+        muiBaseFontSize *
+        1.10256;
+
+    // Measure the MUI devOm using the same fonts
+    // and weights as Home.jsx.
+    ctx.font =
+        `100 ${muiBaseFontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
+
+    const muiLeftWidth =
+        ctx.measureText(
+            DEVOM_TEXT_LEFT
+        ).width;
+
+    ctx.font =
+        `400 ${muiCenterFontSize}px ` +
+        `"After", "Helvetica Neue", Arial, sans-serif`;
+
+    const muiCenterWidth =
+        ctx.measureText(
+            DEVOM_TEXT_CENTER
+        ).width;
+
+    ctx.font =
+        `100 ${muiBaseFontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
+
+    const muiRightWidth =
+        ctx.measureText(
+            DEVOM_TEXT_RIGHT
+        ).width;
+
+    const muiTextWidth =
+        muiLeftWidth +
+        muiCenterWidth +
+        muiRightWidth;
+
     const {
         worldWidth,
     } = getFinalTextViewportWorldSize();
 
+    // Convert the MUI CSS-pixel width into Three.js world units.
     const muiWorldWidth =
         (
-            muiFontSize /
+            muiTextWidth /
             window.innerWidth
         ) *
         worldWidth;
 
-    const nebulaWorldWidthPerCanvasPixel =
-        DEVOM_WORLD_WIDTH /
-        DEVOM_CANVAS_WIDTH;
+    // The Nebula target currently draws devOm onto
+    // DEVOM_CANVAS_WIDTH using fixed internal fonts.
+    // Convert its canvas width into world units.
+    const nebulaBaseWorldWidth =
+        (
+            nebulaTextWidth /
+            DEVOM_CANVAS_WIDTH
+        ) *
+        DEVOM_WORLD_WIDTH;
 
-    const muiEquivalentNebulaWidth =
-        muiWorldWidth /
-        nebulaWorldWidthPerCanvasPixel;
+    if (
+        nebulaBaseWorldWidth <= 0
+    ) {
+        return 1;
+    }
 
     return (
-        muiEquivalentNebulaWidth /
-        DEVOM_CANVAS_WIDTH
+        muiWorldWidth /
+        nebulaBaseWorldWidth
     );
 }
 
