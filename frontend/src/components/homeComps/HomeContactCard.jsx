@@ -8,7 +8,7 @@ const HomeContactCard = ({
 
     const y = useTransform(
         scrollProgress,
-        [0.28, 0.46],
+        [0.34, 0.58],
         ['100vh', '0vh']
     );
 
