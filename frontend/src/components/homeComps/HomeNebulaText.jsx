@@ -109,7 +109,23 @@ const NEBULA_CAMERA_FOV =
  * DEVOM
  * ============================================================
  */
-const DEVOM_TEXT = 'devOm';
+const DEVOM_TEXT_LEFT =
+    'dev';
+
+const DEVOM_TEXT_CENTER =
+    'O';
+
+const DEVOM_TEXT_RIGHT =
+    'm';
+
+const DEVOM_LEFT_FONT =
+    `400 390px "After", "Helvetica Neue", Arial, sans-serif`;
+
+const DEVOM_CENTER_FONT =
+    `400 390px "After", "Helvetica Neue", Arial, sans-serif`;
+
+const DEVOM_RIGHT_FONT =
+    `400 390px "After", "Helvetica Neue", Arial, sans-serif`;
 
 const DEVOM_FULL_RATIO =
     1.0;
@@ -912,15 +928,11 @@ function createDevOmTargetTexture(
     ctx.filter =
         'blur(20px)';
 
-    const fontSize =
+    const devOmFontSize =
         390;
 
-    const font =
-        `400 ${fontSize}px ` +
-        `"After", "Helvetica Neue", Arial, sans-serif`;
-
     const letterSpacing =
-        fontSize *
+        devOmFontSize *
         0.018;
 
     const centerX =
@@ -932,20 +944,95 @@ function createDevOmTargetTexture(
         2;
 
     const baselineCorrection =
-        fontSize *
+        devOmFontSize *
         0.34;
 
     const baseline =
         centerY +
         baselineCorrection;
 
-    drawLetterSpacedText(
-        ctx,
-        DEVOM_TEXT,
-        centerX,
-        baseline,
-        font,
-        letterSpacing
+    const leftFont =
+        DEVOM_LEFT_FONT;
+
+    const centerFont =
+        DEVOM_CENTER_FONT;
+
+    const rightFont =
+        DEVOM_RIGHT_FONT;
+
+    ctx.font =
+        leftFont;
+
+    const leftWidth =
+        ctx.measureText(
+            DEVOM_TEXT_LEFT
+        ).width;
+
+    ctx.font =
+        centerFont;
+
+    const centerWidth =
+        ctx.measureText(
+            DEVOM_TEXT_CENTER
+        ).width;
+
+    ctx.font =
+        rightFont;
+
+    const rightWidth =
+        ctx.measureText(
+            DEVOM_TEXT_RIGHT
+        ).width;
+
+    const totalWidth =
+        leftWidth +
+        centerWidth +
+        rightWidth +
+        letterSpacing * 2;
+
+    let currentX =
+        centerX -
+        totalWidth / 2;
+
+    ctx.font =
+        leftFont;
+
+    ctx.textAlign =
+        'left';
+
+    ctx.textBaseline =
+        'alphabetic';
+
+    ctx.fillText(
+        DEVOM_TEXT_LEFT,
+        currentX,
+        baseline
+    );
+
+    currentX +=
+        leftWidth +
+        letterSpacing;
+
+    ctx.font =
+        centerFont;
+
+    ctx.fillText(
+        DEVOM_TEXT_CENTER,
+        currentX,
+        baseline
+    );
+
+    currentX +=
+        centerWidth +
+        letterSpacing;
+
+    ctx.font =
+        rightFont;
+
+    ctx.fillText(
+        DEVOM_TEXT_RIGHT,
+        currentX,
+        baseline
     );
 
     ctx.filter =
@@ -1025,13 +1112,11 @@ function createDevOmTargetTexture(
             candidates.length > 0
         ) {
             const candidateIndex =
-                Math.floor(
-                    (
-                        i /
-                        requiredParticles
-                    ) *
-                    candidates.length
-                );
+                (
+                    i *
+                    7919
+                ) %
+                candidates.length;
 
             const particle =
                 candidates[
@@ -1256,7 +1341,11 @@ function getDevOmVisualLeft() {
         `"After", "Helvetica Neue", Arial, sans-serif`;
 
     const characters =
-        [...DEVOM_TEXT];
+        [
+            ...DEVOM_TEXT_LEFT,
+            DEVOM_TEXT_CENTER,
+            ...DEVOM_TEXT_RIGHT,
+        ];
 
     const letterSpacing =
         devOmFontSize *
@@ -2314,7 +2403,9 @@ export default function HomeNebulaText({
                             `opacity ${DEVOM_MUI_FADE_DURATION}ms ease`,
                     }}
                 >
-                    {DEVOM_TEXT}
+                    {DEVOM_TEXT_LEFT}
+                    {DEVOM_TEXT_CENTER}
+                    {DEVOM_TEXT_RIGHT}
                 </Typography>
             </motion.div>
 
