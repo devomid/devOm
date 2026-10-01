@@ -2224,13 +2224,13 @@ export default function HomeNebulaText({
                             'center',
 
                         fontFamily:
-                            '"Okana", "Helvetica Neue", Arial, sans-serif',
+                            '"After", "Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
                             'clamp(6rem, 15vw, 15rem)',
 
                         fontWeight:
-                            900,
+                            400,
 
                         lineHeight:
                             1,
@@ -2323,7 +2323,7 @@ export default function HomeNebulaText({
                             '"Codec Pro", "Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
-                            'clamp(1.6rem, 2vw, 4rem)',
+                            'clamp(1.4rem, 1.8vw, 3.8rem)',
 
                         fontWeight:
                             400,
