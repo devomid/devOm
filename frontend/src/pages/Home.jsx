@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, } from '@mui/material'
-import { useMotionValueEvent, useScroll, } from 'framer-motion'
+import { useMotionValueEvent, useScroll, useSpring } from 'framer-motion'
 import HomeIntro from '../components/homeComps/HomeIntro'
 import WhyYouNeedMe from '../components/homeComps/WhyYouNeedMe'
 import HomeContactCard from '../components/homeComps/contactCard/HomeContactCard'
@@ -15,7 +15,17 @@ const Home = ({ homeRef, scrollProgress, }) => {
             'start start',
             'end end',
         ],
-    })
+    });
+
+    const lazyScrollProgress =
+        useSpring(
+            scrollYProgress,
+            {
+                stiffness: 35,
+                damping: 24,
+                mass: 1.8,
+            }
+        )
 
     useMotionValueEvent(scrollYProgress, 'change', latest => {
         scrollProgress.set(
@@ -59,7 +69,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     onIntroComplete={() => {
                         setIntroComplete(true);
                     }}
-                    scrollProgress={scrollProgress}
+                    scrollProgress={lazyScrollProgress}
                     introComplete={introComplete}
                 />
 
@@ -72,12 +82,12 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     }}
                 >
                     <WhyYouNeedMe
-                        scrollProgress={scrollProgress}
+                        scrollProgress={lazyScrollProgress}
                         introComplete={introComplete}
                     />
 
                     <HomeContactCard
-                        scrollProgress={scrollProgress}
+                        scrollProgress={lazyScrollProgress}
                         introComplete={introComplete}
                     />
                 </Box>
