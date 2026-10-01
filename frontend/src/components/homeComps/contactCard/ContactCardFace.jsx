@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { contactCardStyles } from './contactCardStyles'
+import { contactCardStyles } from './contactCardStyle'
 
 const ContactCardFace = ({ back = false }) => {
     return (
