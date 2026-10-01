@@ -1183,10 +1183,10 @@ float flowA =
 // ============================================================
 
 float windSpeedB =
-    0.0018;
+    0.0014;
 
 float windForceB =
-    0.0065;
+    0.0003;
 
 vec3 windB =
     vec3(
@@ -1215,7 +1215,7 @@ float windSpeedC =
     0.001;
 
 float windForceC =
-    0.0045;
+    0.0005;
 
 vec3 windC =
     vec3(
@@ -1242,10 +1242,10 @@ float flowC =
 // ============================================================
 
 float windSpeedD =
-    0.0016;
+    0.0011;
 
 float windForceD =
-    0.0055;
+    0.0014;
 
 vec3 windD =
     vec3(
