@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { colors, glass, spacing } from '../design/colors';
+import { colors } from '../design/colors';
+import { glass } from '../design/glass';
+import { spacing } from '../design/spacing';
 
 import { useMotionValueEvent, useScroll, useSpring, motion } from 'framer-motion'
 import { ArrowDown } from 'lucide-react';
