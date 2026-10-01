@@ -2818,63 +2818,63 @@ const NebulaParticles = ({
                             textureSize,
                         )
 
-                    const i2 =
+                    const index =
                         i * 2
 
-                    uvs[i2] =
+                    uvs[index] =
                         (
                             x +
                             0.5
                         ) /
                         textureSize
 
-                    uvs[i2 + 1] =
+                    uvs[index + 1] =
                         (
                             y +
                             0.5
                         ) /
                         textureSize
+                }
 
-                    geometry.setAttribute(
-                        'position',
-                        new THREE.BufferAttribute(
-                            dummyPositions,
-                            3,
-                        ),
-                    )
+                geometry.setAttribute(
+                    'position',
+                    new THREE.BufferAttribute(
+                        dummyPositions,
+                        3,
+                    ),
+                )
 
-                    geometry.setAttribute(
-                        'aParticleUv',
-                        new THREE.BufferAttribute(
-                            uvs,
-                            2,
-                        ),
-                    )
+                geometry.setAttribute(
+                    'aParticleUv',
+                    new THREE.BufferAttribute(
+                        uvs,
+                        2,
+                    ),
+                )
 
-                    geometry.setAttribute(
-                        'aIntensity',
-                        new THREE.BufferAttribute(
-                            particles.intensities,
-                            1,
-                        ),
-                    )
+                geometry.setAttribute(
+                    'aIntensity',
+                    new THREE.BufferAttribute(
+                        particles.intensity,
+                        1,
+                    ),
+                )
 
-                    geometry.setAttribute(
-                        'aSize',
-                        new THREE.BufferAttribute(
-                            particles.sizes,
-                            1,
-                        ),
-                    )
+                geometry.setAttribute(
+                    'aSize',
+                    new THREE.BufferAttribute(
+                        particles.size,
+                        1,
+                    ),
+                )
 
-                    return geometry
-                },
-                [
-                    particles,
-                    particleCount,
-                    textureSize,
-                ]
-            }
+                return geometry
+            },
+            [
+                particles,
+                particleCount,
+                textureSize,
+            ],
         )
 
     /*
