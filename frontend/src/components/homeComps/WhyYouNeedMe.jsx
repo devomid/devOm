@@ -12,14 +12,10 @@ const WhyYouNeedMe = ({
 
     /*
      * ============================================================
-     * ENTRANCE → HOLD → COLLAPSE
+     * ENTRANCE
      *
-     * One continuous X timeline.
-     *
-     * The card enters from the right,
-     * settles into position,
-     * holds,
-     * then physically collapses.
+     * DO NOT CHANGE.
+     * This is the entrance motion that already feels right.
      * ============================================================
      */
 
@@ -51,12 +47,6 @@ const WhyYouNeedMe = ({
         ],
     );
 
-    /*
-     * ============================================================
-     * ENTRANCE BLUR → SHARP → COLLAPSE BLUR
-     * ============================================================
-     */
-
     const blur = useTransform(
         scrollProgress,
         [
@@ -84,12 +74,6 @@ const WhyYouNeedMe = ({
             24,
         ],
     );
-
-    /*
-     * ============================================================
-     * ENTRANCE OPACITY → HOLD → EXIT
-     * ============================================================
-     */
 
     const opacity = useTransform(
         scrollProgress,
@@ -119,65 +103,211 @@ const WhyYouNeedMe = ({
 
     /*
      * ============================================================
-     * MATERIAL COLLAPSE
+     * LAZY EXIT
+     *
+     * The collapse starts quietly.
+     *
+     * It compresses horizontally first,
+     * then vertically,
+     * then becomes very small.
+     *
+     * The different timings create the feeling of
+     * something heavy losing its structure rather than
+     * simply shrinking.
      * ============================================================
      */
 
-    const scaleX = useTransform(
+    const exitScaleX = useTransform(
         scrollProgress,
         [
-            0.00,
             0.42,
             0.46,
-            0.50,
-            0.54,
+            0.485,
+            0.515,
+            0.55,
+            0.58,
         ],
         [
-            0.96,
             1,
-            0.98,
-            0.78,
-            0.12,
+            0.995,
+            0.96,
+            0.72,
+            0.30,
+            0.08,
         ],
     );
 
-    const scaleY = useTransform(
+    const exitScaleY = useTransform(
         scrollProgress,
         [
-            0.00,
             0.42,
             0.46,
             0.50,
-            0.54,
+            0.53,
+            0.56,
+            0.58,
         ],
         [
-            0.96,
             1,
-            0.96,
-            0.68,
+            0.998,
+            0.94,
+            0.78,
+            0.36,
             0.10,
         ],
     );
 
-    const y = useTransform(
+    /*
+     * Slightly delayed physical displacement.
+     *
+     * The card does not immediately move while collapsing.
+     * It first compresses under its own weight.
+     */
+
+    const exitY = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.47,
+            0.50,
+            0.53,
+            0.56,
+            0.58,
+        ],
+        [
+            '0vh',
+            '0vh',
+            '0.3vh',
+            '1.2vh',
+            '2.8vh',
+            '4vh',
+        ],
+    );
+
+    /*
+     * A very small sideways drift.
+     *
+     * Intentionally restrained.
+     */
+
+    const exitX = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.48,
+            0.52,
+            0.56,
+            0.58,
+        ],
+        [
+            '0vw',
+            '0vw',
+            '-0.5vw',
+            '-1vw',
+            '-1.5vw',
+        ],
+    );
+
+    /*
+     * The blur waits before becoming obvious.
+     */
+
+    const exitBlur = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.47,
+            0.50,
+            0.54,
+            0.58,
+        ],
+        [
+            0,
+            0.5,
+            3,
+            10,
+            24,
+        ],
+    );
+
+    /*
+     * Opacity is deliberately the LAST thing to disappear.
+     *
+     * The physical collapse happens first.
+     */
+
+    const exitOpacity = useTransform(
+        scrollProgress,
+        [
+            0.42,
+            0.48,
+            0.52,
+            0.56,
+            0.58,
+        ],
+        [
+            1,
+            1,
+            0.88,
+            0.48,
+            0,
+        ],
+    );
+
+    const filter = useMotionTemplate`blur(${blur}px)`;
+
+    const collapseFilter =
+        useMotionTemplate`blur(${exitBlur}px)`;
+
+    /*
+     * ============================================================
+     * COMPOSE ENTRANCE + EXIT
+     * ============================================================
+     */
+
+    const finalScaleX = useTransform(
+        scrollProgress,
+        [
+            0.00,
+            0.42,
+            0.46,
+            0.485,
+            0.515,
+            0.55,
+            0.58,
+        ],
+        [
+            0.96,
+            1,
+            0.995,
+            0.96,
+            0.72,
+            0.30,
+            0.08,
+        ],
+    );
+
+    const finalScaleY = useTransform(
         scrollProgress,
         [
             0.00,
             0.42,
             0.46,
             0.50,
-            0.54,
+            0.53,
+            0.56,
+            0.58,
         ],
         [
-            0,
-            0,
-            '0.5vh',
-            '1.5vh',
-            '0vh',
+            0.96,
+            1,
+            0.998,
+            0.94,
+            0.78,
+            0.36,
+            0.10,
         ],
     );
-
-    const filter = useMotionTemplate`blur(${blur}px)`;
 
     return (
         <motion.div
@@ -190,10 +320,11 @@ const WhyYouNeedMe = ({
                 height: '100%',
 
                 x,
-                y,
 
-                scaleX,
-                scaleY,
+                y: exitY,
+
+                scaleX: finalScaleX,
+                scaleY: finalScaleY,
 
                 opacity,
 
