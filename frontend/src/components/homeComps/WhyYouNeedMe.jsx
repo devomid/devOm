@@ -8,8 +8,8 @@ const WhyYouNeedMe = ({
 
     const y = useTransform(
         scrollProgress,
-        [0.12, 0.30],
-        ['100vh', '0vh']
+        [0.12, 0.30, 0.42, 0.58],
+        ['100vh', '0vh', '0vh', '-100vh']
     );
 
     return (
