@@ -1644,7 +1644,7 @@ export default function HomeNebulaText({
  * ========================================================
  */
 
-    const muiX =
+    const devOmX =
         useTransform(
             scrollProgress,
             [0, 0.30, 0.46, 0.58],
@@ -2202,7 +2202,7 @@ export default function HomeNebulaText({
 
                     x:
                         introComplete
-                            ? muiX
+                            ? devOmX
                             : 0,
 
                     scale:
@@ -2289,7 +2289,7 @@ export default function HomeNebulaText({
 
                     x:
                         introComplete
-                            ? muiX
+                            ? devOmX
                             : 0,
 
                     scale:
