@@ -1,187 +1,73 @@
 import { useEffect, useState, useRef } from 'react';
-import { Typography } from '@mui/material';
+import { motion, useTransform, } from 'framer-motion';
 import * as THREE from 'three';
+
+import { Typography } from '@mui/material';
+
 import NebulaBackground from '../nebula/nebula';
 import { colors } from '../../design/colors';
-import { motion, useTransform, } from 'framer-motion';
 
-/*
-* ============================================================
-* FINAL HOME TEXT
- * ============================================================
- */
-
-const FINAL_TEXT_LINE_1 =
-    'Web. Mobile. Systems. Interfaces.';
-
-const FINAL_TEXT_LINE_2 =
-    'Software built with attention';
-
-const FINAL_TEXT_LINE_3 =
-    'to know how it works and how it feels';
-
-const TEXTURE_SIZE =
-    512;
-
-const PARTICLE_COUNT =
-    TEXTURE_SIZE *
-    TEXTURE_SIZE;
-
-/*
-* ============================================================
-* INITIAL SENTENCE
-* ============================================================
-*/
+//INITIAL SENTENCE
 const TEXT_LINE_1 = 'Every little idea is';
 const TEXT_LINE_2 = 'like a small particle';
+const TEXT_PARTICLE_RATIO = 0.16;
+const TEXT_CANVAS_WIDTH = 1800;
+const TEXT_CANVAS_HEIGHT = 520;
+const TEXT_WORLD_WIDTH = 9.0;
+const TEXT_WORLD_HEIGHT = 2.9;
 
-const TEXT_PARTICLE_RATIO =
-    0.16;
+//DEVOM
+const DEVOM_TEXT_LEFT = 'dev';
+const DEVOM_TEXT_CENTER = 'O';
+const DEVOM_TEXT_RIGHT = 'm';
+const DEVOM_LEFT_FONT = `100 390px "Helvetica Neue", Arial, sans-serif`;
+const DEVOM_CENTER_FONT = `400 430px "After", "Helvetica Neue", Arial, sans-serif`;
+const DEVOM_RIGHT_FONT = `100 390px "Helvetica Neue", Arial, sans-serif`;
+const DEVOM_FULL_RATIO = 1.0;
+const DEVOM_CANVAS_WIDTH = 1800;
+const DEVOM_CANVAS_HEIGHT = 700;
+const DEVOM_WORLD_WIDTH = 12.5;
+const DEVOM_WORLD_HEIGHT = 5.0;
+const TARGET_JITTER_XY = 0.018;
+const TARGET_JITTER_Z = 0.078;
+const DEVOM_FORM_DURATION = 7500;
+const DEVOM_MUI_FADE_DELAY = 1300;
+const DEVOM_MUI_FADE_DURATION = 5500;
 
-/*
- * ============================================================
- * FINAL TEXT
- * ============================================================
- */
+//FINAL TEXT
+const FINAL_TEXT_LINE_1 = 'Web. Mobile. Systems. Interfaces.';
+const FINAL_TEXT_LINE_2 = 'Software built with attention';
+const FINAL_TEXT_LINE_3 = 'to know how it works and how it feels';
+const TEXTURE_SIZE = 512;
+const PARTICLE_COUNT = TEXTURE_SIZE * TEXTURE_SIZE;
+const FINAL_TEXT_PARTICLE_RATIO = 0.30;
+const FINAL_TEXT_CANVAS_WIDTH = 1800;
+const FINAL_TEXT_CANVAS_HEIGHT = 850;
+const FINAL_TEXT_CONTAINER_WIDTH = 'min(96vw, 1500px)';
+const FINAL_TEXT_LINE_HEIGHT = 1;
+const FINAL_TEXT_LETTER_SPACING = 0.018;
+const FINAL_TEXT_MUI_OFFSET_Y_VH = 24;
+const FINAL_TEXT_LEFT_OFFSET_PX = 70;
+const FINAL_TEXT_PHONE_LEFT_OFFSET_PX = 20;
+const FINAL_TEXT_SMALL_TABLET_LEFT_OFFSET_PX = 28;
+const FINAL_TEXT_TABLET_LEFT_OFFSET_PX = 44;
+const FINAL_TEXT_PHONE_VERTICAL_OFFSET_VH = 15;
+const FINAL_TEXT_SMALL_TABLET_VERTICAL_OFFSET_VH = 17;
+const FINAL_TEXT_TABLET_VERTICAL_OFFSET_VH = 20;
+const FINAL_TEXT_RIGHT_PADDING_PX = 24;
+const NEBULA_CAMERA_Z = 10;
+const NEBULA_CAMERA_FOV = 60;
+const FINAL_TEXT_DELAY_AFTER_DEVOM_FORM = 2000;
+const FINAL_TEXT_FORM_DURATION = 2500;
+const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA = 4500;
+const FINAL_MUI_FADE_DURATION = 7100;
 
-const FINAL_TEXT_PARTICLE_RATIO =
-    0.30;
+//WIND
+const WIND_START_DELAY = 10000;
+const WIND_TEXT_HOLD = 5;
+const WIND_DURATION = 4500;
+const POST_WIND_WAIT = 1000;
 
-const FINAL_TEXT_CANVAS_WIDTH =
-    1800;
-
-const FINAL_TEXT_CANVAS_HEIGHT =
-    850;
-
-const FINAL_TEXT_CONTAINER_WIDTH =
-    'min(96vw, 1500px)';
-
-const FINAL_TEXT_FONT_SIZE_MIN =
-    25.6;
-
-const FINAL_TEXT_FONT_SIZE_VIEWPORT =
-    0.02;
-
-const FINAL_TEXT_FONT_SIZE_MAX =
-    64;
-
-const FINAL_TEXT_LINE_HEIGHT =
-    1;
-
-const FINAL_TEXT_LETTER_SPACING =
-    0.018;
-
-/*
- * ============================================================
- * FINAL TEXT SCREEN / CAMERA GEOMETRY
- * ============================================================
- *
- * The Nebula camera is:
- *
- * PerspectiveCamera(
- *     60,
- *     aspect,
- *     ...,
- * )
- *
- * positioned at z = 10.
- *
- * These values make the particle target use the actual
- * visible camera frustum instead of the old fixed
- * 12.5 x 4.8 world rectangle.
- * ============================================================
- */
-
-const FINAL_TEXT_MUI_OFFSET_Y_VH =
-    24;
-
-/*
- * Shared horizontal offset for BOTH:
- *
- * 1. final MUI text
- * 2. final nebula text
- *
- * This moves the entire final text block to the right
- * relative to the visual left edge of devOm.
- */
-
-const FINAL_TEXT_LEFT_OFFSET_PX =
-    70;
-
-const NEBULA_CAMERA_Z =
-    10;
-
-const NEBULA_CAMERA_FOV =
-    60;
-
-/*
- * ============================================================
- * DEVOM
- * ============================================================
- */
-const DEVOM_TEXT_LEFT =
-    'dev';
-
-const DEVOM_TEXT_CENTER =
-    'O';
-
-const DEVOM_TEXT_RIGHT =
-    'm';
-
-const DEVOM_LEFT_FONT =
-    `100 390px "Helvetica Neue", Arial, sans-serif`;
-
-const DEVOM_CENTER_FONT =
-    `400 430px "After", "Helvetica Neue", Arial, sans-serif`;
-
-const DEVOM_RIGHT_FONT =
-    `100 390px "Helvetica Neue", Arial, sans-serif`;
-
-const DEVOM_FULL_RATIO =
-    1.0;
-
-const DEVOM_CANVAS_WIDTH =
-    1800;
-
-const DEVOM_CANVAS_HEIGHT =
-    700;
-
-const DEVOM_WORLD_WIDTH =
-    12.5;
-
-const DEVOM_WORLD_HEIGHT =
-    5.0;
-
-
-/*
- * ============================================================
- * INITIAL TEXT DIMENSIONS
- * ============================================================
- */
-
-const TEXT_CANVAS_WIDTH =
-    1800;
-
-const TEXT_CANVAS_HEIGHT =
-    520;
-
-const TEXT_WORLD_WIDTH =
-    9.0;
-
-const TEXT_WORLD_HEIGHT =
-    2.9;
-
-/*
- * ============================================================
- * TARGET JITTER
- * ============================================================
- */
-
-const TARGET_JITTER_XY =
-    0.018;
-
-const TARGET_JITTER_Z =
-    0.078;
 
 function getInitialTextParticleRatio() {
     const width =
@@ -197,88 +83,6 @@ function getInitialTextParticleRatio() {
 
     return TEXT_PARTICLE_RATIO;
 }
-
-/*
- * ============================================================
- * WIND
- * ============================================================
- */
-
-const WIND_START_DELAY =
-    10000;
-
-const WIND_TEXT_HOLD =
-    5;
-
-const WIND_DURATION =
-    4500;
-
-const POST_WIND_WAIT =
-    1000;
-
-/*
- * ============================================================
- * DEVOM TIMING
- * ============================================================
- *
- * WIND
- *   ↓
- * devOm particle formation
- *   ↓
- * devOm reduced target
- *   ↓
- * devOm MUI on its own timeline
- *
- * The devOm MUI timeline does NOT control the final particle
- * sequence.
- * ============================================================
- */
-
-const DEVOM_FORM_DURATION =
-    7500;
-
-const DEVOM_MUI_FADE_DELAY =
-    1300;
-
-const DEVOM_MUI_FADE_DURATION =
-    5500;
-
-/*
- * ============================================================
- * FINAL TEXT TIMING
- * ============================================================
- *
- * devOm particle formation completes
- *        ↓
- * FINAL_TEXT_DELAY_AFTER_DEVOM_FORM
- *        ↓
- * final particle target starts
- *        ↓
- * FINAL_TEXT_FORM_DURATION
- *        ↓
- * FINAL_MUI_DELAY_AFTER_FINAL_NEBULA
- *        ↓
- * final MUI appears
- *        ↓
- * FINAL_MUI_FADE_DURATION
- *        ↓
- * FINAL_TEXT_HOLD_AFTER_MUI
- *        ↓
- * particles are released
- * ============================================================
- */
-
-const FINAL_TEXT_DELAY_AFTER_DEVOM_FORM =
-    2000;
-
-const FINAL_TEXT_FORM_DURATION =
-    2500;
-
-const FINAL_MUI_DELAY_AFTER_FINAL_NEBULA =
-    4500;
-
-const FINAL_MUI_FADE_DURATION =
-    7100;
 
 function drawLeftAlignedLetterSpacedText(
     ctx,
@@ -1263,6 +1067,201 @@ function getFinalTextFontSize() {
     );
 }
 
+function getFinalTextLeftOffsetPx() {
+    const width =
+        window.innerWidth;
+
+    if (width < 480) {
+        return FINAL_TEXT_PHONE_LEFT_OFFSET_PX;
+    }
+
+    if (width < 768) {
+        return FINAL_TEXT_SMALL_TABLET_LEFT_OFFSET_PX;
+    }
+
+    if (width < 1024) {
+        return FINAL_TEXT_TABLET_LEFT_OFFSET_PX;
+    }
+
+    return FINAL_TEXT_LEFT_OFFSET_PX;
+}
+
+function getFinalTextVerticalOffsetVh() {
+    const width =
+        window.innerWidth;
+
+    if (width < 480) {
+        return FINAL_TEXT_PHONE_VERTICAL_OFFSET_VH;
+    }
+
+    if (width < 768) {
+        return FINAL_TEXT_SMALL_TABLET_VERTICAL_OFFSET_VH;
+    }
+
+    if (width < 1024) {
+        return FINAL_TEXT_TABLET_VERTICAL_OFFSET_VH;
+    }
+
+    return FINAL_TEXT_MUI_OFFSET_Y_VH;
+}
+
+function measureLetterSpacedTextWidth(
+    ctx,
+    text,
+    letterSpacing
+) {
+    const characters =
+        [...text];
+
+    const widths =
+        characters.map(
+            (character) =>
+                ctx.measureText(
+                    character
+                ).width
+        );
+
+    return (
+        widths.reduce(
+            (sum, width) =>
+                sum + width,
+            0
+        ) +
+        Math.max(
+            0,
+            characters.length - 1
+        ) *
+        letterSpacing
+    );
+}
+
+function getFinalTextContainerWidth(
+    finalTextLeft
+) {
+    const viewportWidth =
+        window.innerWidth;
+
+    let preferredWidth;
+
+    if (viewportWidth < 768) {
+        preferredWidth =
+            viewportWidth *
+            0.90;
+    } else if (viewportWidth < 1024) {
+        preferredWidth =
+            viewportWidth *
+            0.92;
+    } else {
+        preferredWidth =
+            Math.min(
+                viewportWidth *
+                0.96,
+                1500
+            );
+    }
+
+    const availableWidth =
+        Math.max(
+            1,
+            viewportWidth -
+            finalTextLeft -
+            FINAL_TEXT_RIGHT_PADDING_PX
+        );
+
+    return Math.min(
+        preferredWidth,
+        availableWidth
+    );
+}
+
+function getFinalTextResponsiveGeometry() {
+    const canvas =
+        document.createElement(
+            'canvas'
+        );
+
+    const ctx =
+        canvas.getContext('2d');
+
+    const finalTextLeft =
+        getDevOmVisualLeft();
+
+    const containerWidth =
+        getFinalTextContainerWidth(
+            finalTextLeft
+        );
+
+    const verticalOffsetVh =
+        getFinalTextVerticalOffsetVh();
+
+    const preferredFontSize =
+        getFinalTextFontSize();
+
+    if (!ctx) {
+        return {
+            left: finalTextLeft,
+            containerWidth,
+            fontSize: preferredFontSize,
+            letterSpacing:
+                preferredFontSize *
+                FINAL_TEXT_LETTER_SPACING,
+            verticalOffsetVh,
+        };
+    }
+
+    ctx.font =
+        `100 ${preferredFontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
+
+    const preferredLetterSpacing =
+        preferredFontSize *
+        FINAL_TEXT_LETTER_SPACING;
+
+    const longestLineWidth =
+        Math.max(
+            measureLetterSpacedTextWidth(
+                ctx,
+                FINAL_TEXT_LINE_1,
+                preferredLetterSpacing
+            ),
+            measureLetterSpacedTextWidth(
+                ctx,
+                FINAL_TEXT_LINE_2,
+                preferredLetterSpacing
+            ),
+            measureLetterSpacedTextWidth(
+                ctx,
+                FINAL_TEXT_LINE_3,
+                preferredLetterSpacing
+            )
+        );
+
+    const fitScale =
+        longestLineWidth > 0
+            ? Math.min(
+                1,
+                containerWidth /
+                longestLineWidth
+            )
+            : 1;
+
+    const fontSize =
+        preferredFontSize *
+        fitScale;
+
+    const letterSpacing =
+        fontSize *
+        FINAL_TEXT_LETTER_SPACING;
+
+    return {
+        left: finalTextLeft,
+        containerWidth,
+        fontSize,
+        letterSpacing,
+        verticalOffsetVh,
+    };
+}
+
 function getFinalTextViewportWorldSize() {
     const viewportWidth =
         window.innerWidth;
@@ -1313,30 +1312,6 @@ function getHomeParticleTargetScale(
     );
 }
 
-/*
- * ============================================================
- * DEVOM VISUAL LEFT EDGE
- * ============================================================
- *
- * Measure devOm using the same three font segments as the
- * actual MUI devOm:
- *
- * "dev" -> Helvetica Neue 100
- * "O"   -> After 400, 1.10256x the base size
- * "m"   -> Helvetica Neue 100
- *
- * This gives the actual visual left edge of the complete
- * devOm wordmark.
- *
- * The final text then uses this same left coordinate plus
- * FINAL_TEXT_LEFT_OFFSET_PX.
- *
- * IMPORTANT:
- * devOm itself is NOT changed.
- * This function only measures it.
- * ============================================================
- */
-
 function getDevOmVisualLeft() {
     const canvas =
         document.createElement(
@@ -1349,7 +1324,7 @@ function getDevOmVisualLeft() {
         );
 
     if (!ctx) {
-        return FINAL_TEXT_LEFT_OFFSET_PX;
+        return getFinalTextLeftOffsetPx();
     }
 
     const rootFontSize =
@@ -1436,7 +1411,10 @@ function getDevOmVisualLeft() {
         FINAL_TEXT_LEFT_OFFSET_PX;
 }
 
-function createFinalTextTargetTexture() {
+function createFinalTextTargetTexture(
+    responsiveGeometry =
+        getFinalTextResponsiveGeometry()
+) {
     const canvas =
         document.createElement(
             'canvas'
@@ -1503,15 +1481,17 @@ function createFinalTextTargetTexture() {
 
     /*
      * ============================================================
-     * SAME RESPONSIVE FONT SIZE AS MUI
+     * SHARED RESPONSIVE GEOMETRY
      * ============================================================
+     *
+     * These values are also used by the MUI text.
+     * The nebula therefore follows the exact same responsive
+     * layout instead of having an independent mobile/tablet
+     * layout.
      */
 
-    const muiFontSize =
-        getFinalTextFontSize();
-
     const fontSize =
-        muiFontSize *
+        responsiveGeometry.fontSize *
         canvasScale;
 
     const font =
@@ -1519,25 +1499,11 @@ function createFinalTextTargetTexture() {
         `"Helvetica Neue", Arial, sans-serif`;
 
     const letterSpacing =
-        fontSize *
-        FINAL_TEXT_LETTER_SPACING;
-
-    /*
-     * ============================================================
-     * SAME LEFT EDGE AS MUI
-     * ============================================================
-     *
-     * Both the MUI text and nebula text use this exact same
-     * left coordinate.
-     *
-     * The 70px offset is shared by both.
-     */
-
-    const finalTextLeft =
-        getDevOmVisualLeft();
+        responsiveGeometry.letterSpacing *
+        canvasScale;
 
     const textX =
-        finalTextLeft *
+        responsiveGeometry.left *
         canvasScale;
 
     /*
@@ -1548,7 +1514,7 @@ function createFinalTextTargetTexture() {
 
     const verticalOffsetWorld =
         -(
-            FINAL_TEXT_MUI_OFFSET_Y_VH /
+            responsiveGeometry.verticalOffsetVh /
             100
         ) *
         worldHeight;
@@ -1563,27 +1529,70 @@ function createFinalTextTargetTexture() {
         fontSize *
         FINAL_TEXT_LINE_HEIGHT;
 
-    const centerY =
-        FINAL_TEXT_CANVAS_HEIGHT /
-        2;
+    /*
+     * Match the MUI line box exactly.
+     *
+     * MUI uses:
+     *
+     *     lineHeight: 1
+     *
+     * so the three line boxes are exactly one font-size apart.
+     * The canvas must therefore use the same three line-box
+     * centers rather than an independently estimated baseline
+     * correction.
+     *
+     * Canvas text is positioned by its alphabetic baseline.
+     * actualBoundingBoxAscent gives us the same font metric that
+     * determines where the glyphs sit inside each line box.
+     */
 
-    const baselineCorrection =
-        fontSize *
-        0.34;
+    ctx.font =
+        font;
+
+    const fontMetrics =
+        ctx.measureText(
+            'M'
+        );
+
+    const ascent =
+        Number.isFinite(
+            fontMetrics.actualBoundingBoxAscent
+        )
+            ? fontMetrics.actualBoundingBoxAscent
+            : fontSize * 0.74;
+
+    const descent =
+        Number.isFinite(
+            fontMetrics.actualBoundingBoxDescent
+        )
+            ? fontMetrics.actualBoundingBoxDescent
+            : fontSize * 0.20;
+
+    const glyphHeight =
+        ascent + descent;
+
+    const lineBoxTop =
+        FINAL_TEXT_CANVAS_HEIGHT / 2 -
+        (lineHeight * 3) / 2;
+
+    const lineBoxVerticalPadding =
+        Math.max(
+            0,
+            (lineHeight - glyphHeight) / 2
+        );
 
     const firstLineBaseline =
-        centerY -
-        lineHeight +
-        baselineCorrection;
+        lineBoxTop +
+        lineBoxVerticalPadding +
+        ascent;
 
     const secondLineBaseline =
-        centerY +
-        baselineCorrection;
+        firstLineBaseline +
+        lineHeight;
 
     const thirdLineBaseline =
-        centerY +
-        lineHeight +
-        baselineCorrection;
+        secondLineBaseline +
+        lineHeight;
 
     /*
      * ============================================================
@@ -1887,6 +1896,11 @@ export default function HomeNebulaText({
         setFinalTextLeft,
     ] = useState(0);
 
+    const [
+        finalTextResponsiveGeometry,
+        setFinalTextResponsiveGeometry,
+    ] = useState(null);
+
     /*
      * ========================================================
      * INITIAL TEXT
@@ -1913,8 +1927,13 @@ export default function HomeNebulaText({
                         DEVOM_FULL_RATIO
                     );
 
+                const responsiveGeometry =
+                    getFinalTextResponsiveGeometry();
+
                 const finalTexture =
-                    createFinalTextTargetTexture();
+                    createFinalTextTargetTexture(
+                        responsiveGeometry
+                    );
 
                 setTextTargetTexture(
                     sentenceTexture
@@ -1929,7 +1948,11 @@ export default function HomeNebulaText({
                 );
 
                 setFinalTextLeft(
-                    getDevOmVisualLeft()
+                    responsiveGeometry.left
+                );
+
+                setFinalTextResponsiveGeometry(
+                    responsiveGeometry
                 );
 
             } catch (error) {
@@ -1950,8 +1973,13 @@ export default function HomeNebulaText({
                         DEVOM_FULL_RATIO
                     );
 
+                const responsiveGeometry =
+                    getFinalTextResponsiveGeometry();
+
                 const finalTexture =
-                    createFinalTextTargetTexture();
+                    createFinalTextTargetTexture(
+                        responsiveGeometry
+                    );
 
                 setTextTargetTexture(
                     sentenceTexture
@@ -1966,7 +1994,11 @@ export default function HomeNebulaText({
                 );
 
                 setFinalTextLeft(
-                    getDevOmVisualLeft()
+                    responsiveGeometry.left
+                );
+
+                setFinalTextResponsiveGeometry(
+                    responsiveGeometry
                 );
             }
         }
@@ -2005,8 +2037,13 @@ export default function HomeNebulaText({
         }
 
         function handleResize() {
+            const responsiveGeometry =
+                getFinalTextResponsiveGeometry();
+
             const nextTexture =
-                createFinalTextTargetTexture();
+                createFinalTextTargetTexture(
+                    responsiveGeometry
+                );
 
             if (!nextTexture) {
                 return;
@@ -2029,7 +2066,11 @@ export default function HomeNebulaText({
             nextTexture.dispose();
 
             setFinalTextLeft(
-                getDevOmVisualLeft()
+                responsiveGeometry.left
+            );
+
+            setFinalTextResponsiveGeometry(
+                responsiveGeometry
             );
         }
 
@@ -2583,7 +2624,9 @@ export default function HomeNebulaText({
                             '50%',
 
                         width:
-                            FINAL_TEXT_CONTAINER_WIDTH,
+                            finalTextResponsiveGeometry
+                                ? `${finalTextResponsiveGeometry.containerWidth}px`
+                                : FINAL_TEXT_CONTAINER_WIDTH,
 
                         textAlign:
                             'left',
@@ -2592,7 +2635,9 @@ export default function HomeNebulaText({
                             '"Helvetica Neue", Arial, sans-serif',
 
                         fontSize:
-                            'clamp(1.4rem, 1.8vw, 3.8rem)',
+                            finalTextResponsiveGeometry
+                                ? `${finalTextResponsiveGeometry.fontSize}px`
+                                : 'clamp(1.4rem, 1.8vw, 3.8rem)',
 
                         fontWeight:
                             100,
@@ -2601,7 +2646,9 @@ export default function HomeNebulaText({
                             FINAL_TEXT_LINE_HEIGHT,
 
                         letterSpacing:
-                            '0.018em',
+                            finalTextResponsiveGeometry
+                                ? `${finalTextResponsiveGeometry.letterSpacing}px`
+                                : '0.018em',
 
                         color:
                             colors.accent.primary,
@@ -2618,7 +2665,9 @@ export default function HomeNebulaText({
                                 : 0,
 
                         transform:
-                            'translateY(calc(-50% + 24vh))',
+                            finalTextResponsiveGeometry
+                                ? `translateY(calc(-50% + ${finalTextResponsiveGeometry.verticalOffsetVh}vh))`
+                                : 'translateY(calc(-50% + 24vh))',
 
                         transition:
                             `opacity ${FINAL_MUI_FADE_DURATION}ms ease`,
