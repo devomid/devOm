@@ -33,7 +33,7 @@ const WhyYouNeedMe = ({
                     right: '6vw',
                     transform: 'translateY(-50%)',
 
-                    width: 'min(520px, 42vw)',
+                    width: 'min(900px, 68vw)',
                     height: 'min(620px, 68vh)',
 
                     borderRadius: '28px',
