@@ -1530,60 +1530,51 @@ function createFinalTextTargetTexture(
         FINAL_TEXT_LINE_HEIGHT;
 
     /*
-     * Match the MUI line box exactly.
+     * ============================================================
+     * MUI LINE-BOX GEOMETRY
+     * ============================================================
      *
-     * MUI uses:
+     * MUI:
      *
+     *     top: 50%
+     *     transform: translateY(-50% + verticalOffset)
      *     lineHeight: 1
      *
-     * so the three line boxes are exactly one font-size apart.
-     * The canvas must therefore use the same three line-box
-     * centers rather than an independently estimated baseline
-     * correction.
+     * The three lines therefore occupy exactly:
      *
-     * Canvas text is positioned by its alphabetic baseline.
-     * actualBoundingBoxAscent gives us the same font metric that
-     * determines where the glyphs sit inside each line box.
+     *     3 × fontSize
+     *
+     * with their line-box centers separated by exactly
+     * one fontSize.
+     *
+     * We use the canvas alphabetic baseline only to place
+     * the glyph inside each line box.
      */
 
     ctx.font =
         font;
 
-    const fontMetrics =
+    const metrics =
         ctx.measureText(
             'M'
         );
 
     const ascent =
         Number.isFinite(
-            fontMetrics.actualBoundingBoxAscent
+            metrics.actualBoundingBoxAscent
         )
-            ? fontMetrics.actualBoundingBoxAscent
+            ? metrics.actualBoundingBoxAscent
             : fontSize * 0.74;
-
-    const descent =
-        Number.isFinite(
-            fontMetrics.actualBoundingBoxDescent
-        )
-            ? fontMetrics.actualBoundingBoxDescent
-            : fontSize * 0.20;
-
-    const glyphHeight =
-        ascent + descent;
 
     const lineBoxTop =
         FINAL_TEXT_CANVAS_HEIGHT / 2 -
-        (lineHeight * 3) / 2;
-
-    const lineBoxVerticalPadding =
-        Math.max(
-            0,
-            (lineHeight - glyphHeight) / 2
-        );
+        (
+            lineHeight *
+            3
+        ) / 2;
 
     const firstLineBaseline =
         lineBoxTop +
-        lineBoxVerticalPadding +
         ascent;
 
     const secondLineBaseline =
