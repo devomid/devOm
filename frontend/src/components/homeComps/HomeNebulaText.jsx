@@ -38,13 +38,12 @@ const DEVOM_MUI_FADE_DURATION = 5500;
 const FINAL_TEXT_LINE_1 = 'Web. Mobile. Systems. Interfaces.';
 const FINAL_TEXT_LINE_2 = 'Software built with attention';
 const FINAL_TEXT_LINE_3 = 'to know how it works and how it feels';
+const FINAL_TEXT_CANVAS_WIDTH = 1800;
+const FINAL_TEXT_CONTAINER_WIDTH = 'min(96vw, 1500px)';
+const FINAL_TEXT_LINE_HEIGHT = 1;
 const TEXTURE_SIZE = 512;
 const PARTICLE_COUNT = TEXTURE_SIZE * TEXTURE_SIZE;
 const FINAL_TEXT_PARTICLE_RATIO = 0.30;
-const FINAL_TEXT_CANVAS_WIDTH = 1800;
-const FINAL_TEXT_CANVAS_HEIGHT = 850;
-const FINAL_TEXT_CONTAINER_WIDTH = 'min(96vw, 1500px)';
-const FINAL_TEXT_LINE_HEIGHT = 1;
 const FINAL_TEXT_LETTER_SPACING = 0.018;
 const FINAL_TEXT_MUI_OFFSET_Y_VH = 24;
 const FINAL_TEXT_LEFT_OFFSET_PX = 70;
@@ -68,6 +67,16 @@ const WIND_TEXT_HOLD = 5;
 const WIND_DURATION = 4500;
 const POST_WIND_WAIT = 1000;
 
+
+function getFinalTextCanvasHeight() {
+    return (
+        FINAL_TEXT_CANVAS_WIDTH *
+        (
+            window.innerHeight /
+            window.innerWidth
+        )
+    );
+}
 
 function getInitialTextParticleRatio() {
     const width =
@@ -1747,6 +1756,9 @@ function createFinalTextTargetTexture(
                 ) *
                 worldHeight;
 
+            const muiWorldOffsetY =
+                verticalOffsetWorld;
+
             targetData[offset] =
                 worldX +
                 (
@@ -1757,7 +1769,7 @@ function createFinalTextTargetTexture(
 
             targetData[offset + 1] =
                 worldY +
-                verticalOffsetWorld +
+                muiWorldOffsetY +
                 (
                     Math.random() -
                     0.5
