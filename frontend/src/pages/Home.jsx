@@ -24,13 +24,14 @@ const Home = ({ homeRef, scrollProgress, }) => {
         offset: ['start start', 'end end']
     });
 
-    const lazyScrollProgress =
-        useSpring(scrollYProgress,
-            {
-                stiffness: 35,
-                damping: 24,
-                mass: 1.8,
-            })
+    const lazyScrollProgress = useSpring(
+        scrollProgress,
+        {
+            stiffness: 35,
+            damping: 24,
+            mass: 1.8,
+        }
+    );
 
     useMotionValueEvent(scrollYProgress, 'change', latest => {
         scrollProgress.set(latest)
