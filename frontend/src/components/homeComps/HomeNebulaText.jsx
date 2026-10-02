@@ -908,6 +908,7 @@ function createDevOmTargetTexture(
 
     const candidates =
         [];
+    
 
     for (
         let y = 0;
@@ -1471,25 +1472,18 @@ function getDevOmParticleTargetScale(
             ).fontSize
         ) || 16;
 
-    // Exact responsive base size used by the MUI devOm text.
     const muiBaseFontSize =
         Math.min(
             Math.max(
-                window.innerWidth *
-                0.15,
-                rootFontSize *
-                6
+                window.innerWidth * 0.15,
+                rootFontSize * 6
             ),
-            rootFontSize *
-            15
+            rootFontSize * 15
         );
 
     const muiCenterFontSize =
-        muiBaseFontSize *
-        1.10256;
+        muiBaseFontSize * 1.10256;
 
-    // Measure the MUI devOm using the same fonts
-    // and weights as Home.jsx.
     ctx.font =
         `100 ${muiBaseFontSize}px ` +
         `"Helvetica Neue", Arial, sans-serif`;
@@ -1522,37 +1516,29 @@ function getDevOmParticleTargetScale(
         muiCenterWidth +
         muiRightWidth;
 
-    const {
-        worldWidth,
-    } = getFinalTextViewportWorldSize();
-
-    // Convert the MUI CSS-pixel width into Three.js world units.
-    const muiWorldWidth =
-        (
-            muiTextWidth /
-            window.innerWidth
-        ) *
-        worldWidth;
-
-    // The Nebula target currently draws devOm onto
-    // DEVOM_CANVAS_WIDTH using fixed internal fonts.
-    // Convert its canvas width into world units.
-    const nebulaBaseWorldWidth =
+    /*
+     * Keep the Nebula devOm target in the same
+     * responsive CSS-pixel coordinate system as MUI.
+     *
+     * Do NOT derive the scale from the camera's
+     * aspect-ratio-dependent world width.
+     */
+    const nebulaTextPixelWidth =
         (
             nebulaTextWidth /
             DEVOM_CANVAS_WIDTH
         ) *
-        DEVOM_WORLD_WIDTH;
+        window.innerWidth;
 
     if (
-        nebulaBaseWorldWidth <= 0
+        nebulaTextPixelWidth <= 0
     ) {
         return 1;
     }
 
     return (
-        muiWorldWidth /
-        nebulaBaseWorldWidth
+        muiTextWidth /
+        nebulaTextPixelWidth
     );
 }
 
