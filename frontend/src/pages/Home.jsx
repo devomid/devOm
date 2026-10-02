@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 import { colors } from '../design/colors';
 import { glass } from '../design/glass';
@@ -12,12 +12,18 @@ import WhyYouNeedMe from '../components/homeComps/WhyYouNeedMe'
 import HomeIntro from '../components/homeComps/HomeIntro'
 import HomeContactCard from '../components/homeComps/contactCard/HomeContactCard'
 
+const SNAP_POINTS = [0.28, 0.66];
+
 const Home = ({ homeRef, scrollProgress, }) => {
+
 
     const [introComplete, setIntroComplete] = useState(false);
     const [cardsMounted, setCardsMounted] = useState(false);
     const [showScrollIndicator, setShowScrollIndicator] = useState(false);
     const [postIntroScrollStarted, setPostIntroScrollStarted] = useState(false);
+
+    const snapTimeoutRef = useRef(null);
+    const isSnappingRef = useRef(false);
 
     const { scrollYProgress, } = useScroll({
         target: homeRef,
@@ -45,7 +51,54 @@ const Home = ({ homeRef, scrollProgress, }) => {
             setShowScrollIndicator(false);
             setCardsMounted(true);
         }
-    })
+    });
+    useMotionValueEvent(scrollYProgress, 'change', latest => {
+        if (
+            !introComplete ||
+            !postIntroScrollStarted ||
+            isSnappingRef.current
+        ) {
+            return;
+        }
+
+        clearTimeout(snapTimeoutRef.current);
+
+        snapTimeoutRef.current = setTimeout(() => {
+            const nearestSnap = SNAP_POINTS.reduce((nearest, point) =>
+                Math.abs(point - latest) < Math.abs(nearest - latest)
+                    ? point
+                    : nearest
+            );
+
+            if (Math.abs(nearestSnap - latest) > 0.08) {
+                return;
+            }
+
+            const home = homeRef.current;
+
+            if (!home) {
+                return;
+            }
+
+            const rect = home.getBoundingClientRect();
+            const homeTop = window.scrollY + rect.top;
+            const scrollableDistance = home.offsetHeight - window.innerHeight;
+
+            const targetScroll =
+                homeTop + nearestSnap * scrollableDistance;
+
+            isSnappingRef.current = true;
+
+            window.scrollTo({
+                top: targetScroll,
+                behavior: 'smooth',
+            });
+
+            setTimeout(() => {
+                isSnappingRef.current = false;
+            }, 800);
+        }, 120);
+    });
 
     useEffect(() => {
         return () => { scrollProgress.set(0) }
@@ -95,7 +148,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
                         }}
                         sx={{
                             position: 'absolute',
-                            bottom: 15,
+                            bottom: 20,
                             left: '50%',
                             transform: 'translateX(-50%)',
 
