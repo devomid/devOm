@@ -59,21 +59,23 @@ const HomeContactCard = ({
      * ============================================================
      */
 
-    const rotateY = useTransform(
+    const rotateX = useTransform(
         scrollProgress,
         [
             0.00,
-            0.40,
-            0.49,
-            0.55,
+            0.57,
+            0.60,
             0.64,
+            0.68,
+            0.72,
         ],
         [
             0,
             0,
             180,
             180,
-            360,
+            0,
+            0,
         ],
     )
 
@@ -127,7 +129,7 @@ const HomeContactCard = ({
                         width: '100%',
                         height: '100%',
 
-                        rotateY,
+                        rotateX,
 
                         transformStyle:
                             'preserve-3d',
