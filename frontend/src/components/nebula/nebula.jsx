@@ -1,20 +1,7 @@
-import {
-    useEffect,
-    useMemo,
-    useRef,
-} from 'react'
-
+import {useEffect,useMemo,useRef,} from 'react'
 import * as THREE from 'three'
-
-import {
-    Canvas,
-    useFrame,
-    useThree,
-} from '@react-three/fiber'
-
-import {
-    nebulaWipeState,
-} from '../whatibuildComps/nebulaWipe'
+import {Canvas,useFrame,useThree,} from '@react-three/fiber'
+import {nebulaWipeState,} from '../whatibuildComps/nebulaWipe'
 
 const DESKTOP_PARTICLE_COUNT = 262144
 const DESKTOP_TEXTURE_SIZE = 512
