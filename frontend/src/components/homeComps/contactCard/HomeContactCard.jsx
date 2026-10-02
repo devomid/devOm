@@ -3,7 +3,6 @@ import {
     motion,
     useTransform,
     useMotionTemplate,
-
 } from 'framer-motion'
 
 import ContactCardFace from './ContactCardFace'
@@ -16,58 +15,77 @@ const HomeContactCard = ({
 
     /*
      * ============================================================
-     * VERTICAL ENTRANCE
+     * SEQUENCE
      *
-     * Front side enters from below.
-     * Around the middle of the movement, the X flip begins.
+     * 0.00 ───────── 0.48   Card enters from below
+     * 0.48 ───────── 0.53   X flip
+     * 0.53 ───────── 0.58   Move upward
+     * 0.58 ───────── 0.63   Y flip
+     * 0.63 ───────── 0.68   Move upward
+     * 0.68 ───────── 1.00   Rest
+     *
+     * Every active phase has the same 0.05 scroll interval.
      * ============================================================
+     */
+
+    /*
+     * ------------------------------------------------------------
+     * VERTICAL POSITION
+     * ------------------------------------------------------------
+     *
+     * First:
+     *   card starts below viewport
+     *
+     * Then:
+     *   card enters and reaches the first position
+     *
+     * Then:
+     *   X flip happens WITHOUT moving
+     *
+     * Then:
+     *   card moves upward
+     *
+     * Then:
+     *   Y flip happens WITHOUT moving
+     *
+     * Then:
+     *   card moves upward to final position
      */
 
     const y = useTransform(
         scrollProgress,
         [
             0.00,
-            0.48,
-            0.53,
-            0.60,
-            0.66,
+            0.45,
+            0.52,
+            0.59,
+            0.67,
+            0.74,
+            0.82,
         ],
         [
             '105vh',
-            '105vh',
-            '105vh',
-            '45vh',
+            '65vh',
+            '50vh',
+            '35vh',
+            '20vh',
+            '10vh',
             '0vh',
         ],
     )
-
-    /*
-     * ============================================================
-     * FIRST FLIP — X AXIS
-     *
-     * Front
-     *   ↓
-     * Edge
-     *   ↓
-     * Back
-     *
-     * The card is front-facing during the first ~25% of
-     * its entrance, then slowly flips around X.
-     * ============================================================
-     */
 
     const rotateX = useTransform(
         scrollProgress,
         [
             0.00,
-            0.51,
-            0.55,
-            0.60,
+            0.52,
+            0.59,
+            0.82,
         ],
         [
             0,
             0,
-            90,
+            180,
             180,
         ],
     )
@@ -75,21 +93,23 @@ const HomeContactCard = ({
     const rotateY = useTransform(
         scrollProgress,
         [
-            0.60,
-            0.63,
-            0.66,
+            0.00,
+            0.67,
+            0.74,
+            0.82,
         ],
         [
             0,
-            90,
+            0,
+            180,
             180,
         ],
     )
 
     const cardTransform = useMotionTemplate`
-    rotateX(${rotateX}deg)
-    rotateY(${rotateY}deg)
-`
+        rotateX(${rotateX}deg)
+        rotateY(${rotateY}deg)
+    `
 
     return (
         <motion.div
@@ -113,11 +133,11 @@ const HomeContactCard = ({
             <Box
                 sx={{
                     position: 'absolute',
+
                     top: '50%',
                     right: '10vw',
 
-                    transform:
-                        'translateY(-50%)',
+                    transform: 'translateY(-50%)',
 
                     width:
                         contactCardStyles.card.width,
