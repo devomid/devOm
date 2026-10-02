@@ -2,6 +2,8 @@ import { Box } from '@mui/material'
 import {
     motion,
     useTransform,
+    useMotionTemplate,
+
 } from 'framer-motion'
 
 import ContactCardFace from './ContactCardFace'
@@ -16,10 +18,8 @@ const HomeContactCard = ({
      * ============================================================
      * VERTICAL ENTRANCE
      *
-     * The card stays below the viewport until the Why card
-     * has started collapsing.
-     *
-     * Then it rises into its final position.
+     * Front side enters from below.
+     * Around the middle of the movement, the X flip begins.
      * ============================================================
      */
 
@@ -28,34 +28,31 @@ const HomeContactCard = ({
         [
             0.00,
             0.48,
-            0.51,
-            0.57,
-            0.63,
+            0.53,
+            0.60,
             0.66,
         ],
         [
             '105vh',
             '105vh',
             '105vh',
-            '55vh',
-            '10vh',
+            '45vh',
             '0vh',
         ],
     )
 
     /*
      * ============================================================
-     * 3D FLIP
+     * FIRST FLIP — X AXIS
      *
      * Front
      *   ↓
      * Edge
      *   ↓
      * Back
-     *   ↓
-     * Edge
-     *   ↓
-     * Front
+     *
+     * The card is front-facing during the first ~25% of
+     * its entrance, then slowly flips around X.
      * ============================================================
      */
 
@@ -63,21 +60,36 @@ const HomeContactCard = ({
         scrollProgress,
         [
             0.00,
-            0.57,
+            0.51,
+            0.55,
             0.60,
-            0.64,
-            0.68,
-            0.72,
         ],
         [
             0,
             0,
+            90,
             180,
-            180,
-            0,
-            0,
         ],
     )
+
+    const rotateY = useTransform(
+        scrollProgress,
+        [
+            0.60,
+            0.63,
+            0.66,
+        ],
+        [
+            0,
+            90,
+            180,
+        ],
+    )
+
+    const cardTransform = useMotionTemplate`
+    rotateX(${rotateX}deg)
+    rotateY(${rotateY}deg)
+`
 
     return (
         <motion.div
@@ -95,11 +107,6 @@ const HomeContactCard = ({
 
                 perspective: '1400px',
 
-                /*
-                 * Keep it invisible during the actual intro.
-                 * Once intro is complete, scroll controls its
-                 * position continuously — no transform handoff.
-                 */
                 opacity: introComplete ? 1 : 0,
             }}
         >
@@ -129,7 +136,7 @@ const HomeContactCard = ({
                         width: '100%',
                         height: '100%',
 
-                        rotateX,
+                        transform: cardTransform,
 
                         transformStyle:
                             'preserve-3d',

@@ -60,7 +60,7 @@ function App() {
         minHeight: '100svh',
       }}
     >
-      <NavBar scrollProgress={homeScrollProgress.current} />
+      {/* <NavBar scrollProgress={homeScrollProgress.current} /> */}
 
       <Routes>
         <Route path="/" element={<Home homeRef={homeRef} scrollProgress={homeScrollProgress.current} scrollState={homeScrollState} />} />

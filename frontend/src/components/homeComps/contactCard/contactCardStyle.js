@@ -35,6 +35,6 @@ export const contactCardStyles = {
     },
 
     backFace: {
-        transform: 'rotateY(180deg)',
+        transform: 'rotateX(180deg)',
     },
 }
