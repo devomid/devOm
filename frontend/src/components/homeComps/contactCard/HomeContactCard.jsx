@@ -134,7 +134,12 @@ const HomeContactCard = ({
                 sx={{
                     position: 'absolute',
 
-                    top: '50%',
+                    top: {
+                        xs: '25%',
+                        sm: '25%',
+                        md: '25%',
+                        lg: '50%',
+                    },
                     right: '10vw',
 
                     transform: 'translateY(-50%)',
