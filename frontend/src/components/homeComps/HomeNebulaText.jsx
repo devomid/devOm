@@ -114,36 +114,17 @@ function drawLeftAlignedLetterSpacedText(
     ctx.textBaseline =
         'alphabetic';
 
-    const characters =
-        [...text];
+    ctx.letterSpacing =
+        `${letterSpacing}px`;
 
-    const widths =
-        characters.map(
-            (character) =>
-                ctx.measureText(
-                    character
-                ).width
-        );
-
-    let currentX =
-        x;
-
-    characters.forEach(
-        (
-            character,
-            index
-        ) => {
-            ctx.fillText(
-                character,
-                currentX,
-                baselineY
-            );
-
-            currentX +=
-                widths[index] +
-                letterSpacing;
-        }
+    ctx.fillText(
+        text,
+        x,
+        baselineY
     );
+
+    ctx.letterSpacing =
+        '0px';
 }
 
 function drawLetterSpacedText(
