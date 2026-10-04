@@ -1651,7 +1651,7 @@ function getDevOmVisualLeft() {
 
     return (
         geometry.startX +
-        FINAL_TEXT_LEFT_OFFSET_PX
+        getFinalTextLeftOffsetPx()
     );
 }
 
