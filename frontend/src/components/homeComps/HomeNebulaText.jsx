@@ -2563,22 +2563,6 @@ export default function HomeNebulaText({
                 </div>
             </motion.div>
 
-            {/*
-             * ==================================================
-             * FINAL MUI
-             * ==================================================
-             *
-             * This is anchored to the measured visual left
-             * edge of devOm + the shared 70px offset.
-             *
-             * The nebula final text uses the exact same
-             * horizontal coordinate.
-             *
-             * Its vertical center is the same center used by
-             * the particle target, plus the same 24vh offset.
-             * ==================================================
-             */}
-
             <motion.div
                 style={{
                     position:
@@ -2603,63 +2587,38 @@ export default function HomeNebulaText({
                 <Typography
                     component="div"
                     sx={{
-                        position:
-                            'absolute',
+                        position: 'absolute',
+                        left: `${finalTextLeft}px`,
+                        top: '50%',
+                        width: finalTextResponsiveGeometry
+                            ? `${finalTextResponsiveGeometry.containerWidth}px`
+                            : FINAL_TEXT_CONTAINER_WIDTH,
 
-                        left:
-                            `${finalTextLeft}px`,
+                        textAlign: 'left',
+                        fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                        fontSize: finalTextResponsiveGeometry
+                            ? `${finalTextResponsiveGeometry.fontSize}px`
+                            : 'clamp(1.4rem, 1.8vw, 3.8rem)',
 
-                        top:
-                            '50%',
+                        fontWeight: 100,
+                        lineHeight: finalTextResponsiveGeometry
+                            ? `${finalTextResponsiveGeometry.lineHeight}px`
+                            : FINAL_TEXT_LINE_HEIGHT,
 
-                        width:
-                            finalTextResponsiveGeometry
-                                ? `${finalTextResponsiveGeometry.containerWidth}px`
-                                : FINAL_TEXT_CONTAINER_WIDTH,
+                        letterSpacing: finalTextResponsiveGeometry
+                            ? `${finalTextResponsiveGeometry.letterSpacing}px`
+                            : '0.018em',
 
-                        textAlign:
-                            'left',
-
-                        fontFamily:
-                            '"Helvetica Neue", Arial, sans-serif',
-
-                        fontSize:
-                            finalTextResponsiveGeometry
-                                ? `${finalTextResponsiveGeometry.fontSize}px`
-                                : 'clamp(1.4rem, 1.8vw, 3.8rem)',
-
-                        fontWeight:
-                            100,
-
-                        lineHeight:
-                            FINAL_TEXT_LINE_HEIGHT,
-
-                        letterSpacing:
-                            finalTextResponsiveGeometry
-                                ? `${finalTextResponsiveGeometry.letterSpacing}px`
-                                : '0.018em',
-
-                        color:
-                            colors.accent.primary,
-
-                        userSelect:
-                            'none',
-
-                        whiteSpace:
-                            'normal',
-
-                        opacity:
-                            finalTextMuiVisible
-                                ? 1
-                                : 0,
-
-                        transform:
-                            finalTextResponsiveGeometry
-                                ? `translateY(calc(-50% + ${finalTextResponsiveGeometry.verticalOffsetVh}vh))`
-                                : 'translateY(calc(-50% + 24vh))',
-
-                        transition:
-                            `opacity ${FINAL_MUI_FADE_DURATION}ms ease`,
+                        color: colors.accent.primary,
+                        userSelect: 'none',
+                        whiteSpace: 'normal',
+                        opacity: finalTextMuiVisible
+                            ? 1
+                            : 0,
+                        transform: finalTextResponsiveGeometry
+                            ? `translateY(calc(-50% + ${finalTextResponsiveGeometry.verticalOffsetVh}vh))`
+                            : 'translateY(calc(-50% + 24vh))',
+                        transition: `opacity ${FINAL_MUI_FADE_DURATION}ms ease`,
                     }}
                 >
                     {FINAL_TEXT_LINE_1}
