@@ -2664,6 +2664,10 @@ export default function HomeNebulaText({
                     finalParticleScale
                 }
 
+                textScrollProgress={
+                    scrollProgress
+                }
+
                 homeWindActive={
                     windActive
                 }
