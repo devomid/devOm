@@ -2479,7 +2479,7 @@ export default function HomeNebulaText({
                 </div>
             </motion.div>
 
-            <motion.div
+            {/* <motion.div
                 style={{
                     position:
                         'absolute',
@@ -2549,7 +2549,7 @@ export default function HomeNebulaText({
 
                     {FINAL_TEXT_LINE_3}
                 </Typography>
-            </motion.div>
+            </motion.div> */}
 
             {/*
              * ==================================================
