@@ -2688,6 +2688,8 @@ const NebulaParticles = ({
     textTargetTexture = null,
     cloudTargetTexture = null,
     textStrength = 0.0,
+    textParallaxX = null,
+    textParallaxScale = null,
     homeWindActive = false,
     rectangleStrengthRef = null,
     cardRect = null,
@@ -3286,6 +3288,16 @@ const NebulaParticles = ({
                                 0.0,
                         },
 
+                        uTextParallaxX: {
+                            value:
+                                0.0,
+                        },
+
+                        uTextParallaxScale: {
+                            value:
+                                1.0,
+                        },
+
                         uTextFormationBoost: {
                             value: 1.0,
                         },
@@ -3616,6 +3628,54 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
+            
+            const parallaxXValue =
+                textParallaxX?.get?.() ?? '0vw'
+
+            const parallaxScaleValue =
+                textParallaxScale?.get?.() ?? 1.0
+
+            const parallaxXPercent =
+                Number.parseFloat(
+                    parallaxXValue
+                ) || 0.0
+
+            const parallaxWorldX =
+                (
+                    parallaxXPercent /
+                    100
+                ) *
+                (
+                    2 *
+                    Math.abs(
+                        camera.position.z
+                    ) *
+                    Math.tan(
+                        THREE.MathUtils.degToRad(
+                            camera.fov / 2
+                        )
+                    ) *
+                    (
+                        size.width /
+                        size.height
+                    )
+                )
+
+            velocityMaterial
+                .uniforms
+                .uTextParallaxX
+                .value =
+                parallaxWorldX
+
+            velocityMaterial
+                .uniforms
+                .uTextParallaxScale
+                .value =
+                Number.isFinite(
+                    parallaxScaleValue
+                )
+                    ? parallaxScaleValue
+                    : 1.0
 
             velocityMaterial
                 .uniforms
@@ -4321,6 +4381,8 @@ const NebulaBackground = ({
     cloudTargetTexture = null,
     textStrength = 0.0,
     homeWindActive = false,
+    textParallaxX = null,
+    textParallaxScale = null,
     rectangleStrengthRef = null,
     cardRect = null,
     interactionRef = null,
@@ -4394,6 +4456,13 @@ const NebulaBackground = ({
                     textStrength
                 }
 
+                textParallaxX={
+                    textParallaxX
+                }
+
+                textParallaxScale={
+                    textParallaxScale
+                }
                 homeWindActive={
                     homeWindActive
                 }
