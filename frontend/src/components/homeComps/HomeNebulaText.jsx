@@ -1683,7 +1683,7 @@ function createFinalTextTargetTexture(responsiveGeometry = getFinalTextResponsiv
 
     const { worldWidth, worldHeight } = getFinalTextViewportWorldSize();
     const canvasScale = FINAL_TEXT_CANVAS_WIDTH / window.innerWidth;
-    const verticalOffsetPx =(responsiveGeometry.verticalOffsetVh /100) *window.innerHeight;
+    const verticalOffsetPx = (responsiveGeometry.verticalOffsetVh / 100) * window.innerHeight;
     const fontSize = responsiveGeometry.fontSize * canvasScale;
     const font = `100 ${fontSize}px ` + `"Helvetica Neue", Arial, sans-serif`;
     const letterSpacing = responsiveGeometry.letterSpacing * canvasScale;
@@ -2546,7 +2546,9 @@ export default function HomeNebulaText({
                     sx={{
                         position: 'absolute',
                         left: `${finalTextLeft}px`,
-                        top: '50%',
+                        top: finalTextResponsiveGeometry
+                            ? `${finalTextResponsiveGeometry.lineBoxTop}px`
+                            : '50%',
                         width: finalTextResponsiveGeometry
                             ? `${finalTextResponsiveGeometry.containerWidth}px`
                             : FINAL_TEXT_CONTAINER_WIDTH,
@@ -2573,8 +2575,8 @@ export default function HomeNebulaText({
                             ? 1
                             : 0,
                         transform: finalTextResponsiveGeometry
-                            ? `translateY(calc(-50% + ${finalTextResponsiveGeometry.verticalOffsetVh}vh))`
-                            : 'translateY(calc(-50% + 24vh))',
+                            ? `translateY(${finalTextResponsiveGeometry.verticalOffsetVh}vh)`
+                            : 'translateY(24vh)',
                         transition: `opacity ${FINAL_MUI_FADE_DURATION}ms ease`,
                     }}
                 >
