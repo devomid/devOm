@@ -1874,9 +1874,6 @@ function createFinalTextTargetTexture(responsiveGeometry = getFinalTextResponsiv
                 ) *
                 worldHeight;
 
-            const muiWorldOffsetY =
-                verticalOffsetWorld;
-
             targetData[offset] =
                 worldX +
                 (
@@ -1887,7 +1884,6 @@ function createFinalTextTargetTexture(responsiveGeometry = getFinalTextResponsiv
 
             targetData[offset + 1] =
                 worldY +
-                muiWorldOffsetY +
                 (
                     Math.random() -
                     0.5
