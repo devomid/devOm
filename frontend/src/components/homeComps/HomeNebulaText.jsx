@@ -1934,6 +1934,40 @@ export default function HomeNebulaText({
         [1, 0.70, 0.70, 0.78]
     );
 
+    const finalParticleX = useTransform(
+        scrollProgress,
+        [
+            0,
+            0.30,
+            0.42,
+            0.50,
+            0.58,
+        ],
+        [
+            '0vw',
+            '-12vw',
+            '-18vw',
+            '-15vw',
+            '-12vw',
+        ]
+    );
+
+    const finalParticleScale = useTransform(
+        scrollProgress,
+        [
+            0,
+            0.30,
+            0.46,
+            0.58,
+        ],
+        [
+            1,
+            0.70,
+            0.70,
+            0.78,
+        ]
+    );
+
 
     useEffect(() => {
 
@@ -2606,12 +2640,6 @@ export default function HomeNebulaText({
                 </Typography>
             </div>
 
-            {/*
-             * ==================================================
-             * NEBULA
-             * ==================================================
-             */}
-
             <NebulaBackground
                 textEnabled={
                     textEnabled &&
@@ -2626,6 +2654,14 @@ export default function HomeNebulaText({
 
                 textStrength={
                     4.8
+                }
+
+                textParallaxX={
+                    finalParticleX
+                }
+
+                textParallaxScale={
+                    finalParticleScale
                 }
 
                 homeWindActive={
