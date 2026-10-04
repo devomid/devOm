@@ -2702,6 +2702,7 @@ const NebulaParticles = ({
     textStrength = 0.0,
     textParallaxX = null,
     textParallaxScale = null,
+    textScrollProgress = null,
     homeWindActive = false,
     rectangleStrengthRef = null,
     cardRect = null,
@@ -2725,6 +2726,9 @@ const NebulaParticles = ({
         useRef(0)
 
     const simulationTimeRef =
+        useRef(0)
+    
+    const previousTextScrollProgressRef =
         useRef(0)
 
     const homeWindStartTimeRef =
@@ -3314,6 +3318,10 @@ const NebulaParticles = ({
                             value: 1.0,
                         },
 
+                        uTextScrollVelocity: {
+                            value: 0.0,
+                        },
+
                         uRectangleStrength: {
                             value:
                                 0.0,
@@ -3647,6 +3655,26 @@ const NebulaParticles = ({
             const parallaxScaleValue =
                 textParallaxScale?.get?.() ?? 1.0
 
+            
+            const currentTextScrollProgress =
+                textScrollProgress?.get?.() ?? 0.0
+
+            const previousTextScrollProgress =
+                previousTextScrollProgressRef.current
+
+            const textScrollVelocity =
+                currentTextScrollProgress -
+                previousTextScrollProgress
+
+            previousTextScrollProgressRef.current =
+                currentTextScrollProgress
+
+            velocityMaterial
+                .uniforms
+                .uTextScrollVelocity
+                .value =
+                textScrollVelocity
+            
             const parallaxXPercent =
                 Number.parseFloat(
                     parallaxXValue
@@ -3695,7 +3723,8 @@ const NebulaParticles = ({
                 .value =
                 window.innerWidth < 768
                     ? 1.35
-                    : 1.0
+                : 1.0
+            
 
             if (
                 homeWindActive
