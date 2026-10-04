@@ -1374,7 +1374,9 @@ function getFinalTextResponsiveGeometry() {
         );
 
     const ctx =
-        canvas.getContext('2d');
+        canvas.getContext(
+            '2d'
+        );
 
     const finalTextLeft =
         getDevOmVisualLeft();
@@ -1390,25 +1392,49 @@ function getFinalTextResponsiveGeometry() {
     const preferredFontSize =
         getFinalTextFontSize();
 
+    const preferredLetterSpacing =
+        preferredFontSize *
+        FINAL_TEXT_LETTER_SPACING;
+
     if (!ctx) {
         return {
-            left: finalTextLeft,
+            left:
+                finalTextLeft,
+
             containerWidth,
-            fontSize: preferredFontSize,
+
+            fontSize:
+                preferredFontSize,
+
             letterSpacing:
+                preferredLetterSpacing,
+
+            lineHeight:
                 preferredFontSize *
-                FINAL_TEXT_LETTER_SPACING,
+                FINAL_TEXT_LINE_HEIGHT,
+
             verticalOffsetVh,
         };
     }
 
+    /*
+     * ============================================================
+     * SHARED FINAL TEXT TYPOGRAPHY
+     * ============================================================
+     *
+     * This is the single source of truth for both:
+     *
+     *   1. MUI Typography
+     *   2. Nebula particle target
+     *
+     * Do not create another font-size calculation inside
+     * createFinalTextTargetTexture().
+     * ============================================================
+     */
+
     ctx.font =
         `100 ${preferredFontSize}px ` +
         `"Helvetica Neue", Arial, sans-serif`;
-
-    const preferredLetterSpacing =
-        preferredFontSize *
-        FINAL_TEXT_LETTER_SPACING;
 
     const longestLineWidth =
         Math.max(
@@ -1417,11 +1443,13 @@ function getFinalTextResponsiveGeometry() {
                 FINAL_TEXT_LINE_1,
                 preferredLetterSpacing
             ),
+
             measureLetterSpacedTextWidth(
                 ctx,
                 FINAL_TEXT_LINE_2,
                 preferredLetterSpacing
             ),
+
             measureLetterSpacedTextWidth(
                 ctx,
                 FINAL_TEXT_LINE_3,
@@ -1446,11 +1474,110 @@ function getFinalTextResponsiveGeometry() {
         fontSize *
         FINAL_TEXT_LETTER_SPACING;
 
+    const lineHeight =
+        fontSize *
+        FINAL_TEXT_LINE_HEIGHT;
+
+    /*
+     * ============================================================
+     * FINAL FONT METRICS
+     * ============================================================
+     *
+     * Measure the actual font that both MUI and the particle
+     * canvas are supposed to represent.
+     * ============================================================
+     */
+
+    ctx.font =
+        `100 ${fontSize}px ` +
+        `"Helvetica Neue", Arial, sans-serif`;
+
+    const metrics =
+        ctx.measureText(
+            'M'
+        );
+
+    const ascent =
+        Number.isFinite(
+            metrics.actualBoundingBoxAscent
+        )
+            ? metrics.actualBoundingBoxAscent
+            : fontSize * 0.74;
+
+    const descent =
+        Number.isFinite(
+            metrics.actualBoundingBoxDescent
+        )
+            ? metrics.actualBoundingBoxDescent
+            : fontSize * 0.26;
+
+    /*
+     * ============================================================
+     * SHARED THREE-LINE LINE BOX
+     * ============================================================
+     */
+
+    const totalLineBoxHeight =
+        lineHeight *
+        3;
+
+    const lineBoxTop =
+        (
+            window.innerHeight -
+            totalLineBoxHeight
+        ) /
+        2;
+
+    /*
+     * CSS line-height: 1
+     *
+     * The baseline is positioned from the actual font metrics,
+     * rather than guessing from the canvas.
+     */
+
+    const firstLineBaseline =
+        lineBoxTop +
+        (
+            lineHeight +
+            ascent -
+            descent
+        ) /
+        2;
+
+    const secondLineBaseline =
+        firstLineBaseline +
+        lineHeight;
+
+    const thirdLineBaseline =
+        secondLineBaseline +
+        lineHeight;
+
     return {
-        left: finalTextLeft,
+        left:
+            finalTextLeft,
+
         containerWidth,
+
         fontSize,
+
         letterSpacing,
+
+        lineHeight,
+
+        ascent,
+
+        descent,
+
+        totalLineBoxHeight,
+
+        lineBoxTop,
+
+        firstLineBaseline,
+
+        secondLineBaseline,
+
+        thirdLineBaseline,
+
         verticalOffsetVh,
     };
 }
