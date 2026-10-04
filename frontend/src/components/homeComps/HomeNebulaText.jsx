@@ -1528,13 +1528,8 @@ function getFinalTextResponsiveGeometry() {
         ) /
         2;
 
-    const lineBoxCenter =
-        lineBoxTop +
-        totalLineBoxHeight / 2;
-
     const firstLineBaseline =
-        lineBoxCenter -
-        lineHeight +
+        lineBoxTop +
         (
             lineHeight +
             ascent -
