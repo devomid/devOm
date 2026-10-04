@@ -1528,15 +1528,13 @@ function getFinalTextResponsiveGeometry() {
         ) /
         2;
 
-    /*
-     * CSS line-height: 1
-     *
-     * The baseline is positioned from the actual font metrics,
-     * rather than guessing from the canvas.
-     */
+    const lineBoxCenter =
+        lineBoxTop +
+        totalLineBoxHeight / 2;
 
     const firstLineBaseline =
-        lineBoxTop +
+        lineBoxCenter -
+        lineHeight +
         (
             lineHeight +
             ascent -
