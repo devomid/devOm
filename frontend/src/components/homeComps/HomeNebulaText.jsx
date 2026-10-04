@@ -2210,23 +2210,6 @@ export default function HomeNebulaText({
                                                          * FINAL MUI APPEARS
                                                          */
 
-                                                        setFinalTextMuiVisible(
-                                                            true
-                                                        );
-
-                                                        /*
-                                                         * =================================================
-                                                         * FINAL PARTICLES RELEASE
-                                                         * =================================================
-                                                         *
-                                                         * MUI blows the final
-                                                         * particle text away.
-                                                         */
-
-                                                        setTextEnabled(
-                                                            false
-                                                        );
-
                                                         window.setTimeout(() => {
                                                             if (introCompleteRef.current) {
                                                                 return;
