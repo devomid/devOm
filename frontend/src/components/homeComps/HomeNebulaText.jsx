@@ -1691,12 +1691,10 @@ function createFinalTextTargetTexture(responsiveGeometry = getFinalTextResponsiv
     const { worldWidth, worldHeight } = getFinalTextViewportWorldSize();
     const canvasScale = FINAL_TEXT_CANVAS_WIDTH / window.innerWidth;
     const verticalOffsetPx =(responsiveGeometry.verticalOffsetVh /100) *window.innerHeight;
-    const verticalOffsetCanvas =verticalOffsetPx *canvasScale;
     const fontSize = responsiveGeometry.fontSize * canvasScale;
     const font = `100 ${fontSize}px ` + `"Helvetica Neue", Arial, sans-serif`;
     const letterSpacing = responsiveGeometry.letterSpacing * canvasScale;
     const textX = responsiveGeometry.left * canvasScale;
-    const lineHeight = responsiveGeometry.lineHeight * canvasScale;
     const firstLineBaseline =
         (
             responsiveGeometry.firstLineBaseline +
