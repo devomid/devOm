@@ -254,6 +254,7 @@ const velocityFlowFragmentShader = `
     uniform float uTextParallaxX;
     uniform float uTextParallaxScale;
     uniform float uTextFormationBoost;
+    uniform float uTextScrollVelocity;
 
     uniform vec2 uInteractionCenter;
     uniform float uInteractionStrength;
