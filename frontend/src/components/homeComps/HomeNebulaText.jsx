@@ -1417,21 +1417,6 @@ function getFinalTextResponsiveGeometry() {
         };
     }
 
-    /*
-     * ============================================================
-     * SHARED FINAL TEXT TYPOGRAPHY
-     * ============================================================
-     *
-     * This is the single source of truth for both:
-     *
-     *   1. MUI Typography
-     *   2. Nebula particle target
-     *
-     * Do not create another font-size calculation inside
-     * createFinalTextTargetTexture().
-     * ============================================================
-     */
-
     ctx.font =
         `100 ${preferredFontSize}px ` +
         `"Helvetica Neue", Arial, sans-serif`;
@@ -1499,24 +1484,17 @@ function getFinalTextResponsiveGeometry() {
 
     const ascent =
         Number.isFinite(
-            metrics.actualBoundingBoxAscent
+            metrics.fontBoundingBoxAscent
         )
-            ? metrics.actualBoundingBoxAscent
+            ? metrics.fontBoundingBoxAscent
             : fontSize * 0.74;
 
     const descent =
         Number.isFinite(
-            metrics.actualBoundingBoxDescent
+            metrics.fontBoundingBoxDescent
         )
-            ? metrics.actualBoundingBoxDescent
+            ? metrics.fontBoundingBoxDescent
             : fontSize * 0.26;
-
-    /*
-     * ============================================================
-     * SHARED THREE-LINE LINE BOX
-     * ============================================================
-     */
-
     const totalLineBoxHeight =
         lineHeight *
         3;
