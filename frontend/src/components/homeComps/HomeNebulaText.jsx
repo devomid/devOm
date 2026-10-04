@@ -850,7 +850,28 @@ function createDevOmTargetTexture(
     let currentX =
         centerX -
         totalWidth / 2;
-
+        
+        console.log(
+            '[DEVOM DEBUG] geometry',
+            {
+                centerX,
+                centerY,
+    
+                leftWidth,
+                centerWidth,
+                rightWidth,
+    
+                letterSpacing,
+    
+                totalWidth,
+    
+                startX:
+                    centerX -
+                    totalWidth / 2,
+    
+                baseline,
+            }
+        );
     ctx.font =
         leftFont;
 
@@ -859,6 +880,7 @@ function createDevOmTargetTexture(
 
     ctx.textBaseline =
         'alphabetic';
+    
 
     ctx.fillText(
         DEVOM_TEXT_LEFT,
@@ -909,6 +931,24 @@ function createDevOmTargetTexture(
     const candidates =
         [];
     
+    console.log(
+        '[DEVOM DEBUG] canvas',
+        {
+            width:
+                DEVOM_CANVAS_WIDTH,
+
+            height:
+                DEVOM_CANVAS_HEIGHT,
+
+            viewportWidth:
+                window.innerWidth,
+
+            viewportHeight:
+                window.innerHeight,
+
+            ratio,
+        }
+    );
 
     for (
         let y = 0;
@@ -944,6 +984,80 @@ function createDevOmTargetTexture(
             }
         }
     }
+
+    console.log(
+        '[DEVOM DEBUG] candidates',
+        {
+            count:
+                candidates.length,
+
+            first:
+                candidates[0],
+
+            last:
+                candidates[
+                candidates.length - 1
+                ],
+        }
+    );
+
+    let minCandidateX =
+        Infinity;
+
+    let maxCandidateX =
+        -Infinity;
+
+    let minCandidateY =
+        Infinity;
+
+    let maxCandidateY =
+        -Infinity;
+
+    for (
+        const candidate
+        of candidates
+    ) {
+        minCandidateX =
+            Math.min(
+                minCandidateX,
+                candidate.x
+            );
+
+        maxCandidateX =
+            Math.max(
+                maxCandidateX,
+                candidate.x
+            );
+
+        minCandidateY =
+            Math.min(
+                minCandidateY,
+                candidate.y
+            );
+
+        maxCandidateY =
+            Math.max(
+                maxCandidateY,
+                candidate.y
+            );
+    }
+
+    console.log(
+        '[DEVOM DEBUG] candidate bounds',
+        {
+            minX:
+                minCandidateX,
+
+            maxX:
+                maxCandidateX,
+
+            minY:
+                minCandidateY,
+
+            maxY:
+                maxCandidateY,
+        }
+    );
 
     const targetData =
         new Float32Array(
