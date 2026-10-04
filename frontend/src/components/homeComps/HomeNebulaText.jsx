@@ -20,14 +20,18 @@ const TEXT_WORLD_HEIGHT = 2.9;
 const DEVOM_TEXT_LEFT = 'dev';
 const DEVOM_TEXT_CENTER = 'O';
 const DEVOM_TEXT_RIGHT = 'm';
-const DEVOM_LEFT_FONT = `100 390px "Helvetica Neue", Arial, sans-serif`;
-const DEVOM_CENTER_FONT = `400 430px "After", "Helvetica Neue", Arial, sans-serif`;
-const DEVOM_RIGHT_FONT = `100 390px "Helvetica Neue", Arial, sans-serif`;
+const DEVOM_BASE_FONT_RATIO = 0.15;
+const DEVOM_MIN_FONT_REM = 6;
+const DEVOM_MAX_FONT_REM = 15;
+const DEVOM_CENTER_FONT_RATIO = 1.10256;
+const DEVOM_LEFT_FONT_FAMILY = '"Helvetica Neue", Arial, sans-serif';
+const DEVOM_CENTER_FONT_FAMILY = '"After", "Helvetica Neue", Arial, sans-serif';
+const DEVOM_LEFT_FONT_WEIGHT = 100;
+const DEVOM_CENTER_FONT_WEIGHT = 400;
+const DEVOM_RIGHT_FONT_WEIGHT = 100;
+const DEVOM_LETTER_SPACING = 0;
 const DEVOM_FULL_RATIO = 1.0;
 const DEVOM_CANVAS_WIDTH = 1800;
-const DEVOM_CANVAS_HEIGHT = 700;
-const DEVOM_WORLD_WIDTH = 12.5;
-const DEVOM_WORLD_HEIGHT = 5.0;
 const TARGET_JITTER_XY = 0.018;
 const TARGET_JITTER_Z = 0.078;
 const DEVOM_FORM_DURATION = 7500;
@@ -712,6 +716,174 @@ function createSentenceTargetTexture() {
     return texture;
 }
 
+function getDevOmTypographyGeometry() {
+    const rootFontSize =
+        parseFloat(
+            getComputedStyle(
+                document.documentElement
+            ).fontSize
+        ) || 16;
+
+    const baseFontSize =
+        Math.min(
+            Math.max(
+                window.innerWidth *
+                DEVOM_BASE_FONT_RATIO,
+
+                rootFontSize *
+                DEVOM_MIN_FONT_REM
+            ),
+
+            rootFontSize *
+            DEVOM_MAX_FONT_REM
+        );
+
+    const centerFontSize =
+        baseFontSize *
+        DEVOM_CENTER_FONT_RATIO;
+
+    const letterSpacing =
+        DEVOM_LETTER_SPACING;
+
+    return {
+        baseFontSize,
+        centerFontSize,
+        letterSpacing,
+
+        leftFont:
+            `${DEVOM_LEFT_FONT_WEIGHT} ${baseFontSize}px ${DEVOM_LEFT_FONT_FAMILY}`,
+
+        centerFont:
+            `${DEVOM_CENTER_FONT_WEIGHT} ${centerFontSize}px ${DEVOM_CENTER_FONT_FAMILY}`,
+
+        rightFont:
+            `${DEVOM_RIGHT_FONT_WEIGHT} ${baseFontSize}px ${DEVOM_LEFT_FONT_FAMILY}`,
+    };
+}
+
+function getDevOmViewportGeometry(
+    ctx,
+    typography
+) {
+    const {
+        baseFontSize,
+        centerFontSize,
+        letterSpacing,
+        leftFont,
+        centerFont,
+        rightFont,
+    } = typography;
+
+    ctx.font =
+        leftFont;
+
+    const leftWidth =
+        ctx.measureText(
+            DEVOM_TEXT_LEFT
+        ).width;
+
+    ctx.font =
+        centerFont;
+
+    const centerMetrics =
+        ctx.measureText(
+            DEVOM_TEXT_CENTER
+        );
+
+    const centerWidth =
+        centerMetrics.width;
+
+    const centerAscent =
+        centerMetrics.actualBoundingBoxAscent;
+
+    const centerDescent =
+        centerMetrics.actualBoundingBoxDescent;
+
+    ctx.font =
+        rightFont;
+
+    const rightWidth =
+        ctx.measureText(
+            DEVOM_TEXT_RIGHT
+        ).width;
+
+    const totalWidth =
+        leftWidth +
+        centerWidth +
+        rightWidth +
+        letterSpacing * 2;
+
+    /*
+     * MUI's outer container is:
+     *
+     *     display: flex
+     *     alignItems: center
+     *     justifyContent: center
+     *
+     * Its children are baseline-aligned.
+     *
+     * The "O" is the tallest line box because its
+     * font size is larger than "dev" / "m".
+     */
+
+    const centerLineHeight =
+        centerFontSize;
+
+    const centerLineTop =
+        (
+            window.innerHeight -
+            centerLineHeight
+        ) /
+        2;
+
+    /*
+     * CSS line-height: 1
+     *
+     * For the center glyph, the baseline sits at:
+     *
+     *     top + (lineHeight + ascent - descent) / 2
+     */
+
+    const baseline =
+        centerLineTop +
+        (
+            centerLineHeight +
+            centerAscent -
+            centerDescent
+        ) /
+        2;
+
+    const startX =
+        (
+            window.innerWidth -
+            totalWidth
+        ) /
+        2;
+
+    return {
+        baseFontSize,
+        centerFontSize,
+
+        leftWidth,
+        centerWidth,
+        rightWidth,
+
+        totalWidth,
+
+        startX,
+        baseline,
+
+        centerAscent,
+        centerDescent,
+
+        letterSpacing,
+
+        leftFont,
+        centerFont,
+        rightFont,
+    };
+}
+
 function createDevOmTargetTexture(
     ratio
 ) {
@@ -720,11 +892,30 @@ function createDevOmTargetTexture(
             'canvas'
         );
 
+    /*
+     * The Canvas represents the browser viewport.
+     *
+     * Keep the horizontal resolution at 1800, but make
+     * the height proportional to the actual viewport.
+     *
+     * This prevents the old 1800x700 canvas from
+     * introducing a second coordinate system.
+     */
+
     canvas.width =
         DEVOM_CANVAS_WIDTH;
 
     canvas.height =
-        DEVOM_CANVAS_HEIGHT;
+        Math.max(
+            1,
+            Math.round(
+                DEVOM_CANVAS_WIDTH *
+                (
+                    window.innerHeight /
+                    window.innerWidth
+                )
+            )
+        );
 
     const ctx =
         canvas.getContext(
@@ -742,8 +933,8 @@ function createDevOmTargetTexture(
     ctx.clearRect(
         0,
         0,
-        DEVOM_CANVAS_WIDTH,
-        DEVOM_CANVAS_HEIGHT
+        canvas.width,
+        canvas.height
     );
 
     ctx.fillStyle =
@@ -752,177 +943,108 @@ function createDevOmTargetTexture(
     ctx.filter =
         'blur(20px)';
 
-    const rootFontSize =
-        parseFloat(
-            getComputedStyle(
-                document.documentElement
-            ).fontSize
-        ) || 16;
+    /*
+     * ============================================================
+     * SHARED TYPOGRAPHY
+     * ============================================================
+     */
 
-    const devOmFontSize =
-        Math.min(
-            Math.max(
-                window.innerWidth *
-                0.15,
-                rootFontSize *
-                6
-            ),
-            rootFontSize *
-            15
+    const typography =
+        getDevOmTypographyGeometry();
+
+    const geometry =
+        getDevOmViewportGeometry(
+            ctx,
+            typography
         );
 
-    const letterSpacing =
-        devOmFontSize *
-        0.018;
+    /*
+     * ============================================================
+     * CSS PIXELS -> CANVAS PIXELS
+     * ============================================================
+     */
 
-    const centerX =
-        DEVOM_CANVAS_WIDTH /
-        2;
+    const canvasScale =
+        canvas.width /
+        window.innerWidth;
 
-    const centerY =
-        DEVOM_CANVAS_HEIGHT /
-        2;
+    const canvasStartX =
+        geometry.startX *
+        canvasScale;
 
-    const muiCenterFontSize =
-        devOmFontSize *
-        1.10256;
+    const canvasBaseline =
+        geometry.baseline *
+        canvasScale;
 
-    ctx.font =
-        DEVOM_CENTER_FONT;
+    const canvasLetterSpacing =
+        geometry.letterSpacing *
+        canvasScale;
 
-    const centerMetrics =
-        ctx.measureText(
-            DEVOM_TEXT_CENTER
-        );
-
-    const centerAscent =
-        centerMetrics.actualBoundingBoxAscent;
-
-    const muiFlexBaseline =
-        centerY +
-        (
-            centerAscent -
-            muiCenterFontSize / 2
-        );
-
-    const baseline =
-        muiFlexBaseline;
-
-    const leftFont =
-        DEVOM_LEFT_FONT;
-
-    const centerFont =
-        DEVOM_CENTER_FONT;
-
-    const rightFont =
-        DEVOM_RIGHT_FONT;
-
-    ctx.font =
-        leftFont;
-
-    const leftWidth =
-        ctx.measureText(
-            DEVOM_TEXT_LEFT
-        ).width;
-
-    ctx.font =
-        centerFont;
-
-    const centerWidth =
-        ctx.measureText(
-            DEVOM_TEXT_CENTER
-        ).width;
-
-    ctx.font =
-        rightFont;
-
-    const rightWidth =
-        ctx.measureText(
-            DEVOM_TEXT_RIGHT
-        ).width;
-
-    const totalWidth =
-        leftWidth +
-        centerWidth +
-        rightWidth +
-        letterSpacing * 2;
-
-    let currentX =
-        centerX -
-        totalWidth / 2;
-        
-        console.log(
-            '[DEVOM DEBUG] geometry',
-            {
-                centerX,
-                centerY,
-    
-                leftWidth,
-                centerWidth,
-                rightWidth,
-    
-                letterSpacing,
-    
-                totalWidth,
-    
-                startX:
-                    centerX -
-                    totalWidth / 2,
-    
-                baseline,
-            }
-        );
-    ctx.font =
-        leftFont;
+    /*
+     * ============================================================
+     * DRAW EXACTLY THE SAME THREE TYPOGRAPHIC ELEMENTS
+     * ============================================================
+     */
 
     ctx.textAlign =
         'left';
 
     ctx.textBaseline =
         'alphabetic';
-    
+
+    ctx.font =
+        geometry.leftFont;
 
     ctx.fillText(
         DEVOM_TEXT_LEFT,
-        currentX,
-        baseline
+        canvasStartX,
+        canvasBaseline
     );
 
-    currentX +=
-        leftWidth +
-        letterSpacing;
+    let currentX =
+        canvasStartX +
+        geometry.leftWidth *
+        canvasScale +
+        canvasLetterSpacing;
 
     ctx.font =
-        centerFont;
+        geometry.centerFont;
 
     ctx.fillText(
         DEVOM_TEXT_CENTER,
         currentX,
-        baseline
+        canvasBaseline
     );
 
     currentX +=
-        centerWidth +
-        letterSpacing;
+        geometry.centerWidth *
+        canvasScale +
+        canvasLetterSpacing;
 
     ctx.font =
-        rightFont;
+        geometry.rightFont;
 
     ctx.fillText(
         DEVOM_TEXT_RIGHT,
         currentX,
-        baseline
+        canvasBaseline
     );
 
     ctx.filter =
         'none';
 
+    /*
+     * ============================================================
+     * READ PARTICLE SOURCE
+     * ============================================================
+     */
+
     const imageData =
         ctx.getImageData(
             0,
             0,
-            DEVOM_CANVAS_WIDTH,
-            DEVOM_CANVAS_HEIGHT
+            canvas.width,
+            canvas.height
         );
 
     const pixels =
@@ -930,40 +1052,21 @@ function createDevOmTargetTexture(
 
     const candidates =
         [];
-    
-    console.log(
-        '[DEVOM DEBUG] canvas',
-        {
-            width:
-                DEVOM_CANVAS_WIDTH,
-
-            height:
-                DEVOM_CANVAS_HEIGHT,
-
-            viewportWidth:
-                window.innerWidth,
-
-            viewportHeight:
-                window.innerHeight,
-
-            ratio,
-        }
-    );
 
     for (
         let y = 0;
-        y < DEVOM_CANVAS_HEIGHT;
+        y < canvas.height;
         y += 1
     ) {
         for (
             let x = 0;
-            x < DEVOM_CANVAS_WIDTH;
+            x < canvas.width;
             x += 1
         ) {
             const pixelIndex =
                 (
                     y *
-                    DEVOM_CANVAS_WIDTH +
+                    canvas.width +
                     x
                 ) *
                 4;
@@ -985,79 +1088,22 @@ function createDevOmTargetTexture(
         }
     }
 
-    console.log(
-        '[DEVOM DEBUG] candidates',
-        {
-            count:
-                candidates.length,
+    /*
+     * ============================================================
+     * PARTICLE TARGET
+     * ============================================================
+     *
+     * The canvas now maps directly onto the camera viewport.
+     *
+     * There is NO width-based corrective particle scale.
+     * There is NO second responsive typography calculation.
+     */
 
-            first:
-                candidates[0],
-
-            last:
-                candidates[
-                candidates.length - 1
-                ],
-        }
-    );
-
-    let minCandidateX =
-        Infinity;
-
-    let maxCandidateX =
-        -Infinity;
-
-    let minCandidateY =
-        Infinity;
-
-    let maxCandidateY =
-        -Infinity;
-
-    for (
-        const candidate
-        of candidates
-    ) {
-        minCandidateX =
-            Math.min(
-                minCandidateX,
-                candidate.x
-            );
-
-        maxCandidateX =
-            Math.max(
-                maxCandidateX,
-                candidate.x
-            );
-
-        minCandidateY =
-            Math.min(
-                minCandidateY,
-                candidate.y
-            );
-
-        maxCandidateY =
-            Math.max(
-                maxCandidateY,
-                candidate.y
-            );
-    }
-
-    console.log(
-        '[DEVOM DEBUG] candidate bounds',
-        {
-            minX:
-                minCandidateX,
-
-            maxX:
-                maxCandidateX,
-
-            minY:
-                minCandidateY,
-
-            maxY:
-                maxCandidateY,
-        }
-    );
+    const {
+        worldWidth,
+        worldHeight,
+    } =
+        getFinalTextViewportWorldSize();
 
     const targetData =
         new Float32Array(
@@ -1092,47 +1138,30 @@ function createDevOmTargetTexture(
 
             const particle =
                 candidates[
-                Math.min(
-                    candidateIndex,
-                    candidates.length - 1
-                )
+                candidateIndex
                 ];
 
             const normalizedX =
                 particle.x /
-                DEVOM_CANVAS_WIDTH;
+                canvas.width;
 
             const normalizedY =
                 particle.y /
-                DEVOM_CANVAS_HEIGHT;
-
-            const nebulaTextWidth =
-                leftWidth +
-                centerWidth +
-                rightWidth +
-                letterSpacing * 2;
-
-            const targetScale =
-                getDevOmParticleTargetScale(
-                    ctx,
-                    nebulaTextWidth
-                );
+                canvas.height;
 
             const worldX =
                 (
                     normalizedX -
                     0.5
                 ) *
-                DEVOM_WORLD_WIDTH *
-                targetScale;
+                worldWidth;
 
             const worldY =
                 (
                     0.5 -
                     normalizedY
                 ) *
-                DEVOM_WORLD_HEIGHT *
-                targetScale;
+                worldHeight;
 
             targetData[offset] =
                 worldX +
@@ -1491,168 +1520,18 @@ function getDevOmVisualLeft() {
         return getFinalTextLeftOffsetPx();
     }
 
-    const rootFontSize =
-        parseFloat(
-            getComputedStyle(
-                document.documentElement
-            ).fontSize
-        ) || 16;
+    const typography =
+        getDevOmTypographyGeometry();
 
-    const baseFontSize =
-        Math.min(
-            Math.max(
-                window.innerWidth *
-                0.15,
-                rootFontSize *
-                6
-            ),
-            rootFontSize *
-            15
+    const geometry =
+        getDevOmViewportGeometry(
+            ctx,
+            typography
         );
 
-    const centerFontSize =
-        baseFontSize *
-        1.10256;
-
-    /*
-     * "dev"
-     */
-
-    ctx.font =
-        `100 ${baseFontSize}px ` +
-        `"Helvetica Neue", Arial, sans-serif`;
-
-    const leftWidth =
-        ctx.measureText(
-            DEVOM_TEXT_LEFT
-        ).width;
-
-    /*
-     * "O"
-     */
-
-    ctx.font =
-        `400 ${centerFontSize}px ` +
-        `"After", "Helvetica Neue", Arial, sans-serif`;
-
-    const centerWidth =
-        ctx.measureText(
-            DEVOM_TEXT_CENTER
-        ).width;
-
-    /*
-     * "m"
-     */
-
-    ctx.font =
-        `100 ${baseFontSize}px ` +
-        `"Helvetica Neue", Arial, sans-serif`;
-
-    const rightWidth =
-        ctx.measureText(
-            DEVOM_TEXT_RIGHT
-        ).width;
-
-    const totalWidth =
-        leftWidth +
-        centerWidth +
-        rightWidth;
-
-    /*
-     * devOm itself remains centered.
-     *
-     * We only calculate its left edge and then add the
-     * shared final-text offset.
-     */
-
     return (
-        (
-            window.innerWidth -
-            totalWidth
-        ) /
-        2
-    ) +
-        FINAL_TEXT_LEFT_OFFSET_PX;
-}
-
-function getDevOmParticleTargetScale(
-    ctx,
-    nebulaTextWidth
-) {
-    const rootFontSize =
-        parseFloat(
-            getComputedStyle(
-                document.documentElement
-            ).fontSize
-        ) || 16;
-
-    const muiBaseFontSize =
-        Math.min(
-            Math.max(
-                window.innerWidth * 0.15,
-                rootFontSize * 6
-            ),
-            rootFontSize * 15
-        );
-
-    const muiCenterFontSize =
-        muiBaseFontSize * 1.10256;
-
-    ctx.font =
-        `100 ${muiBaseFontSize}px ` +
-        `"Helvetica Neue", Arial, sans-serif`;
-
-    const muiLeftWidth =
-        ctx.measureText(
-            DEVOM_TEXT_LEFT
-        ).width;
-
-    ctx.font =
-        `400 ${muiCenterFontSize}px ` +
-        `"After", "Helvetica Neue", Arial, sans-serif`;
-
-    const muiCenterWidth =
-        ctx.measureText(
-            DEVOM_TEXT_CENTER
-        ).width;
-
-    ctx.font =
-        `100 ${muiBaseFontSize}px ` +
-        `"Helvetica Neue", Arial, sans-serif`;
-
-    const muiRightWidth =
-        ctx.measureText(
-            DEVOM_TEXT_RIGHT
-        ).width;
-
-    const muiTextWidth =
-        muiLeftWidth +
-        muiCenterWidth +
-        muiRightWidth;
-
-    /*
-     * Keep the Nebula devOm target in the same
-     * responsive CSS-pixel coordinate system as MUI.
-     *
-     * Do NOT derive the scale from the camera's
-     * aspect-ratio-dependent world width.
-     */
-    const nebulaTextPixelWidth =
-        (
-            nebulaTextWidth /
-            DEVOM_CANVAS_WIDTH
-        ) *
-        window.innerWidth;
-
-    if (
-        nebulaTextPixelWidth <= 0
-    ) {
-        return 1;
-    }
-
-    return (
-        muiTextWidth /
-        nebulaTextPixelWidth
+        geometry.startX +
+        FINAL_TEXT_LEFT_OFFSET_PX
     );
 }
 
@@ -2074,86 +1953,39 @@ export default function HomeNebulaText({
     introComplete,
     postIntroScrollStarted
 }) {
-    const introCompleteRef =
-        useRef(false);
+    const introCompleteRef = useRef(false);
+    const devOmX = useTransform(scrollProgress,
+        [
+            0,
+            0.30,
+            0.42,
+            0.50,
+            0.58,
+        ],
+        [
+            '0vw',
+            '-12vw',
+            '-18vw',
+            '-15vw',
+            '-12vw',
+        ]
+    );
 
-    /*
- * ========================================================
- * POST-INTRO MUI MOVEMENT
- * ========================================================
- *
- * Only the two MUI text layers move.
- *
- * NebulaBackground remains completely untouched.
- * ========================================================
- */
+    const muiScale = useTransform(scrollProgress,
+        [0, 0.30, 0.46, 0.58],
+        [1, 0.70, 0.70, 0.78]
+    );
 
-    const devOmX =
-        useTransform(
-            scrollProgress,
-            [
-                0,
-                0.30,
-                0.42,
-                0.50,
-                0.58,
-            ],
-            [
-                '0vw',
-                '-12vw',
-                '-18vw',
-                '-15vw',
-                '-12vw',
-            ]
-        );
-
-    const muiScale =
-        useTransform(
-            scrollProgress,
-            [0, 0.30, 0.46, 0.58],
-            [1, 0.70, 0.70, 0.78]
-        );
-
-    const [
-        textTargetTexture,
-        setTextTargetTexture,
-    ] = useState(null);
-
-    const [
-        devOmFullTargetTexture,
-        setDevOmFullTargetTexture,
-    ] = useState(null);
-
-    const [
-        finalTextTargetTexture,
-        setFinalTextTargetTexture,
-    ] = useState(null);
-
-    /*
-     * ========================================================
-     * FINAL MUI LEFT POSITION
-     * ========================================================
-     */
-
-    const [
-        finalTextLeft,
-        setFinalTextLeft,
-    ] = useState(0);
-
-    const [
-        finalTextResponsiveGeometry,
-        setFinalTextResponsiveGeometry,
-    ] = useState(null);
-
-    /*
-     * ========================================================
-     * INITIAL TEXT
-     * ========================================================
-     */
+    const [textTargetTexture, setTextTargetTexture] = useState(null);
+    const [devOmFullTargetTexture, setDevOmFullTargetTexture] = useState(null);
+    const [finalTextTargetTexture, setFinalTextTargetTexture] = useState(null);
+    const [finalTextLeft, setFinalTextLeft] = useState(0);
+    const [devOmTypography, setDevOmTypography] = useState(null);
+    const [finalTextResponsiveGeometry, setFinalTextResponsiveGeometry] = useState(null);
 
     useEffect(() => {
-        let cancelled =
-            false;
+
+        let cancelled = false;
 
         async function prepareFontsAndTextures() {
             try {
@@ -2163,41 +1995,18 @@ export default function HomeNebulaText({
                     return;
                 }
 
-                const sentenceTexture =
-                    createSentenceTargetTexture();
-
-                const devOmTexture =
-                    createDevOmTargetTexture(
-                        DEVOM_FULL_RATIO
-                    );
-
-                const responsiveGeometry =
-                    getFinalTextResponsiveGeometry();
-
-                const finalTexture =
-                    createFinalTextTargetTexture(
-                        responsiveGeometry
-                    );
-
-                setTextTargetTexture(
-                    sentenceTexture
-                );
-
-                setDevOmFullTargetTexture(
-                    devOmTexture
-                );
-
-                setFinalTextTargetTexture(
-                    finalTexture
-                );
-
-                setFinalTextLeft(
-                    responsiveGeometry.left
-                );
-
-                setFinalTextResponsiveGeometry(
-                    responsiveGeometry
-                );
+                const nextDevOmTypography =getDevOmTypographyGeometry();
+                const sentenceTexture =createSentenceTargetTexture();
+                const devOmTexture =createDevOmTargetTexture(DEVOM_FULL_RATIO);
+                const responsiveGeometry =getFinalTextResponsiveGeometry();
+                const finalTexture = createFinalTextTargetTexture(responsiveGeometry);
+                
+                setDevOmTypography(nextDevOmTypography);
+                setTextTargetTexture(sentenceTexture);
+                setDevOmFullTargetTexture(devOmTexture);
+                setFinalTextTargetTexture(finalTexture);
+                setFinalTextLeft(responsiveGeometry.left);
+                setFinalTextResponsiveGeometry(responsiveGeometry);
 
             } catch (error) {
                 console.error(
@@ -2209,41 +2018,18 @@ export default function HomeNebulaText({
                     return;
                 }
 
-                const sentenceTexture =
-                    createSentenceTargetTexture();
-
-                const devOmTexture =
-                    createDevOmTargetTexture(
-                        DEVOM_FULL_RATIO
-                    );
-
-                const responsiveGeometry =
-                    getFinalTextResponsiveGeometry();
-
-                const finalTexture =
-                    createFinalTextTargetTexture(
-                        responsiveGeometry
-                    );
-
-                setTextTargetTexture(
-                    sentenceTexture
-                );
-
-                setDevOmFullTargetTexture(
-                    devOmTexture
-                );
-
-                setFinalTextTargetTexture(
-                    finalTexture
-                );
-
-                setFinalTextLeft(
-                    responsiveGeometry.left
-                );
-
-                setFinalTextResponsiveGeometry(
-                    responsiveGeometry
-                );
+                const nextDevOmTypography =getDevOmTypographyGeometry();
+                const sentenceTexture =createSentenceTargetTexture();
+                const devOmTexture =createDevOmTargetTexture(DEVOM_FULL_RATIO);
+                const responsiveGeometry =getFinalTextResponsiveGeometry();
+                const finalTexture =createFinalTextTargetTexture(responsiveGeometry);
+                
+                setDevOmTypography(nextDevOmTypography);
+                setTextTargetTexture(sentenceTexture);
+                setDevOmFullTargetTexture(devOmTexture);
+                setFinalTextTargetTexture(finalTexture);
+                setFinalTextLeft(responsiveGeometry.left);
+                setFinalTextResponsiveGeometry(responsiveGeometry);
             }
         }
 
@@ -2254,26 +2040,6 @@ export default function HomeNebulaText({
                 true;
         };
     }, []);
-
-    /*
-     * ========================================================
-     * RESPONSIVE FINAL TEXT GEOMETRY
-     * ========================================================
-     *
-     * Important:
-     *
-     * We DO NOT replace finalTextTargetTexture with a new
-     * React state object here.
-     *
-     * That would restart the timeline because the timeline
-     * depends on finalTextTargetTexture.
-     *
-     * Instead, we update the existing DataTexture's data
-     * in-place.
-     *
-     * Timing therefore remains untouched.
-     * ========================================================
-     */
 
     useEffect(() => {
         if (!finalTextTargetTexture) {
@@ -2727,19 +2493,21 @@ export default function HomeNebulaText({
                         component="span"
                         sx={{
                             fontFamily:
-                                '"Helvetica Neue", Arial, sans-serif',
+                                DEVOM_LEFT_FONT_FAMILY,
 
                             fontSize:
-                                'clamp(6rem, 15vw, 15rem)',
+                                devOmTypography
+                                    ? `${devOmTypography.baseFontSize}px`
+                                    : 'clamp(6rem, 15vw, 15rem)',
 
                             fontWeight:
-                                100,
+                                DEVOM_LEFT_FONT_WEIGHT,
 
                             lineHeight:
                                 1,
 
                             letterSpacing:
-                                0,
+                                `${devOmTypography?.letterSpacing ?? 0}px`,
 
                             color:
                                 colors.accent.primary,
@@ -2755,19 +2523,21 @@ export default function HomeNebulaText({
                         component="span"
                         sx={{
                             fontFamily:
-                                '"After", "Helvetica Neue", Arial, sans-serif',
+                                DEVOM_CENTER_FONT_FAMILY,
 
                             fontSize:
-                                'calc(clamp(6rem, 15vw, 15rem) * 1.10256)',
+                                devOmTypography
+                                    ? `${devOmTypography.centerFontSize}px`
+                                    : 'calc(clamp(6rem, 15vw, 15rem) * 1.10256)',
 
                             fontWeight:
-                                400,
+                                DEVOM_CENTER_FONT_WEIGHT,
 
                             lineHeight:
                                 1,
 
                             letterSpacing:
-                                0,
+                                `${devOmTypography?.letterSpacing ?? 0}px`,
 
                             color:
                                 colors.accent.secondary,
@@ -2783,19 +2553,21 @@ export default function HomeNebulaText({
                         component="span"
                         sx={{
                             fontFamily:
-                                '"Helvetica Neue", Arial, sans-serif',
+                                DEVOM_LEFT_FONT_FAMILY,
 
                             fontSize:
-                                'clamp(6rem, 15vw, 15rem)',
+                                devOmTypography
+                                    ? `${devOmTypography.baseFontSize}px`
+                                    : 'clamp(6rem, 15vw, 15rem)',
 
                             fontWeight:
-                                100,
+                                DEVOM_LEFT_FONT_WEIGHT,
 
                             lineHeight:
                                 1,
 
                             letterSpacing:
-                                0,
+                                `${devOmTypography?.letterSpacing ?? 0}px`,
 
                             color:
                                 colors.accent.primary,

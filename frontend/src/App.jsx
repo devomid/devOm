@@ -68,7 +68,6 @@ function App() {
         <Route path="/works" element={<Works />} />
         <Route path="/howibuild" element={<HowIBuild />} />
         <Route path="/contacts" element={<Contacts />} />
-        {/* <Route path="/works" element={<Wo />} /> */}
         <Route path="*" element={<FourOFour />} />
       </Routes>
     </Box>
