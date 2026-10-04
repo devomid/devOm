@@ -1,7 +1,7 @@
-import {useEffect,useMemo,useRef,} from 'react'
+import { useEffect, useMemo, useRef, } from 'react'
 import * as THREE from 'three'
-import {Canvas,useFrame,useThree,} from '@react-three/fiber'
-import {nebulaWipeState,} from '../whatibuildComps/nebulaWipe'
+import { Canvas, useFrame, useThree, } from '@react-three/fiber'
+import { nebulaWipeState, } from '../whatibuildComps/nebulaWipe'
 
 const DESKTOP_PARTICLE_COUNT = 262144
 const DESKTOP_TEXTURE_SIZE = 512
@@ -251,6 +251,8 @@ const velocityFlowFragmentShader = `
     uniform float uTime;
     uniform float uTextEnabled;
     uniform float uTextStrength;
+    uniform float uTextParallaxX;
+    uniform float uTextParallaxScale;
     uniform float uTextFormationBoost;
 
     uniform vec2 uInteractionCenter;
@@ -1385,15 +1387,24 @@ velocity +=
                 ) *
                 0.18;
 
-            vec3 rotatedCloudTarget =
-                currentOrbitTarget;
+           vec3 rotatedCloudTarget =
+    currentOrbitTarget;
 
-            vec3 target =
-                mix(
-                    textTargetSample.xyz,
-                    rotatedCloudTarget,
-                    cloudAmount
-                );
+vec3 parallaxTextTarget =
+    textTargetSample.xyz;
+
+parallaxTextTarget.xy *=
+    uTextParallaxScale;
+
+parallaxTextTarget.x +=
+    uTextParallaxX;
+
+vec3 target =
+    mix(
+        parallaxTextTarget,
+        rotatedCloudTarget,
+        cloudAmount
+    );
 
             /*
              * =================================================
@@ -3628,7 +3639,7 @@ const NebulaParticles = ({
                 .uTextStrength
                 .value =
                 textStrength
-            
+
             const parallaxXValue =
                 textParallaxX?.get?.() ?? '0vw'
 
