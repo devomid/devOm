@@ -1690,15 +1690,33 @@ function createFinalTextTargetTexture(responsiveGeometry = getFinalTextResponsiv
 
     const { worldWidth, worldHeight } = getFinalTextViewportWorldSize();
     const canvasScale = FINAL_TEXT_CANVAS_WIDTH / window.innerWidth;
+    const verticalOffsetPx =(responsiveGeometry.verticalOffsetVh /100) *window.innerHeight;
+    const verticalOffsetCanvas =verticalOffsetPx *canvasScale;
     const fontSize = responsiveGeometry.fontSize * canvasScale;
     const font = `100 ${fontSize}px ` + `"Helvetica Neue", Arial, sans-serif`;
     const letterSpacing = responsiveGeometry.letterSpacing * canvasScale;
     const textX = responsiveGeometry.left * canvasScale;
-    const verticalOffsetWorld = -(responsiveGeometry.verticalOffsetVh / 100) * worldHeight;
     const lineHeight = responsiveGeometry.lineHeight * canvasScale;
-    const firstLineBaseline = responsiveGeometry.firstLineBaseline * canvasScale;
-    const secondLineBaseline = responsiveGeometry.secondLineBaseline * canvasScale;
-    const thirdLineBaseline = responsiveGeometry.thirdLineBaseline * canvasScale;
+    const firstLineBaseline =
+        (
+            responsiveGeometry.firstLineBaseline +
+            verticalOffsetPx
+        ) *
+        canvasScale;
+
+    const secondLineBaseline =
+        (
+            responsiveGeometry.secondLineBaseline +
+            verticalOffsetPx
+        ) *
+        canvasScale;
+
+    const thirdLineBaseline =
+        (
+            responsiveGeometry.thirdLineBaseline +
+            verticalOffsetPx
+        ) *
+        canvasScale;
 
     drawLeftAlignedLetterSpacedText(
         ctx,
@@ -1935,7 +1953,19 @@ export default function HomeNebulaText({
     introComplete,
     postIntroScrollStarted
 }) {
+    const [textTargetTexture, setTextTargetTexture] = useState(null);
+    const [devOmFullTargetTexture, setDevOmFullTargetTexture] = useState(null);
+    const [finalTextTargetTexture, setFinalTextTargetTexture] = useState(null);
+    const [finalTextLeft, setFinalTextLeft] = useState(0);
+    const [devOmTypography, setDevOmTypography] = useState(null);
+    const [finalTextResponsiveGeometry, setFinalTextResponsiveGeometry] = useState(null);
+    const [currentTargetTexture, setCurrentTargetTexture,] = useState(null);
+    const [textEnabled, setTextEnabled,] = useState(true);
+    const [windActive, setWindActive,] = useState(false);
+    const [devOmMuiVisible, setDevOmMuiVisible,] = useState(false);
+    const [finalTextMuiVisible, setFinalTextMuiVisible,] = useState(false);
     const introCompleteRef = useRef(false);
+
     const devOmX = useTransform(scrollProgress,
         [
             0,
@@ -1958,12 +1988,6 @@ export default function HomeNebulaText({
         [1, 0.70, 0.70, 0.78]
     );
 
-    const [textTargetTexture, setTextTargetTexture] = useState(null);
-    const [devOmFullTargetTexture, setDevOmFullTargetTexture] = useState(null);
-    const [finalTextTargetTexture, setFinalTextTargetTexture] = useState(null);
-    const [finalTextLeft, setFinalTextLeft] = useState(0);
-    const [devOmTypography, setDevOmTypography] = useState(null);
-    const [finalTextResponsiveGeometry, setFinalTextResponsiveGeometry] = useState(null);
 
     useEffect(() => {
 
@@ -2081,16 +2105,6 @@ export default function HomeNebulaText({
         finalTextTargetTexture,
     ]);
 
-    /*
-     * ========================================================
-     * PARTICLE STATE
-     * ========================================================
-     */
-
-    const [
-        currentTargetTexture,
-        setCurrentTargetTexture,
-    ] = useState(null);
 
     useEffect(() => {
         if (!textTargetTexture) {
@@ -2103,38 +2117,6 @@ export default function HomeNebulaText({
     }, [
         textTargetTexture,
     ]);
-
-    const [
-        textEnabled,
-        setTextEnabled,
-    ] = useState(true);
-
-    const [
-        windActive,
-        setWindActive,
-    ] = useState(false);
-
-    /*
-     * ========================================================
-     * MUI STATE
-     * ========================================================
-     */
-
-    const [
-        devOmMuiVisible,
-        setDevOmMuiVisible,
-    ] = useState(false);
-
-    const [
-        finalTextMuiVisible,
-        setFinalTextMuiVisible,
-    ] = useState(false);
-
-    /*
-     * ========================================================
-     * TIMELINE
-     * ========================================================
-     */
 
     useEffect(() => {
         if (
@@ -2384,12 +2366,6 @@ export default function HomeNebulaText({
         finalTextTargetTexture,
     ]);
 
-    /*
-     * ========================================================
-     * DISPOSE
-     * ========================================================
-     */
-
     useEffect(() => {
         return () => {
             textTargetTexture?.dispose();
@@ -2403,12 +2379,6 @@ export default function HomeNebulaText({
         devOmFullTargetTexture,
         finalTextTargetTexture,
     ]);
-
-    /*
-     * ========================================================
-     * RENDER
-     * ========================================================
-     */
 
     return (
         <>
