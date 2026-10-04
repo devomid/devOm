@@ -1662,32 +1662,18 @@ function getDevOmVisualLeft() {
     );
 }
 
-function createFinalTextTargetTexture(
-    responsiveGeometry =
-        getFinalTextResponsiveGeometry()
-) {
+function createFinalTextTargetTexture(responsiveGeometry = getFinalTextResponsiveGeometry()) {
 
-    const finalTextCanvasHeight =
-        getFinalTextCanvasHeight();
-    const canvas =
-        document.createElement(
-            'canvas'
-        );
+    const finalTextCanvasHeight = getFinalTextCanvasHeight();
+    const canvas = document.createElement('canvas');
 
-    canvas.width =
-        FINAL_TEXT_CANVAS_WIDTH;
-
-    canvas.height =
-        finalTextCanvasHeight;
+    canvas.width = FINAL_TEXT_CANVAS_WIDTH;
+    canvas.height = finalTextCanvasHeight;
 
     const ctx =
-        canvas.getContext(
-            '2d',
-            {
-                willReadFrequently:
-                    true,
-            }
-        );
+        canvas.getContext('2d', {
+            willReadFrequently: true,
+        });
 
     if (!ctx) {
         return null;
@@ -1700,150 +1686,19 @@ function createFinalTextTargetTexture(
         finalTextCanvasHeight
     );
 
-    ctx.fillStyle =
-        '#ffffff';
+    ctx.fillStyle = '#ffffff';
 
-    /*
-     * ============================================================
-     * ACTUAL CAMERA FRUSTUM
-     * ============================================================
-     */
-
-    const {
-        worldWidth,
-        worldHeight,
-    } =
-        getFinalTextViewportWorldSize();
-
-    /*
-     * ============================================================
-     * EXACT CSS -> CANVAS SCALE
-     * ============================================================
-     *
-     * The canvas represents the complete browser viewport.
-     *
-     * Therefore:
-     *
-     * canvas pixels / viewport pixels
-     *
-     * is the conversion factor.
-     */
-
-    const canvasScale =
-        FINAL_TEXT_CANVAS_WIDTH /
-        window.innerWidth;
-
-    /*
-     * ============================================================
-     * SHARED RESPONSIVE GEOMETRY
-     * ============================================================
-     *
-     * These values are also used by the MUI text.
-     * The nebula therefore follows the exact same responsive
-     * layout instead of having an independent mobile/tablet
-     * layout.
-     */
-
-    const fontSize =
-        responsiveGeometry.fontSize *
-        canvasScale;
-
-    const font =
-        `100 ${fontSize}px ` +
-        `"Helvetica Neue", Arial, sans-serif`;
-
-    const letterSpacing =
-        responsiveGeometry.letterSpacing *
-        canvasScale;
-
-    const textX =
-        responsiveGeometry.left *
-        canvasScale;
-
-    /*
-     * ============================================================
-     * SAME VERTICAL TRANSFORM AS MUI
-     * ============================================================
-     */
-
-    const verticalOffsetWorld =
-        -(
-            responsiveGeometry.verticalOffsetVh /
-            100
-        ) *
-        worldHeight;
-
-    /*
-     * ============================================================
-     * LINE GEOMETRY
-     * ============================================================
-     */
-
-    const lineHeight =
-        fontSize *
-        FINAL_TEXT_LINE_HEIGHT;
-
-    /*
-     * ============================================================
-     * MUI LINE-BOX GEOMETRY
-     * ============================================================
-     *
-     * MUI:
-     *
-     *     top: 50%
-     *     transform: translateY(-50% + verticalOffset)
-     *     lineHeight: 1
-     *
-     * The three lines therefore occupy exactly:
-     *
-     *     3 × fontSize
-     *
-     * with their line-box centers separated by exactly
-     * one fontSize.
-     *
-     * We use the canvas alphabetic baseline only to place
-     * the glyph inside each line box.
-     */
-
-    ctx.font =
-        font;
-
-    const metrics =
-        ctx.measureText(
-            'M'
-        );
-
-    const ascent =
-        Number.isFinite(
-            metrics.actualBoundingBoxAscent
-        )
-            ? metrics.actualBoundingBoxAscent
-            : fontSize * 0.74;
-
-    const lineBoxTop =
-        finalTextCanvasHeight / 2 -
-        (
-            lineHeight *
-            3
-        ) / 2;
-
-    const firstLineBaseline =
-        lineBoxTop +
-        ascent;
-
-    const secondLineBaseline =
-        firstLineBaseline +
-        lineHeight;
-
-    const thirdLineBaseline =
-        secondLineBaseline +
-        lineHeight;
-
-    /*
-     * ============================================================
-     * DRAW
-     * ============================================================
-     */
+    const { worldWidth, worldHeight } = getFinalTextViewportWorldSize();
+    const canvasScale = FINAL_TEXT_CANVAS_WIDTH / window.innerWidth;
+    const fontSize = responsiveGeometry.fontSize * canvasScale;
+    const font = `100 ${fontSize}px ` + `"Helvetica Neue", Arial, sans-serif`;
+    const letterSpacing = responsiveGeometry.letterSpacing * canvasScale;
+    const textX = responsiveGeometry.left * canvasScale;
+    const verticalOffsetWorld = -(responsiveGeometry.verticalOffsetVh / 100) * worldHeight;
+    const lineHeight = responsiveGeometry.lineHeight * canvasScale;
+    const firstLineBaseline = responsiveGeometry.firstLineBaseline * canvasScale;
+    const secondLineBaseline = responsiveGeometry.secondLineBaseline * canvasScale;
+    const thirdLineBaseline = responsiveGeometry.thirdLineBaseline * canvasScale;
 
     drawLeftAlignedLetterSpacedText(
         ctx,
@@ -2122,12 +1977,12 @@ export default function HomeNebulaText({
                     return;
                 }
 
-                const nextDevOmTypography =getDevOmTypographyGeometry();
-                const sentenceTexture =createSentenceTargetTexture();
-                const devOmTexture =createDevOmTargetTexture(DEVOM_FULL_RATIO);
-                const responsiveGeometry =getFinalTextResponsiveGeometry();
+                const nextDevOmTypography = getDevOmTypographyGeometry();
+                const sentenceTexture = createSentenceTargetTexture();
+                const devOmTexture = createDevOmTargetTexture(DEVOM_FULL_RATIO);
+                const responsiveGeometry = getFinalTextResponsiveGeometry();
                 const finalTexture = createFinalTextTargetTexture(responsiveGeometry);
-                
+
                 setDevOmTypography(nextDevOmTypography);
                 setTextTargetTexture(sentenceTexture);
                 setDevOmFullTargetTexture(devOmTexture);
@@ -2145,12 +2000,12 @@ export default function HomeNebulaText({
                     return;
                 }
 
-                const nextDevOmTypography =getDevOmTypographyGeometry();
-                const sentenceTexture =createSentenceTargetTexture();
-                const devOmTexture =createDevOmTargetTexture(DEVOM_FULL_RATIO);
-                const responsiveGeometry =getFinalTextResponsiveGeometry();
-                const finalTexture =createFinalTextTargetTexture(responsiveGeometry);
-                
+                const nextDevOmTypography = getDevOmTypographyGeometry();
+                const sentenceTexture = createSentenceTargetTexture();
+                const devOmTexture = createDevOmTargetTexture(DEVOM_FULL_RATIO);
+                const responsiveGeometry = getFinalTextResponsiveGeometry();
+                const finalTexture = createFinalTextTargetTexture(responsiveGeometry);
+
                 setDevOmTypography(nextDevOmTypography);
                 setTextTargetTexture(sentenceTexture);
                 setDevOmFullTargetTexture(devOmTexture);
