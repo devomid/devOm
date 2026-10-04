@@ -2573,7 +2573,7 @@ export default function HomeNebulaText({
 
                         color: colors.accent.primary,
                         userSelect: 'none',
-                        whiteSpace: 'normal',
+                        whiteSpace: 'nowrap',
                         opacity: finalTextMuiVisible
                             ? 1
                             : 0,
