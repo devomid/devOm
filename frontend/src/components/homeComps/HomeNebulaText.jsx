@@ -2336,6 +2336,39 @@ export default function HomeNebulaText({
     ]);
 
     useEffect(() => {
+        if (
+            !skipIntro ||
+            !finalTextTargetTexture
+        ) {
+            return
+        }
+
+        introCompleteRef.current =
+            true
+
+        setWindActive(false)
+
+        setCurrentTargetTexture(
+            finalTextTargetTexture
+        )
+
+        setTextEnabled(true)
+
+        setDevOmMuiVisible(true)
+
+        setFinalTextMuiVisible(false)
+
+        onScrollIndicatorReady?.()
+
+        onIntroComplete?.()
+    }, [
+        skipIntro,
+        finalTextTargetTexture,
+        onScrollIndicatorReady,
+        onIntroComplete,
+    ])
+
+    useEffect(() => {
         return () => {
             textTargetTexture?.dispose();
 
