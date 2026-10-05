@@ -2748,6 +2748,12 @@ const NebulaParticles = ({
     const ringCompletionTimerRef = useRef(null)
     const skipAppliedRef = useRef(false)
 
+    useEffect(() => {
+        if (!skipIntro) {
+            skipAppliedRef.current = false
+        }
+    }, [skipIntro])
+
     const {
         gl,
         size,
