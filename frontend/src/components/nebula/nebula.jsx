@@ -3498,13 +3498,27 @@ const NebulaParticles = ({
                     depthWrite:
                         false,
                 })
+            
+            const skipPositionMaterial = new THREE.ShaderMaterial({
+                vertexShader: simulationVertexShader,
+                fragmentShader: skipPositionFragmentShader,
+                uniforms: {
+                    uTargetTexture: { value: null },
+                    uParallaxX: { value: 0.0 },
+                    uParallaxScale: { value: 1.0 },
+                },
+                depthTest: false,
+                depthWrite: false,
+            })
 
-            /*
-             * ------------------------------------------------
-             * SIMULATION QUAD
-             * ------------------------------------------------
-             */
-
+            const skipVelocityMaterial = new THREE.ShaderMaterial({
+                vertexShader: simulationVertexShader,
+                fragmentShader: skipVelocityFragmentShader,
+                uniforms: {},
+                depthTest: false,
+                depthWrite: false,
+            })
+            
             const simulationQuad =
                 createSimulationQuad(
                     velocityMaterial,
