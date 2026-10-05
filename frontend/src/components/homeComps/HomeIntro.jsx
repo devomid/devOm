@@ -11,6 +11,7 @@ const HomeIntro = ({
     onScrollIndicatorReady,
     scrollProgress,
     introComplete,
+    skipIntro,
     postIntroScrollStarted
 }) => {
     return (
@@ -39,20 +40,11 @@ const HomeIntro = ({
             }}
         >
             <HomeNebulaText
-                onIntroComplete={
-                    onIntroComplete
-                }
-                onScrollIndicatorReady={
-                    onScrollIndicatorReady
-                }
-                scrollProgress={
-                    scrollProgress
-                }
-                introComplete={
-                    introComplete
-                }
+                onIntroComplete={onIntroComplete}
+                onScrollIndicatorReady={onScrollIndicatorReady} scrollProgress={scrollProgress}
+                introComplete={introComplete}
+                skipIntro={skipIntro}
                 postIntroScrollStarted={postIntroScrollStarted}
-
             />
         </Box>
     )

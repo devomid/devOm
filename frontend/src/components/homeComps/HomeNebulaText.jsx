@@ -1897,6 +1897,7 @@ export default function HomeNebulaText({
     onScrollIndicatorReady,
     scrollProgress,
     introComplete,
+    skipIntro,
     postIntroScrollStarted
 }) {
     const [textTargetTexture, setTextTargetTexture] = useState(null);
@@ -2099,6 +2100,10 @@ export default function HomeNebulaText({
     ]);
 
     useEffect(() => {
+        if (skipIntro) {
+            return;
+        }
+
         if (
             !textTargetTexture ||
             !devOmFullTargetTexture ||
@@ -2327,6 +2332,7 @@ export default function HomeNebulaText({
         textTargetTexture,
         devOmFullTargetTexture,
         finalTextTargetTexture,
+        skipIntro,
     ]);
 
     useEffect(() => {
@@ -2639,38 +2645,16 @@ export default function HomeNebulaText({
                     {TEXT_LINE_2}
                 </Typography>
             </div>
-
+            
             <NebulaBackground
-                textEnabled={
-                    textEnabled &&
-                    Boolean(
-                        currentTargetTexture
-                    )
-                }
-
-                textTargetTexture={
-                    currentTargetTexture
-                }
-
-                textStrength={
-                    4.8
-                }
-
-                textParallaxX={
-                    finalParticleX
-                }
-
-                textParallaxScale={
-                    finalParticleScale
-                }
-
-                textScrollProgress={
-                    scrollProgress
-                }
-
-                homeWindActive={
-                    windActive
-                }
+                skipIntro={skipIntro}
+                textEnabled={textEnabled && Boolean(currentTargetTexture)}
+                textTargetTexture={currentTargetTexture}
+                textStrength={4.8}
+                textParallaxX={finalParticleX}
+                textParallaxScale={finalParticleScale}
+                textScrollProgress={scrollProgress}
+                homeWindActive={windActive}
             />
         </>
     );

@@ -22,7 +22,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
     const [cardsMounted, setCardsMounted] = useState(false);
     const [showScrollIndicator, setShowScrollIndicator] = useState(false);
     const [postIntroScrollStarted, setPostIntroScrollStarted] = useState(false);
-    
+
     const snapTimeoutRef = useRef(null);
     const isSnappingRef = useRef(false);
 
@@ -199,6 +199,7 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     }}
                     scrollProgress={lazyScrollProgress}
                     introComplete={introComplete}
+                    skipIntro={skipIntro}
                     postIntroScrollStarted={postIntroScrollStarted}
                 />
 
