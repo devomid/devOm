@@ -307,26 +307,6 @@ const velocityFlowFragmentShader = `
 
     uniform float uHomeWindActive;
     uniform float uHomeWindTime;
-
-
-    /*
-     * ========================================================
-     * BUILD TILE WIPE / TEXT DISTURBANCE
-     *
-     * This is the original WhatIBuild behavior.
-     *
-     * The tile does NOT hide particles.
-     * The tile does NOT discard particles.
-     *
-     * It acts as a soft force field against the particles
-     * belonging to the current text target.
-     *
-     * The normal text spring remains active underneath it,
-     * which allows the text to reform naturally after the
-     * tile passes.
-     * ========================================================
-     */
-
     uniform vec2 uWipeCenter;
     uniform vec2 uWipeHalfSize;
     uniform vec2 uWipeDirection;
@@ -2755,35 +2735,18 @@ const NebulaParticles = ({
     onRingComplete = null,
     ringCompletionDuration = RING_FORM_DURATION,
 }) => {
-    const pointsRef =
-        useRef(null)
 
-    const simulationRef =
-        useRef(null)
-
-    const previousWipeRef =
-        useRef(null)
-
-    const homeWindTimeRef =
-        useRef(0)
-
-    const simulationAccumulatorRef =
-        useRef(0)
-
-    const simulationTimeRef =
-        useRef(0)
-    
-    const previousTextScrollProgressRef =
-        useRef(0)
-
-    const homeWindStartTimeRef =
-        useRef(null)
-
-    const previousTargetTextureRef =
-        useRef(null)
-
-    const ringCompletionTimerRef =
-        useRef(null)
+    const pointsRef = useRef(null)
+    const simulationRef = useRef(null)
+    const previousWipeRef = useRef(null)
+    const homeWindTimeRef = useRef(0)
+    const simulationAccumulatorRef = useRef(0)
+    const simulationTimeRef = useRef(0)
+    const previousTextScrollProgressRef = useRef(0)
+    const homeWindStartTimeRef = useRef(null)
+    const previousTargetTextureRef = useRef(null)
+    const ringCompletionTimerRef = useRef(null)
+    const skipAppliedRef = useRef(false)
 
     const {
         gl,
@@ -3498,7 +3461,7 @@ const NebulaParticles = ({
                     depthWrite:
                         false,
                 })
-            
+
             const skipPositionMaterial = new THREE.ShaderMaterial({
                 vertexShader: simulationVertexShader,
                 fragmentShader: skipPositionFragmentShader,
@@ -3518,7 +3481,7 @@ const NebulaParticles = ({
                 depthTest: false,
                 depthWrite: false,
             })
-            
+
             const simulationQuad =
                 createSimulationQuad(
                     velocityMaterial,
@@ -3537,22 +3500,16 @@ const NebulaParticles = ({
             simulationRef.current = {
                 positionA,
                 positionB,
-
                 velocityA,
                 velocityB,
-
                 velocityMaterial,
-
                 positionMaterial,
-
                 containmentMaterial,
-
+                skipPositionMaterial,
+                skipVelocityMaterial,
                 simulationScene,
-
                 simulationCamera,
-
                 simulationQuad,
-
                 initialized:
                     true,
             }
@@ -3577,7 +3534,8 @@ const NebulaParticles = ({
                 velocityMaterial.dispose()
                 positionMaterial.dispose()
                 containmentMaterial.dispose()
-
+                skipPositionMaterial.dispose()
+                skipVelocityMaterial.dispose()
                 initializationQuad
                     .geometry
                     .dispose()
@@ -3714,7 +3672,7 @@ const NebulaParticles = ({
             const parallaxScaleValue =
                 textParallaxScale?.get?.() ?? 1.0
 
-            
+
             const currentTextScrollProgress =
                 textScrollProgress?.get?.() ?? 0.0
 
@@ -3733,7 +3691,7 @@ const NebulaParticles = ({
                 .uTextScrollVelocity
                 .value =
                 textScrollVelocity
-            
+
             const parallaxXPercent =
                 Number.parseFloat(
                     parallaxXValue
@@ -3782,8 +3740,8 @@ const NebulaParticles = ({
                 .value =
                 window.innerWidth < 768
                     ? 1.35
-                : 1.0
-            
+                    : 1.0
+
 
             if (
                 homeWindActive
@@ -4552,7 +4510,7 @@ const NebulaBackground = ({
                 rectangleStrengthRef={rectangleStrengthRef}
                 cardRect={cardRect}
                 interactionRef={interactionRef}
-                onRingComplete={onRingComplete                }
+                onRingComplete={onRingComplete}
                 ringCompletionDuration={ringCompletionDuration}
             />
         </Canvas>
