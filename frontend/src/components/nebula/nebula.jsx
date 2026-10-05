@@ -238,6 +238,50 @@ const simulationVertexShader = `
     }
 `
 
+const skipPositionFragmentShader = `
+    precision highp float;
+
+    uniform sampler2D uTargetTexture;
+    uniform float uParallaxX;
+    uniform float uParallaxScale;
+
+    varying vec2 vUv;
+
+    void main() {
+        vec3 target =
+            texture2D(
+                uTargetTexture,
+                vUv
+            ).xyz;
+
+        target.xy *=
+            uParallaxScale;
+
+        target.x +=
+            uParallaxX;
+
+        gl_FragColor =
+            vec4(
+                target,
+                1.0
+            );
+    }
+`
+
+const skipVelocityFragmentShader = `
+    precision highp float;
+
+    void main() {
+        gl_FragColor =
+            vec4(
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            );
+    }
+`
+
 const velocityFlowFragmentShader = `
     precision highp float;
 
