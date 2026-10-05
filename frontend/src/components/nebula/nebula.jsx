@@ -2699,6 +2699,7 @@ const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
     cloudTargetTexture = null,
+    skipIntro = false,
     textStrength = 0.0,
     textParallaxX = null,
     textParallaxScale = null,
@@ -4420,6 +4421,7 @@ const NebulaBackground = ({
     textEnabled = false,
     textTargetTexture = null,
     cloudTargetTexture = null,
+    skipIntro = false,
     textStrength = 0.0,
     homeWindActive = false,
     textParallaxX = null,
@@ -4481,51 +4483,19 @@ const NebulaBackground = ({
             }}
         >
             <NebulaParticles
-                textEnabled={
-                    textEnabled
-                }
-
-                textTargetTexture={
-                    textTargetTexture
-                }
-
-                cloudTargetTexture={
-                    cloudTargetTexture
-                }
-
-                textStrength={
-                    textStrength
-                }
-
-                textParallaxX={
-                    textParallaxX
-                }
-
-                textParallaxScale={
-                    textParallaxScale
-                }
-                homeWindActive={
-                    homeWindActive
-                }
-
-                rectangleStrengthRef={
-                    rectangleStrengthRef
-                }
-
-                cardRect={
-                    cardRect
-                }
-
-                interactionRef={
-                    interactionRef
-                }
-
-                onRingComplete={
-                    onRingComplete
-                }
-                ringCompletionDuration={
-                    ringCompletionDuration
-                }
+                textEnabled={textEnabled}
+                textTargetTexture={textTargetTexture}
+                cloudTargetTexture={cloudTargetTexture}
+                skipIntro={skipIntro}
+                textStrength={textStrength}
+                textParallaxX={textParallaxX}
+                textParallaxScale={textParallaxScale}
+                homeWindActive={homeWindActive}
+                rectangleStrengthRef={rectangleStrengthRef}
+                cardRect={cardRect}
+                interactionRef={interactionRef}
+                onRingComplete={onRingComplete                }
+                ringCompletionDuration={ringCompletionDuration}
             />
         </Canvas>
     )
