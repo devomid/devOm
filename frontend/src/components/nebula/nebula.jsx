@@ -3678,7 +3678,10 @@ const NebulaParticles = ({
 
                 simulationAccumulatorRef.current = 0
                 skipAppliedRef.current = true
-            }
+
+                gl.setRenderTarget(null)
+
+                return
 
             const cloudAmount =
                 rectangleStrengthRef?.current ??
