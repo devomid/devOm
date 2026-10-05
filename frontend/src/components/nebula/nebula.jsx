@@ -3688,7 +3688,7 @@ const NebulaParticles = ({
                 gl.setRenderTarget(null)
 
                 return
-
+            }
             const cloudAmount =
                 rectangleStrengthRef?.current ??
                 0.0

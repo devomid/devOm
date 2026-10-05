@@ -203,29 +203,31 @@ const Home = ({ homeRef, scrollProgress, }) => {
                     postIntroScrollStarted={postIntroScrollStarted}
                 />
 
-                <Box
-                    component="button"
-                    type="button"
-                    onClick={() => setSkipIntro(true)}
-                    sx={{
-                        position: 'fixed',
-                        top: '24px',
-                        right: '24px',
-                        zIndex: 100,
-                        padding: '8px 14px',
-                        border: '1px solid rgba(255,255,255,0.22)',
-                        borderRadius: '999px',
-                        background: 'rgba(20,18,15,0.45)',
-                        color: 'rgba(255,255,255,0.78)',
-                        fontFamily: 'inherit',
-                        fontSize: '12px',
-                        letterSpacing: '0.08em',
-                        cursor: 'pointer',
-                        backdropFilter: 'blur(10px)',
-                    }}
-                >
-                    Skip Intro
-                </Box>
+                {!introComplete && (
+                    <Box
+                        component="button"
+                        type="button"
+                        onClick={() => setSkipIntro(true)}
+                        sx={{
+                            position: 'fixed',
+                            top: '24px',
+                            right: '24px',
+                            zIndex: 100,
+                            padding: '8px 14px',
+                            border: '1px solid rgba(255,255,255,0.22)',
+                            borderRadius: '999px',
+                            background: 'rgba(20,18,15,0.45)',
+                            color: 'rgba(255,255,255,0.78)',
+                            fontFamily: 'inherit',
+                            fontSize: '12px',
+                            letterSpacing: '0.08em',
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(10px)',
+                        }}
+                    >
+                        Skip Intro
+                    </Box>
+                )}
 
                 {cardsMounted && (
                     <Box
