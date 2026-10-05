@@ -3591,34 +3591,98 @@ const NebulaParticles = ({
             const {
                 positionA,
                 positionB,
-
                 velocityA,
                 velocityB,
-
                 velocityMaterial,
                 positionMaterial,
                 containmentMaterial,
-
+                skipPositionMaterial,
+                skipVelocityMaterial,
                 simulationScene,
                 simulationCamera,
                 simulationQuad,
             } = simulation
 
-            /*
-             * ------------------------------------------------
-             * CLOUD AMOUNT
-             * ------------------------------------------------
-             */
+            if (
+                skipIntro &&
+                textTargetTexture &&
+                !skipAppliedRef.current
+            ) {
+                const parallaxXValue =
+                    textParallaxX?.get?.() ?? '0vw'
+
+                const parallaxScaleValue =
+                    textParallaxScale?.get?.() ?? 1.0
+
+                const parallaxXPercent =
+                    Number.parseFloat(parallaxXValue) || 0.0
+
+                const parallaxWorldX =
+                    (parallaxXPercent / 100) *
+                    (
+                        2 *
+                        Math.abs(camera.position.z) *
+                        Math.tan(
+                            THREE.MathUtils.degToRad(
+                                camera.fov / 2
+                            )
+                        ) *
+                        (size.width / size.height)
+                    )
+
+                skipPositionMaterial.uniforms.uTargetTexture.value =
+                    textTargetTexture
+
+                skipPositionMaterial.uniforms.uParallaxX.value =
+                    parallaxWorldX
+
+                skipPositionMaterial.uniforms.uParallaxScale.value =
+                    Number.isFinite(parallaxScaleValue)
+                        ? parallaxScaleValue
+                        : 1.0
+
+                simulationQuad.material =
+                    skipPositionMaterial
+
+                gl.setRenderTarget(positionA)
+                gl.render(
+                    simulationScene,
+                    simulationCamera
+                )
+
+                gl.setRenderTarget(positionB)
+                gl.render(
+                    simulationScene,
+                    simulationCamera
+                )
+
+                simulationQuad.material =
+                    skipVelocityMaterial
+
+                gl.setRenderTarget(velocityA)
+                gl.render(
+                    simulationScene,
+                    simulationCamera
+                )
+
+                gl.setRenderTarget(velocityB)
+                gl.render(
+                    simulationScene,
+                    simulationCamera
+                )
+
+                gl.setRenderTarget(null)
+
+                particleMaterial.uniforms.uPositionTexture.value =
+                    positionA.texture
+
+                simulationAccumulatorRef.current = 0
+                skipAppliedRef.current = true
+            }
 
             const cloudAmount =
                 rectangleStrengthRef?.current ??
                 0.0
-
-            /*
-             * ------------------------------------------------
-             * VELOCITY INPUTS
-             * ------------------------------------------------
-             */
 
             velocityMaterial
                 .uniforms
