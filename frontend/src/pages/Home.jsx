@@ -18,10 +18,11 @@ const Home = ({ homeRef, scrollProgress, }) => {
 
 
     const [introComplete, setIntroComplete] = useState(false);
+    const [skipIntro, setSkipIntro] = useState(false);
     const [cardsMounted, setCardsMounted] = useState(false);
     const [showScrollIndicator, setShowScrollIndicator] = useState(false);
     const [postIntroScrollStarted, setPostIntroScrollStarted] = useState(false);
-
+    
     const snapTimeoutRef = useRef(null);
     const isSnappingRef = useRef(false);
 
