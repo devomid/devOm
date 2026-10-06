@@ -14,6 +14,15 @@ const PHONE_TEXTURE_SIZE = 256
 
 const RING_FORM_DURATION = 1800
 
+let globalNavTargetTexture = null
+
+export const setGlobalNavTargetTexture = (
+    texture,
+) => {
+    globalNavTargetTexture =
+        texture || null
+}
+
 const getNebulaQuality = (width) => {
     if (width < 768) {
         return {
@@ -3888,28 +3897,17 @@ const NebulaParticles = ({
                 textTargetTexture ||
                 initialTextures.position
 
-            velocityMaterial
-                .uniforms
-                .uNavTargetTexture
-                .value =
-                navTargetTexture ||
-                initialTextures.position
+            const effectiveNavTargetTexture =
+                navTargetTexture || globalNavTargetTexture;
 
-            velocityMaterial
-                .uniforms
-                .uNavEnabled
-                .value =
-                navTargetTexture
-                    ? 1.0
-                    : 0.0
+            velocityMaterial.uniforms.uNavTargetTexture.value =
+                effectiveNavTargetTexture || initialTextures.position;
 
-            velocityMaterial
-                .uniforms
-                .uNavStrength
-                .value =
-                navTargetTexture
-                    ? 1.0
-                    : 0.0
+            velocityMaterial.uniforms.uNavEnabled.value =
+                effectiveNavTargetTexture ? 1.0 : 0.0;
+
+            velocityMaterial.uniforms.uNavStrength.value =
+                effectiveNavTargetTexture ? 1.0 : 0.0;
 
             velocityMaterial
                 .uniforms
