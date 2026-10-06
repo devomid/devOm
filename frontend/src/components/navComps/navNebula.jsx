@@ -699,11 +699,11 @@ export default function NavNebula() {
                 inset: 0,
                 zIndex: 100,
                 pointerEvents:
-                    "none",
+                    "auto",
             }}
         >
             {NAV_ITEMS.map(
-                (item) => (
+                (item, index) => (
                     <button
                         key={item.id}
                         type="button"
@@ -716,20 +716,22 @@ export default function NavNebula() {
                             )
                         }
                         style={{
-                            position:
-                                "absolute",
-                            left: 0,
-                            top: 0,
-                            width: "100%",
-                            height: "100%",
-                            border: 0,
+                            position: "absolute",
+                            left: `${NAV_LAYOUT[index].x * 100}%`,
+                            top: `${NAV_LAYOUT[index].y * 100}%`,
+                            transform: "translate(-50%, -50%)",
+                            width: `${Math.max(
+                                70,
+                                getResponsiveFontSize() *
+                                (item.label.length * 0.62)
+                            )}px`,
+                            height: `${Math.max(32, getResponsiveFontSize() * 1.8)}px`,
+                            background: "transparent",
+                            border: "none",
                             padding: 0,
                             margin: 0,
-                            background:
-                                "transparent",
+                            pointerEvents: "auto",
                             cursor: "pointer",
-                            pointerEvents:
-                                "none",
                         }}
                     />
                 ),
