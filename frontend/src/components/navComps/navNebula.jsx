@@ -379,7 +379,9 @@ function collectCandidates(
     return selected;
 }
 
-function createCombinedNavTargetTexture() {
+function createCombinedNavTargetTexture(
+    activePath,
+) {
     const canvas =
         document.createElement(
             "canvas",
@@ -422,6 +424,56 @@ function createCombinedNavTargetTexture() {
             );
         },
     );
+
+    /*
+     * Active-page indicator.
+     *
+     * The dot is drawn into the same canvas as the
+     * navigation text, so it becomes part of the
+     * exact same particle target texture.
+     *
+     * Its X coordinate is taken directly from the
+     * active word's NAV_LAYOUT entry. This guarantees
+     * that the dot is horizontally centered under
+     * that word regardless of the label's width.
+     */
+    const activeIndex =
+        NAV_ITEMS.findIndex(
+            (item) =>
+                item.path === activePath,
+        );
+
+    if (activeIndex !== -1) {
+        const activeLayout =
+            NAV_LAYOUT[activeIndex];
+
+        const dotX =
+            CANVAS_WIDTH *
+            activeLayout.x;
+
+        const dotY =
+            CANVAS_HEIGHT *
+            activeLayout.y +
+            fontSize * 0.95;
+
+        const dotRadius =
+            Math.max(
+                2,
+                fontSize * 0.10,
+            );
+
+        context.beginPath();
+
+        context.arc(
+            dotX,
+            dotY,
+            dotRadius,
+            0,
+            Math.PI * 2,
+        );
+
+        context.fill();
+    }
 
     const candidates =
         collectCandidates(
@@ -595,7 +647,9 @@ export default function NavNebula() {
                 window.setTimeout(
                     () => {
                         const nextTexture =
-                            createCombinedNavTargetTexture();
+                            createCombinedNavTargetTexture(
+                                location.pathname,
+                            );
 
                         if (
                             textureRef.current
