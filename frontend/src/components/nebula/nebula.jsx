@@ -1325,14 +1325,22 @@ velocity +=
          * ====================================================
          */
 
-       if (
-    uNavEnabled > 0.5
-) {
+        float navParticle = 0.0;
+        
+        if (
+            uNavEnabled > 0.5
+            ) {
     vec4 navTargetSample =
         texture2D(
             uNavTargetTexture,
             vUv
         );
+
+        navParticle =
+    step(
+        0.001,
+        navTargetSample.a
+    );
 
     if (
         navTargetSample.a >
@@ -1373,13 +1381,13 @@ velocity +=
              * Strong enough to actually form
              * the navigation glyphs.
              */
-            float navSpring =
-                clamp(
-                    navDistance *
-                    0.0090,
-                    0.0012,
-                    0.0300
-                );
+      float navSpring =
+    clamp(
+        navDistance *
+        0.0140,
+        0.0020,
+        0.0450
+    );
 
             velocity +=
                 navDirection *
@@ -1460,9 +1468,10 @@ velocity +=
          * ====================================================
          */
 
-               if (
-            uTextEnabled > 0.5
-        ) {
+        if (
+    uTextEnabled > 0.5 &&
+    navParticle < 0.5
+) {
             vec4 textTargetSample =
                 texture2D(
                     uTextTargetTexture,
@@ -3893,6 +3902,19 @@ const NebulaParticles = ({
 
             velocityMaterial.uniforms.uNavStrength.value =
                 effectiveNavTargetTexture ? 1.0 : 0.0;
+            
+            if (
+                effectiveNavTargetTexture &&
+                !velocityMaterial.userData.navDebugLogged
+            ) {
+                console.log(
+                    "[NavNebula] target connected",
+                    effectiveNavTargetTexture.image?.width,
+                    effectiveNavTargetTexture.image?.height,
+                );
+
+                velocityMaterial.userData.navDebugLogged = true;
+            }
 
             velocityMaterial
                 .uniforms
