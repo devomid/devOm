@@ -1,4 +1,4 @@
-import React, {
+import {
     useEffect,
     useRef,
 } from "react";
@@ -42,8 +42,23 @@ const NAV_ITEMS = [
 
 const NAV_EVENT = "devom-nav-nebula";
 
-const TEXTURE_SIZE = 512;
+function getParticleTextureSize() {
+    if (typeof window === "undefined") {
+        return 512;
+    }
 
+    const width = window.innerWidth;
+
+    if (width < 768) {
+        return 256;
+    }
+
+    if (width < 1024) {
+        return 384;
+    }
+
+    return 512;
+}
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 700;
 
@@ -213,7 +228,8 @@ function collectCandidates(
         Math.floor(
             candidates.length * density,
         ),
-        TEXTURE_SIZE * TEXTURE_SIZE,
+        getParticleTextureSize() *
+        getParticleTextureSize(),
     );
 
     if (targetCount >= candidates.length) {
@@ -244,6 +260,8 @@ function collectCandidates(
 }
 
 function createCombinedNavTargetTexture() {
+    const textureSize =
+        getParticleTextureSize();
     const canvas =
         document.createElement("canvas");
 
@@ -286,8 +304,8 @@ function createCombinedNavTargetTexture() {
 
     const targetData =
         new Float32Array(
-            TEXTURE_SIZE *
-            TEXTURE_SIZE *
+            textureSize *
+            textureSize *
             4,
         );
 
@@ -304,8 +322,8 @@ function createCombinedNavTargetTexture() {
         WORLD_HEIGHT / 2;
 
     const maxParticles =
-        TEXTURE_SIZE *
-        TEXTURE_SIZE;
+        textureSize *
+        textureSize;
 
     const count =
         Math.min(
@@ -380,8 +398,8 @@ function createCombinedNavTargetTexture() {
     const texture =
         new THREE.DataTexture(
             targetData,
-            TEXTURE_SIZE,
-            TEXTURE_SIZE,
+            textureSize,
+            textureSize,
             THREE.RGBAFormat,
             THREE.FloatType,
         );
