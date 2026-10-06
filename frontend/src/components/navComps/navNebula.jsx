@@ -224,32 +224,44 @@ function collectCandidates(
         return [];
     }
 
-    const targetCount = Math.min(
-        Math.floor(
-            candidates.length * density,
-        ),
-        getParticleTextureSize() *
-        getParticleTextureSize(),
-    );
+    const textureSize =
+        getParticleTextureSize();
 
-    if (targetCount >= candidates.length) {
+    const targetCount =
+        Math.min(
+            Math.floor(
+                candidates.length *
+                density,
+            ),
+            textureSize *
+            textureSize,
+        );
+
+    if (
+        targetCount >=
+        candidates.length
+    ) {
         return candidates;
     }
 
     const selected = [];
 
     const step =
-        candidates.length / targetCount;
+        candidates.length /
+        targetCount;
 
     for (
         let i = 0;
         i < targetCount;
         i += 1
     ) {
-        const index = Math.min(
-            candidates.length - 1,
-            Math.floor(i * step),
-        );
+        const index =
+            Math.min(
+                candidates.length - 1,
+                Math.floor(
+                    i * step,
+                ),
+            );
 
         selected.push(
             candidates[index],
@@ -260,8 +272,7 @@ function collectCandidates(
 }
 
 function createCombinedNavTargetTexture() {
-    const textureSize =
-        getParticleTextureSize();
+
     const canvas =
         document.createElement("canvas");
 
@@ -301,6 +312,9 @@ function createCombinedNavTargetTexture() {
             canvas,
             getResponsiveParticleDensity(),
         );
+
+    const textureSize =
+        getParticleTextureSize();
 
     const targetData =
         new Float32Array(
