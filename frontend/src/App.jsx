@@ -3,8 +3,6 @@ import { Routes, Route, useLocation, } from 'react-router-dom'
 import { useEffect, useRef, } from 'react'
 import { motionValue } from 'framer-motion'
 
-import { colors } from './design'
-import NavBar from './components/navBar/navBar'
 import Home from './pages/Home'
 import WhatIBuild from './pages/WhatIBuild'
 import Works from './pages/Works'
@@ -12,6 +10,7 @@ import HowIBuild from './pages/HowIBuild'
 import Contacts from './pages/Contacts'
 import FourOFour from './pages/404'
 import useScrollState from './hooks/useScrollState'
+import NavNebula from './components/navComps/navNebula'
 
 function App() {
   const homeRef = useRef(null)
@@ -60,7 +59,7 @@ function App() {
         minHeight: '100svh',
       }}
     >
-      {/* <NavBar scrollProgress={homeScrollProgress.current} /> */}
+      <NavNebula />
 
       <Routes>
         <Route path="/" element={<Home homeRef={homeRef} scrollProgress={homeScrollProgress.current} scrollState={homeScrollState} />} />
