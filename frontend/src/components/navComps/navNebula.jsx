@@ -62,8 +62,39 @@ function getParticleTextureSize() {
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 700;
 
-const WORLD_WIDTH = 12.0;
-const WORLD_HEIGHT = 4.6666667;
+const CAMERA_Z = 10.0;
+const CAMERA_FOV = 60.0;
+
+function getWorldHeight() {
+    return (
+        2 *
+        CAMERA_Z *
+        Math.tan(
+            THREE.MathUtils.degToRad(
+                CAMERA_FOV / 2,
+            ),
+        )
+    );
+}
+
+function getWorldWidth() {
+    if (
+        typeof window === "undefined"
+    ) {
+        return getWorldHeight();
+    }
+
+    return (
+        getWorldHeight() *
+        (
+            window.innerWidth /
+            Math.max(
+                window.innerHeight,
+                1,
+            )
+        )
+    );
+}
 
 const FONT_FAMILY =
     '"Helvetica Neue", Helvetica, Arial, sans-serif';
@@ -77,27 +108,27 @@ const PARTICLE_DENSITY = 0.85;
 const NAV_LAYOUT = [
     {
         x: 0.10,
-        y: 0.14,
+        y: 0.055,
         align: "center",
     },
     {
         x: 0.30,
-        y: 0.14,
+        y: 0.055,
         align: "center",
     },
     {
         x: 0.53,
-        y: 0.14,
+        y: 0.055,
         align: "center",
     },
     {
         x: 0.74,
-        y: 0.14,
+        y: 0.055,
         align: "center",
     },
     {
         x: 0.91,
-        y: 0.14,
+        y: 0.055,
         align: "center",
     },
 ];
@@ -332,17 +363,23 @@ function createCombinedNavTargetTexture() {
             4,
         );
 
+    const worldWidth =
+        getWorldWidth();
+
+    const worldHeight =
+        getWorldHeight();
+
     const scaleX =
-        WORLD_WIDTH / CANVAS_WIDTH;
+        worldWidth / CANVAS_WIDTH;
 
     const scaleY =
-        WORLD_HEIGHT / CANVAS_HEIGHT;
+        worldHeight / CANVAS_HEIGHT;
 
     const offsetX =
-        -WORLD_WIDTH / 2;
+        -worldWidth / 2;
 
     const offsetY =
-        WORLD_HEIGHT / 2;
+        worldHeight / 2;
 
     const maxParticles =
         textureSize *
