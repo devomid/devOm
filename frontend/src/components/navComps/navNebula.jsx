@@ -106,31 +106,11 @@ const BASE_FONT_SIZE = 45;
 const PARTICLE_DENSITY = 0.85;
 
 const NAV_LAYOUT = [
-    {
-        x: 0.10,
-        y: 0.055,
-        align: "center",
-    },
-    {
-        x: 0.30,
-        y: 0.055,
-        align: "center",
-    },
-    {
-        x: 0.53,
-        y: 0.055,
-        align: "center",
-    },
-    {
-        x: 0.74,
-        y: 0.055,
-        align: "center",
-    },
-    {
-        x: 0.91,
-        y: 0.055,
-        align: "center",
-    },
+    { x: 0.20, y: 0.055, align: "center" },
+    { x: 0.35, y: 0.055, align: "center" },
+    { x: 0.50, y: 0.055, align: "center" },
+    { x: 0.65, y: 0.055, align: "center" },
+    { x: 0.80, y: 0.055, align: "center" },
 ];
 
 function getResponsiveFontSize() {
