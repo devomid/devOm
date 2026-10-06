@@ -1325,149 +1325,134 @@ velocity +=
          * ====================================================
          */
 
+       if (
+    uNavEnabled > 0.5
+) {
+    vec4 navTargetSample =
+        texture2D(
+            uNavTargetTexture,
+            vUv
+        );
+
+    if (
+        navTargetSample.a >
+        0.001
+    ) {
+        vec3 navTarget =
+            navTargetSample.xyz;
+
+        vec3 navToTarget =
+            navTarget -
+            position;
+
+        float navDistance =
+            length(
+                navToTarget
+            );
+
         if (
-            uNavEnabled > 0.5
+            navDistance >
+            0.0001
         ) {
-            vec4 navTargetSample =
-                texture2D(
-                    uNavTargetTexture,
-                    vUv
+            vec3 navDirection =
+                navToTarget /
+                navDistance;
+
+            float navVariation =
+                0.82 +
+                0.18 *
+                (
+                    0.5 +
+                    0.5 *
+                    sin(
+                        phase * 2.31
+                    )
                 );
 
-            if (
-                navTargetSample.a >
-                0.001
-            ) {
-                vec3 navTarget =
-                    navTargetSample.xyz;
+            /*
+             * Strong enough to actually form
+             * the navigation glyphs.
+             */
+            float navSpring =
+                clamp(
+                    navDistance *
+                    0.0090,
+                    0.0012,
+                    0.0300
+                );
 
-                vec3 navToTarget =
-                    navTarget -
-                    position;
+            velocity +=
+                navDirection *
+                navSpring *
+                uNavStrength *
+                navVariation;
 
-                float navDistance =
-                    length(
-                        navToTarget
-                    );
+            /*
+             * Keep the formed letters alive
+             * instead of freezing them.
+             */
+            float navTurbulenceX =
+                sin(
+                    position.y * 1.35 +
+                    position.z * 0.82 +
+                    uTime * 0.34 +
+                    phase * 1.73
+                );
 
-                if (
-                    navDistance >
-                    0.0001
-                ) {
-                    vec3 navDirection =
-                        navToTarget /
-                        navDistance;
+            float navTurbulenceY =
+                cos(
+                    position.x * 1.27 -
+                    position.z * 0.91 -
+                    uTime * 0.31 +
+                    phase * 1.41
+                );
 
-                    float navAttachmentWave =
-                        sin(
-                            phase * 1.73 +
-                            uTime * 0.13
-                        );
+            float navTurbulenceZ =
+                sin(
+                    position.x * 0.97 +
+                    position.y * 1.21 +
+                    uTime * 0.28 +
+                    phase * 2.07
+                );
 
-                    float navAttachment =
-                        smoothstep(
-                            -0.55,
-                            0.10,
-                            navAttachmentWave
-                        );
+            velocity.x +=
+                navTurbulenceX *
+                0.00055 *
+                uNavStrength *
+                navVariation;
 
-                    float navPersonalVariation =
-                        0.94 +
-                        0.06 *
-                        sin(
-                            phase * 2.37
-                        );
+            velocity.y +=
+                navTurbulenceY *
+                0.00055 *
+                uNavStrength *
+                navVariation;
 
-                    navAttachment *=
-                        navPersonalVariation;
+            velocity.z +=
+                navTurbulenceZ *
+                0.00022 *
+                uNavStrength *
+                navVariation;
 
-                    float navDistanceInfluence =
-                        1.0 -
-                        smoothstep(
-                            3.5,
-                            9.0,
-                            navDistance
-                        );
+            /*
+             * Slight movement along the glyph.
+             */
+            vec3 navTangent =
+                normalize(
+                    vec3(
+                        -navDirection.y,
+                        navDirection.x,
+                        0.0
+                    )
+                );
 
-                    float navFormationWeight =
-                        navAttachment *
-                        (
-                            0.82 +
-                            navDistanceInfluence *
-                            0.22
-                        );
-
-                    float navSpring =
-                        clamp(
-                            navDistance *
-                            0.00320,
-                            0.00035,
-                            0.0100
-                        );
-
-                    velocity +=
-                        navDirection *
-                        navSpring *
-                        uNavStrength *
-                        navFormationWeight;
-
-                    float navTurbulenceX =
-                        sin(
-                            position.y * 1.21 +
-                            position.z * 0.71 +
-                            uTime * 0.42 +
-                            phase * 1.73
-                        );
-
-                    float navTurbulenceY =
-                        cos(
-                            position.x * 1.17 -
-                            position.z * 0.83 -
-                            uTime * 0.37 +
-                            phase * 1.31
-                        );
-
-                    float navTurbulenceZ =
-                        sin(
-                            position.x * 0.91 +
-                            position.y * 1.33 +
-                            uTime * 0.31 +
-                            phase * 2.17
-                        );
-
-                    velocity.x +=
-                        navTurbulenceX *
-                        0.00042 *
-                        uNavStrength *
-                        navFormationWeight;
-
-                    velocity.y +=
-                        navTurbulenceY *
-                        0.00042 *
-                        uNavStrength *
-                        navFormationWeight;
-
-                    velocity.z +=
-                        navTurbulenceZ *
-                        0.00018 *
-                        uNavStrength *
-                        navFormationWeight;
-
-                    vec3 navTangent =
-                        vec3(
-                            -navDirection.y,
-                            navDirection.x,
-                            0.0
-                        );
-
-                    velocity +=
-                        navTangent *
-                        0.00034 *
-                        uNavStrength *
-                        navFormationWeight;
-                }
-            }
+            velocity +=
+                navTangent *
+                0.00042 *
+                uNavStrength *
+                navVariation;
         }
+    }
+}
 
         /*
          * ====================================================
