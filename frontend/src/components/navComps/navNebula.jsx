@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const NAV_ITEMS = [
@@ -29,11 +29,7 @@ const NAV_ITEMS = [
     },
 ];
 
-const NAV_STATE = {
-    idle: "idle",
-    hover: "hover",
-    active: "active",
-};
+const NAV_EVENT = "devom:navigation-nebula";
 
 function getCurrentNavId(pathname) {
     if (pathname === "/") {
@@ -59,48 +55,40 @@ function getCurrentNavId(pathname) {
     return "home";
 }
 
-function getResponsiveLayout(width) {
+function getLayout(width) {
     if (width < 600) {
         return {
             mode: "phone",
+            fontSize: 38,
             gap: 34,
-            fontScale: 0.62,
-            spreadX: 0.78,
-            spreadY: 0.78,
         };
     }
 
     if (width < 900) {
         return {
             mode: "tablet",
+            fontSize: 46,
             gap: 42,
-            fontScale: 0.76,
-            spreadX: 0.84,
-            spreadY: 0.84,
         };
     }
 
     if (width < 1200) {
         return {
             mode: "smallDesktop",
+            fontSize: 52,
             gap: 48,
-            fontScale: 0.88,
-            spreadX: 0.9,
-            spreadY: 0.9,
         };
     }
 
     return {
         mode: "desktop",
+        fontSize: 58,
         gap: 56,
-        fontScale: 1,
-        spreadX: 0.94,
-        spreadY: 0.94,
     };
 }
 
-function createNavLayout(width, height) {
-    const layout = getResponsiveLayout(width);
+function createTargets(width, height) {
+    const layout = getLayout(width);
 
     const horizontal =
         layout.mode === "desktop" ||
@@ -110,52 +98,60 @@ function createNavLayout(width, height) {
     const centerY = height * 0.5;
 
     if (horizontal) {
+        const estimatedWidths = NAV_ITEMS.map((item) => {
+            return Math.max(
+                layout.fontSize * 2.2,
+                item.label.length * layout.fontSize * 0.55,
+            );
+        });
+
         const totalWidth =
-            NAV_ITEMS.reduce((sum, item) => {
-                return sum + item.label.length * 15;
+            estimatedWidths.reduce((sum, value) => {
+                return sum + value;
             }, 0) +
             layout.gap * (NAV_ITEMS.length - 1);
 
-        const startX = centerX - totalWidth * 0.5;
+        let cursor = centerX - totalWidth * 0.5;
 
         return NAV_ITEMS.map((item, index) => {
-            const itemWidth = item.label.length * 15;
+            const itemWidth = estimatedWidths[index];
 
-            const x =
-                startX +
-                NAV_ITEMS.slice(0, index).reduce((sum, previous) => {
-                    return sum + previous.label.length * 15 + layout.gap;
-                }, 0) +
-                itemWidth * 0.5;
-
-            return {
+            const target = {
                 ...item,
                 index,
-                x,
+                x: cursor + itemWidth * 0.5,
                 y: centerY,
-                scale: layout.fontScale,
+                fontSize: layout.fontSize,
+                width: itemWidth,
             };
+
+            cursor += itemWidth + layout.gap;
+
+            return target;
         });
     }
 
+    const verticalGap = layout.fontSize * 0.9 + layout.gap;
+
     const totalHeight =
-        NAV_ITEMS.length * 34 +
-        (NAV_ITEMS.length - 1) * layout.gap;
+        verticalGap * (NAV_ITEMS.length - 1);
 
     const startY = centerY - totalHeight * 0.5;
 
     return NAV_ITEMS.map((item, index) => {
-        const y =
-            startY +
-            index * (34 + layout.gap) +
-            17;
-
         return {
             ...item,
             index,
             x: centerX,
-            y,
-            scale: layout.fontScale,
+            y: startY + index * verticalGap,
+            fontSize: layout.fontSize,
+            width: Math.min(
+                width * 0.82,
+                Math.max(
+                    layout.fontSize * 2.2,
+                    item.label.length * layout.fontSize * 0.55,
+                ),
+            ),
         };
     });
 }
@@ -168,31 +164,36 @@ export default function NavNebula({
     const navigate = useNavigate();
     const location = useLocation();
 
-    const containerRef = useRef(null);
-
     const activeId = getCurrentNavId(location.pathname);
 
-    const [layout, setLayout] = React.useState(() => {
+    const [viewport, setViewport] = useState(() => {
         if (typeof window === "undefined") {
-            return createNavLayout(1440, 900);
+            return {
+                width: 1440,
+                height: 900,
+            };
         }
 
-        return createNavLayout(
-            window.innerWidth,
-            window.innerHeight,
-        );
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+        };
     });
 
-    const [hoveredId, setHoveredId] = React.useState(null);
+    const [hoveredId, setHoveredId] = useState(null);
+
+    const pointerStateRef = useRef({
+        hoveredId: null,
+        x: 0,
+        y: 0,
+    });
 
     useEffect(() => {
         const handleResize = () => {
-            setLayout(
-                createNavLayout(
-                    window.innerWidth,
-                    window.innerHeight,
-                ),
-            );
+            setViewport({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
         };
 
         window.addEventListener("resize", handleResize);
@@ -202,66 +203,108 @@ export default function NavNebula({
         };
     }, []);
 
+    const targets = useMemo(() => {
+        return createTargets(
+            viewport.width,
+            viewport.height,
+        );
+    }, [viewport]);
+
     const navState = useMemo(() => {
-        return layout.map((item) => {
-            let state = NAV_STATE.idle;
-
-            if (item.id === activeId) {
-                state = NAV_STATE.active;
-            }
-
-            if (item.id === hoveredId) {
-                state = NAV_STATE.hover;
-            }
-
+        return targets.map((item) => {
             return {
                 ...item,
-                state,
                 active: item.id === activeId,
                 hovered: item.id === hoveredId,
             };
         });
-    }, [layout, activeId, hoveredId]);
+    }, [targets, activeId, hoveredId]);
 
     useEffect(() => {
+        const detail = {
+            type: "targets",
+            activeId,
+            hoveredId,
+            items: navState,
+        };
+
+        window.dispatchEvent(
+            new CustomEvent(NAV_EVENT, {
+                detail,
+            }),
+        );
+
         if (typeof onNavigationChange === "function") {
-            onNavigationChange({
-                activeId,
-                items: navState,
-            });
+            onNavigationChange(detail);
         }
-    }, [activeId, navState, onNavigationChange]);
 
-    useEffect(() => {
         if (typeof onTargetChange === "function") {
-            onTargetChange({
-                items: navState,
-                activeId,
-            });
+            onTargetChange(detail);
         }
-    }, [navState, activeId, onTargetChange]);
+    }, [
+        activeId,
+        hoveredId,
+        navState,
+        onNavigationChange,
+        onTargetChange,
+    ]);
+
+    const handlePointerMove = (event) => {
+        pointerStateRef.current.x = event.clientX;
+        pointerStateRef.current.y = event.clientY;
+
+        window.dispatchEvent(
+            new CustomEvent(NAV_EVENT, {
+                detail: {
+                    type: "pointer",
+                    x: event.clientX,
+                    y: event.clientY,
+                    hoveredId: pointerStateRef.current.hoveredId,
+                },
+            }),
+        );
+    };
 
     const handlePointerEnter = (id) => {
+        pointerStateRef.current.hoveredId = id;
         setHoveredId(id);
 
+        const detail = {
+            type: "enter",
+            id,
+        };
+
+        window.dispatchEvent(
+            new CustomEvent(NAV_EVENT, {
+                detail,
+            }),
+        );
+
         if (typeof onInteractionChange === "function") {
-            onInteractionChange({
-                type: "enter",
-                id,
-            });
+            onInteractionChange(detail);
         }
     };
 
     const handlePointerLeave = (id) => {
+        pointerStateRef.current.hoveredId = null;
+
         setHoveredId((current) => {
             return current === id ? null : current;
         });
 
+        const detail = {
+            type: "leave",
+            id,
+        };
+
+        window.dispatchEvent(
+            new CustomEvent(NAV_EVENT, {
+                detail,
+            }),
+        );
+
         if (typeof onInteractionChange === "function") {
-            onInteractionChange({
-                type: "leave",
-                id,
-            });
+            onInteractionChange(detail);
         }
     };
 
@@ -275,8 +318,8 @@ export default function NavNebula({
 
     return (
         <nav
-            ref={containerRef}
             aria-label="Primary navigation"
+            onPointerMove={handlePointerMove}
             style={{
                 position: "fixed",
                 inset: 0,
@@ -290,8 +333,14 @@ export default function NavNebula({
                         key={item.id}
                         type="button"
                         aria-label={item.label}
-                        aria-current={item.active ? "page" : undefined}
-                        onClick={() => handleNavigation(item)}
+                        aria-current={
+                            item.active
+                                ? "page"
+                                : undefined
+                        }
+                        onClick={() =>
+                            handleNavigation(item)
+                        }
                         onPointerEnter={() =>
                             handlePointerEnter(item.id)
                         }
@@ -302,15 +351,20 @@ export default function NavNebula({
                             position: "absolute",
                             left: `${item.x}px`,
                             top: `${item.y}px`,
-                            transform: "translate(-50%, -50%)",
                             width: `${Math.max(
-                                90,
-                                item.label.length * 18,
+                                item.width,
+                                100,
                             )}px`,
-                            height: "56px",
+                            height: `${Math.max(
+                                item.fontSize * 1.8,
+                                64,
+                            )}px`,
+                            transform:
+                                "translate(-50%, -50%)",
                             padding: 0,
                             margin: 0,
                             border: 0,
+                            outline: "none",
                             background: "transparent",
                             color: "transparent",
                             fontSize: 0,
@@ -327,3 +381,5 @@ export default function NavNebula({
         </nav>
     );
 }
+
+export { NAV_ITEMS, NAV_EVENT };
