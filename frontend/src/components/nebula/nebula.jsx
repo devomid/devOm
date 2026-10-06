@@ -290,7 +290,11 @@ const velocityFlowFragmentShader = `
     uniform sampler2D uMetadataTexture;
 
     uniform sampler2D uTextTargetTexture;
-    uniform sampler2D uCloudTargetTexture;
+uniform sampler2D uCloudTargetTexture;
+uniform sampler2D uNavTargetTexture;
+
+uniform float uNavEnabled;
+uniform float uNavStrength;
 
     uniform float uTime;
     uniform float uTextEnabled;
@@ -1305,6 +1309,156 @@ velocity +=
     windRamp*
     windEnd;
 }
+
+        /*
+         * ====================================================
+         * NAVIGATION TEXT FORMATION
+         * ====================================================
+         */
+
+        if (
+            uNavEnabled > 0.5
+        ) {
+            vec4 navTargetSample =
+                texture2D(
+                    uNavTargetTexture,
+                    vUv
+                );
+
+            if (
+                navTargetSample.a >
+                0.001
+            ) {
+                vec3 navTarget =
+                    navTargetSample.xyz;
+
+                vec3 navToTarget =
+                    navTarget -
+                    position;
+
+                float navDistance =
+                    length(
+                        navToTarget
+                    );
+
+                if (
+                    navDistance >
+                    0.0001
+                ) {
+                    vec3 navDirection =
+                        navToTarget /
+                        navDistance;
+
+                    float navAttachmentWave =
+                        sin(
+                            phase * 1.73 +
+                            uTime * 0.13
+                        );
+
+                    float navAttachment =
+                        smoothstep(
+                            -0.55,
+                            0.10,
+                            navAttachmentWave
+                        );
+
+                    float navPersonalVariation =
+                        0.94 +
+                        0.06 *
+                        sin(
+                            phase * 2.37
+                        );
+
+                    navAttachment *=
+                        navPersonalVariation;
+
+                    float navDistanceInfluence =
+                        1.0 -
+                        smoothstep(
+                            3.5,
+                            9.0,
+                            navDistance
+                        );
+
+                    float navFormationWeight =
+                        navAttachment *
+                        (
+                            0.82 +
+                            navDistanceInfluence *
+                            0.22
+                        );
+
+                    float navSpring =
+                        clamp(
+                            navDistance *
+                            0.00320,
+                            0.00035,
+                            0.0100
+                        );
+
+                    velocity +=
+                        navDirection *
+                        navSpring *
+                        uNavStrength *
+                        navFormationWeight;
+
+                    float navTurbulenceX =
+                        sin(
+                            position.y * 1.21 +
+                            position.z * 0.71 +
+                            uTime * 0.42 +
+                            phase * 1.73
+                        );
+
+                    float navTurbulenceY =
+                        cos(
+                            position.x * 1.17 -
+                            position.z * 0.83 -
+                            uTime * 0.37 +
+                            phase * 1.31
+                        );
+
+                    float navTurbulenceZ =
+                        sin(
+                            position.x * 0.91 +
+                            position.y * 1.33 +
+                            uTime * 0.31 +
+                            phase * 2.17
+                        );
+
+                    velocity.x +=
+                        navTurbulenceX *
+                        0.00042 *
+                        uNavStrength *
+                        navFormationWeight;
+
+                    velocity.y +=
+                        navTurbulenceY *
+                        0.00042 *
+                        uNavStrength *
+                        navFormationWeight;
+
+                    velocity.z +=
+                        navTurbulenceZ *
+                        0.00018 *
+                        uNavStrength *
+                        navFormationWeight;
+
+                    vec3 navTangent =
+                        vec3(
+                            -navDirection.y,
+                            navDirection.x,
+                            0.0
+                        );
+
+                    velocity +=
+                        navTangent *
+                        0.00034 *
+                        uNavStrength *
+                        navFormationWeight;
+                }
+            }
+        }
 
         /*
          * ====================================================
@@ -2722,6 +2876,7 @@ const createStateTarget = (
 const NebulaParticles = ({
     textEnabled = false,
     textTargetTexture = null,
+    navTargetTexture = null,
     cloudTargetTexture = null,
     skipIntro = false,
     textStrength = 0.0,
@@ -3303,6 +3458,21 @@ const NebulaParticles = ({
                                 initialTextures.position,
                         },
 
+                        uNavTargetTexture: {
+                            value:
+                                initialTextures.position,
+                        },
+
+                        uNavEnabled: {
+                            value:
+                                0.0,
+                        },
+
+                        uNavStrength: {
+                            value:
+                                0.0,
+                        },
+
                         uCloudTargetTexture: {
                             value:
                                 initialTextures.position,
@@ -3717,6 +3887,29 @@ const NebulaParticles = ({
                 .value =
                 textTargetTexture ||
                 initialTextures.position
+
+            velocityMaterial
+                .uniforms
+                .uNavTargetTexture
+                .value =
+                navTargetTexture ||
+                initialTextures.position
+
+            velocityMaterial
+                .uniforms
+                .uNavEnabled
+                .value =
+                navTargetTexture
+                    ? 1.0
+                    : 0.0
+
+            velocityMaterial
+                .uniforms
+                .uNavStrength
+                .value =
+                navTargetTexture
+                    ? 1.0
+                    : 0.0
 
             velocityMaterial
                 .uniforms
@@ -4509,6 +4702,7 @@ const NebulaParticles = ({
 const NebulaBackground = ({
     textEnabled = false,
     textTargetTexture = null,
+    navTargetTexture = null,
     cloudTargetTexture = null,
     skipIntro = false,
     textStrength = 0.0,
@@ -4574,6 +4768,7 @@ const NebulaBackground = ({
             <NebulaParticles
                 textEnabled={textEnabled}
                 textTargetTexture={textTargetTexture}
+                navTargetTexture={navTargetTexture}
                 cloudTargetTexture={cloudTargetTexture}
                 skipIntro={skipIntro}
                 textStrength={textStrength}
