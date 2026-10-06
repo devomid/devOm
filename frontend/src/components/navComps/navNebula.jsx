@@ -59,6 +59,7 @@ function getParticleTextureSize() {
 
     return 512;
 }
+
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 700;
 
@@ -78,9 +79,7 @@ function getWorldHeight() {
 }
 
 function getWorldWidth() {
-    if (
-        typeof window === "undefined"
-    ) {
+    if (typeof window === "undefined") {
         return getWorldHeight();
     }
 
@@ -99,30 +98,54 @@ function getWorldWidth() {
 const FONT_FAMILY =
     '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
-const FONT_WEIGHT = 500;
+const FONT_WEIGHT = 300;
 
-const BASE_FONT_SIZE = 45;
-
-const PARTICLE_DENSITY = 0.85;
-
-const NAV_LAYOUT = [
-    { x: 0.20, y: 0.055, align: "center" },
-    { x: 0.35, y: 0.055, align: "center" },
-    { x: 0.50, y: 0.055, align: "center" },
-    { x: 0.65, y: 0.055, align: "center" },
-    { x: 0.80, y: 0.055, align: "center" },
-];
+/*
+ * Nav-bar sized typography.
+ *
+ * These are deliberately much smaller than the previous
+ * headline-like values.
+ */
+const BASE_FONT_SIZE = 30;
 
 function getResponsiveFontSize() {
+    if (typeof window === "undefined") {
+        return BASE_FONT_SIZE;
+    }
+
     const width = window.innerWidth;
-    
-    if (typeof window === "undefined") return BASE_FONT_SIZE;
-    if (width < 600) return 24;
-    if (width < 900) return 36;
-    if (width < 1200) return 52;
+
+    if (width < 400) {
+        return 17;
+    }
+
+    if (width < 600) {
+        return 20;
+    }
+
+    if (width < 768) {
+        return 22;
+    }
+
+    if (width < 1024) {
+        return 24;
+    }
+
+    if (width < 1440) {
+        return 27;
+    }
 
     return BASE_FONT_SIZE;
 }
+
+/*
+ * Desktop keeps the requested 0.85 density.
+ *
+ * Smaller screens use less density because their particle
+ * texture is also smaller. The letters still remain dense,
+ * but we avoid wasting particles on tiny nav text.
+ */
+const PARTICLE_DENSITY = 0.85;
 
 function getResponsiveParticleDensity() {
     if (typeof window === "undefined") {
@@ -131,20 +154,58 @@ function getResponsiveParticleDensity() {
 
     const width = window.innerWidth;
 
+    if (width < 400) {
+        return 0.70;
+    }
+
     if (width < 600) {
-        return 0.50;
+        return 0.74;
     }
 
-    if (width < 900) {
-        return 0.43;
+    if (width < 768) {
+        return 0.78;
     }
 
-    if (width < 1200) {
-        return 0.39;
+    if (width < 1024) {
+        return 0.82;
     }
 
     return PARTICLE_DENSITY;
 }
+
+/*
+ * The navigation occupies approximately the middle 70%
+ * of the available canvas.
+ *
+ * The vertical position is intentionally unchanged.
+ */
+const NAV_LAYOUT = [
+    {
+        x: 0.20,
+        y: 0.055,
+        align: "center",
+    },
+    {
+        x: 0.35,
+        y: 0.055,
+        align: "center",
+    },
+    {
+        x: 0.50,
+        y: 0.055,
+        align: "center",
+    },
+    {
+        x: 0.65,
+        y: 0.055,
+        align: "center",
+    },
+    {
+        x: 0.80,
+        y: 0.055,
+        align: "center",
+    },
+];
 
 function drawNavText(
     context,
@@ -152,19 +213,25 @@ function drawNavText(
     index,
     fontSize,
 ) {
-    const layout = NAV_LAYOUT[index];
+    const layout =
+        NAV_LAYOUT[index];
 
     context.font =
         `${FONT_WEIGHT} ${fontSize}px ${FONT_FAMILY}`;
 
-    context.textAlign = layout.align;
-    context.textBaseline = "middle";
+    context.textAlign =
+        layout.align;
+
+    context.textBaseline =
+        "middle";
 
     const x =
-        CANVAS_WIDTH * layout.x;
+        CANVAS_WIDTH *
+        layout.x;
 
     const y =
-        CANVAS_HEIGHT * layout.y;
+        CANVAS_HEIGHT *
+        layout.y;
 
     context.fillText(
         item.label,
@@ -178,9 +245,12 @@ function collectCandidates(
     density,
 ) {
     const context =
-        canvas.getContext("2d", {
-            willReadFrequently: true,
-        });
+        canvas.getContext(
+            "2d",
+            {
+                willReadFrequently: true,
+            },
+        );
 
     const image =
         context.getImageData(
@@ -192,21 +262,37 @@ function collectCandidates(
 
     const candidates = [];
 
+    /*
+     * IMPORTANT:
+     *
+     * Scan every pixel.
+     *
+     * The previous step of 2 skipped a large amount
+     * of the actual anti-aliased letter geometry.
+     *
+     * The density value is applied AFTER this collection.
+     */
     for (
         let y = 0;
         y < canvas.height;
-        y += 2
+        y += 1
     ) {
         for (
             let x = 0;
             x < canvas.width;
-            x += 2
+            x += 1
         ) {
             const index =
-                (y * canvas.width + x) * 4;
+                (
+                    y *
+                    canvas.width +
+                    x
+                ) * 4;
 
             const alpha =
-                image.data[index + 3];
+                image.data[
+                index + 3
+                ];
 
             if (alpha < 100) {
                 continue;
@@ -215,7 +301,8 @@ function collectCandidates(
             candidates.push({
                 x,
                 y,
-                alpha: alpha / 255,
+                alpha:
+                    alpha / 255,
             });
         }
     }
@@ -268,30 +355,49 @@ function collectCandidates(
         );
     }
 
-    console.log("[NavNebula] target build", {
-        textureSize,
-        density,
-        candidates: candidates.length,
-        selected: selected.length,
-        first: selected.slice(0, 5),
-        last: selected.slice(-5),
-    });
+    console.log(
+        "[NavNebula] target build",
+        {
+            textureSize,
+            density,
+            candidates:
+                candidates.length,
+            selected:
+                selected.length,
+            first:
+                selected.slice(
+                    0,
+                    5,
+                ),
+            last:
+                selected.slice(
+                    -5,
+                ),
+        },
+    );
 
     return selected;
 }
 
 function createCombinedNavTargetTexture() {
-
     const canvas =
-        document.createElement("canvas");
+        document.createElement(
+            "canvas",
+        );
 
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
+    canvas.width =
+        CANVAS_WIDTH;
+
+    canvas.height =
+        CANVAS_HEIGHT;
 
     const context =
-        canvas.getContext("2d", {
-            willReadFrequently: true,
-        });
+        canvas.getContext(
+            "2d",
+            {
+                willReadFrequently: true,
+            },
+        );
 
     context.clearRect(
         0,
@@ -300,7 +406,8 @@ function createCombinedNavTargetTexture() {
         CANVAS_HEIGHT,
     );
 
-    context.fillStyle = "#ffffff";
+    context.fillStyle =
+        "#ffffff";
 
     const fontSize =
         getResponsiveFontSize();
@@ -332,6 +439,11 @@ function createCombinedNavTargetTexture() {
             4,
         );
 
+    /*
+     * Keep the existing world-space mapping.
+     *
+     * Do NOT change this for the nav-bar sizing work.
+     */
     const worldWidth =
         getWorldWidth();
 
@@ -339,10 +451,12 @@ function createCombinedNavTargetTexture() {
         getWorldHeight();
 
     const scaleX =
-        worldWidth / CANVAS_WIDTH;
+        worldWidth /
+        CANVAS_WIDTH;
 
     const scaleY =
-        worldHeight / CANVAS_HEIGHT;
+        worldHeight /
+        CANVAS_HEIGHT;
 
     const offsetX =
         -worldWidth / 2;
@@ -448,7 +562,8 @@ function createCombinedNavTargetTexture() {
     texture.generateMipmaps =
         false;
 
-    texture.needsUpdate = true;
+    texture.needsUpdate =
+        true;
 
     return texture;
 }
@@ -477,35 +592,38 @@ export default function NavNebula() {
             }
 
             rebuildTimerRef.current =
-                window.setTimeout(() => {
-                    const nextTexture =
-                        createCombinedNavTargetTexture();
+                window.setTimeout(
+                    () => {
+                        const nextTexture =
+                            createCombinedNavTargetTexture();
 
-                    if (
-                        textureRef.current
-                    ) {
-                        textureRef.current.dispose();
-                    }
+                        if (
+                            textureRef.current
+                        ) {
+                            textureRef.current.dispose();
+                        }
 
-                    textureRef.current =
-                        nextTexture;
+                        textureRef.current =
+                            nextTexture;
 
-                    setGlobalNavTargetTexture(
-                        nextTexture,
-                    );
+                        setGlobalNavTargetTexture(
+                            nextTexture,
+                        );
 
-                    window.dispatchEvent(
-                        new CustomEvent(
-                            NAV_EVENT,
-                            {
-                                detail: {
-                                    activePath:
-                                        location.pathname,
+                        window.dispatchEvent(
+                            new CustomEvent(
+                                NAV_EVENT,
+                                {
+                                    detail: {
+                                        activePath:
+                                            location.pathname,
+                                    },
                                 },
-                            },
-                        ),
-                    );
-                }, 80);
+                            ),
+                        );
+                    },
+                    80,
+                );
         };
 
         rebuild();
@@ -537,7 +655,9 @@ export default function NavNebula() {
                 textureRef.current
             ) {
                 textureRef.current.dispose();
-                textureRef.current = null;
+
+                textureRef.current =
+                    null;
             }
         };
     }, []);
@@ -554,13 +674,16 @@ export default function NavNebula() {
                 },
             ),
         );
-    }, [location.pathname]);
+    }, [
+        location.pathname,
+    ]);
 
     const handleNavigate = (
         path,
     ) => {
         if (
-            location.pathname === path
+            location.pathname ===
+            path
         ) {
             return;
         }
@@ -575,36 +698,42 @@ export default function NavNebula() {
                 position: "fixed",
                 inset: 0,
                 zIndex: 100,
-                pointerEvents: "none",
+                pointerEvents:
+                    "none",
             }}
         >
-            {NAV_ITEMS.map((item) => (
-                <button
-                    key={item.id}
-                    type="button"
-                    aria-label={item.label}
-                    onClick={() =>
-                        handleNavigate(
-                            item.path,
-                        )
-                    }
-                    style={{
-                        position: "absolute",
-                        left: 0,
-                        top: 0,
-                        width: "100%",
-                        height: "100%",
-                        border: 0,
-                        padding: 0,
-                        margin: 0,
-                        background:
-                            "transparent",
-                        cursor: "pointer",
-                        pointerEvents:
-                            "none",
-                    }}
-                />
-            ))}
+            {NAV_ITEMS.map(
+                (item) => (
+                    <button
+                        key={item.id}
+                        type="button"
+                        aria-label={
+                            item.label
+                        }
+                        onClick={() =>
+                            handleNavigate(
+                                item.path,
+                            )
+                        }
+                        style={{
+                            position:
+                                "absolute",
+                            left: 0,
+                            top: 0,
+                            width: "100%",
+                            height: "100%",
+                            border: 0,
+                            padding: 0,
+                            margin: 0,
+                            background:
+                                "transparent",
+                            cursor: "pointer",
+                            pointerEvents:
+                                "none",
+                        }}
+                    />
+                ),
+            )}
         </nav>
     );
 }

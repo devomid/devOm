@@ -1357,7 +1357,7 @@ velocity +=
  */
 float navWave =
     sin(
-        uTime * 0.55 +
+        uTime * 0.75 +
         navTarget.x * 0.65
     ) *
     0.065;
