@@ -1349,6 +1349,21 @@ velocity +=
         vec3 navTarget =
             navTargetSample.xyz;
 
+            /*
+ * Very slow rope-like vertical wave.
+ *
+ * The whole navigation formation stays together.
+ * Particles do not move relative to their letters.
+ */
+float navWave =
+    sin(
+        uTime * 0.55 +
+        navTarget.x * 0.65
+    ) *
+    0.065;
+
+navTarget.y += navWave;
+
         vec3 navToTarget =
             navTarget -
             position;
@@ -1453,11 +1468,47 @@ velocity +=
                     )
                 );
 
-            velocity +=
-                navTangent *
-                0.00042 *
-                uNavStrength *
-                navVariation;
+            /*
+ * Keep the formed letters gently alive.
+ *
+ * Movement is deliberately very small and
+ * does NOT move particles along the glyph.
+ * The target spring remains responsible for
+ * keeping every particle attached to its
+ * letter position.
+ */
+float navDriftX =
+    sin(
+        uTime * 0.18 +
+        phase * 1.37
+    );
+
+float navDriftY =
+    cos(
+        uTime * 0.15 +
+        phase * 1.19
+    );
+
+float navDriftZ =
+    sin(
+        uTime * 0.13 +
+        phase * 0.91
+    );
+
+velocity.x +=
+    navDriftX *
+    0.000035 *
+    uNavStrength;
+
+velocity.y +=
+    navDriftY *
+    0.000035 *
+    uNavStrength;
+
+velocity.z +=
+    navDriftZ *
+    0.000018 *
+    uNavStrength;
         }
     }
 }

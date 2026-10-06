@@ -72,7 +72,7 @@ const FONT_WEIGHT = 500;
 
 const BASE_FONT_SIZE = 84;
 
-const PARTICLE_DENSITY = 0.36;
+const PARTICLE_DENSITY = 0.85;
 
 const NAV_LAYOUT = [
     {
@@ -267,6 +267,15 @@ function collectCandidates(
             candidates[index],
         );
     }
+
+    console.log("[NavNebula] target build", {
+        textureSize,
+        density,
+        candidates: candidates.length,
+        selected: selected.length,
+        first: selected.slice(0, 5),
+        last: selected.slice(-5),
+    });
 
     return selected;
 }
