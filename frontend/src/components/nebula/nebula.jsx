@@ -1460,8 +1460,9 @@ velocity +=
          * ====================================================
          */
 
-        if (
-            uTextEnabled > 0.5
+               if (
+            uTextEnabled > 0.5 &&
+            uNavEnabled < 0.5
         ) {
             vec4 textTargetSample =
                 texture2D(

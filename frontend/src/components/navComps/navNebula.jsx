@@ -70,34 +70,34 @@ const FONT_FAMILY =
 
 const FONT_WEIGHT = 500;
 
-const BASE_FONT_SIZE = 54;
+const BASE_FONT_SIZE = 84;
 
 const PARTICLE_DENSITY = 0.36;
 
 const NAV_LAYOUT = [
     {
-        x: 0.16,
-        y: 0.50,
+        x: 0.10,
+        y: 0.14,
         align: "center",
     },
     {
-        x: 0.36,
-        y: 0.50,
+        x: 0.30,
+        y: 0.14,
         align: "center",
     },
     {
-        x: 0.57,
-        y: 0.50,
+        x: 0.53,
+        y: 0.14,
         align: "center",
     },
     {
-        x: 0.76,
-        y: 0.50,
+        x: 0.74,
+        y: 0.14,
         align: "center",
     },
     {
         x: 0.91,
-        y: 0.50,
+        y: 0.14,
         align: "center",
     },
 ];
@@ -110,15 +110,15 @@ function getResponsiveFontSize() {
     const width = window.innerWidth;
 
     if (width < 600) {
-        return 34;
+        return 30;
     }
 
     if (width < 900) {
-        return 42;
+        return 44;
     }
 
     if (width < 1200) {
-        return 48;
+        return 64;
     }
 
     return BASE_FONT_SIZE;
